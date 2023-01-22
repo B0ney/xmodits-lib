@@ -1,8 +1,8 @@
+pub mod fmt;
 mod interface;
 mod macros;
-mod utils;
 pub mod parser;
-pub mod fmt;
+mod utils;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

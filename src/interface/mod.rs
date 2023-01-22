@@ -1,8 +1,8 @@
 mod error;
 mod looping;
 // mod sample;
-pub use error::Error;
 use byteorder::ReadBytesExt;
+pub use error::Error;
 
 use std::{
     borrow::Cow,
@@ -12,13 +12,12 @@ use std::{
 
 use crate::parser::to_str_os;
 
-
 /// Tracker module sample
 #[derive(Default, Debug)]
 pub struct Sample {
     /// Raw sample name
     pub name: Box<[u8]>,
-    
+
     /// Raw sample filename. Not all formats support this.
     pub filename: Option<Box<[u8]>>,
 
@@ -27,10 +26,10 @@ pub struct Sample {
 
     /// Sample rate
     pub rate: u32,
-    
+
     /// Sample bit depth. i.e 8, 16, 24
     pub depth: u8,
-    
+
     /// Number of audio channels
     pub channels: u8,
 
@@ -63,7 +62,7 @@ pub struct Sample {
 
 impl Sample {
     /// Return both start & end pointers to sample data as a range.
-    /// 
+    ///
     /// If the stored sample is compressed, you may not want to use this.
     pub fn ptr_range(&self) -> std::ops::Range<usize> {
         self.ptr as usize..(self.ptr + self.len) as usize
@@ -174,17 +173,23 @@ pub trait Module {
     ///     Should we modifiy the internal buffer?
     fn pcm(&mut self, index: usize) -> Result<Box<[u8]>, Error>;
     //  {
-        // let len = self.samples()[index].len;
-        // let mut buf: Vec<u8> = Vec::with_capacity(len as usize);
-        // self.pcm_into(index, buf)?;
-        // Ok(buf.into_boxed_slice())
-        // todo!()
+    // let len = self.samples()[index].len;
+    // let mut buf: Vec<u8> = Vec::with_capacity(len as usize);
+    // self.pcm_into(index, buf)?;
+    // Ok(buf.into_boxed_slice())
+    // todo!()
     // }
 
     // fn pcm_into<'b>(&'b mut self, idx: usize, buf: dyn Write + 'b) -> Result<(), Error>;
 
-    /// List sample information
+    /// List sample information, may contain empty samples.
+    /// This is kept since comments are sometimes embedded in the sample name.
     fn samples(&self) -> &[Sample];
+
+    /// List sample information. Only provides non-empty samples.
+    fn samples_filtered(&self) -> Vec<&Sample> {
+        self.samples().iter().filter(|smp| smp.len != 0).collect()
+    }
 
     /// How many samples are stored
     fn total_samples(&self) -> usize;
@@ -257,7 +262,7 @@ pub trait Audio {
     fn write<W>(&self, pcm: &[u8], mut writer: W)
     where
         W: Write,
-    {   
+    {
         writer.write_all(pcm).unwrap();
     }
 }
@@ -319,7 +324,6 @@ pub trait Audio {
 //     pub struct Raw;
 // }
 
-
 fn nameer(smp: &Sample, idx: usize, total: usize) -> String {
     todo!()
 }
@@ -329,7 +333,7 @@ struct Dummy;
 fn a() {
     let mut A = WAV;
     let mut buf = vec![0];
-    A.write(b"I am in cripling dept :D", &mut buf);
+    A.write(b"Spam and eggs", &mut buf);
     dbg!(buf);
     // let mut file = Box::new(std::fs::File::create("path").unwrap());
     // let mut a = Dummy::load(vec![0]).unwrap();

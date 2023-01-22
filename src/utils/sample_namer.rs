@@ -1,6 +1,7 @@
 use crate::interface::Sample;
 
 /// Configure how exported samples are named
+#[derive(Debug, Clone, Copy)]
 pub struct SampleNamer {
     /// Only name samples with an index
     pub index_only: bool,
@@ -118,7 +119,7 @@ fn digits(n: usize) -> u8 {
 
 // #[cold]
 // /// Calculate the number of digits for a usize.
-// ///  
+// ///
 // /// Unlikely to be called
 // fn calc_digits(n: usize) -> usize {
 //     dbg!((n as f32).log10().floor() as usize + 1)
