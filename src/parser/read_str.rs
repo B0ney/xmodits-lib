@@ -1,5 +1,10 @@
 use std::borrow::Cow;
 
+pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]>{
+    buf.iter_mut().for_each(|x| if *x == b'\r' { *x = b'\n' });
+    buf
+}
+
 pub fn read_string(buf: &[u8], len: usize) -> String {
     read_str(buf, len).into_owned()
 }
