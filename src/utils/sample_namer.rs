@@ -41,8 +41,7 @@ impl Default for SampleNamer {
 
 impl From<SampleNamer> for Box<dyn Fn(&Sample, usize) -> String> {
     fn from(val: SampleNamer) -> Self {
-        // Box::new(val.to_func())
-        todo!()
+        Box::new(val.to_func())
     }
 }
 

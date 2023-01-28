@@ -27,34 +27,28 @@ pub struct Sample {
     /// Sample rate
     pub rate: u32,
 
-    /// Sample bit depth. i.e 8, 16, 24
-    pub depth: u8,
-
-    /// Number of audio channels
-    pub channels: u8,
-
-    /// Sample flags
-    pub flags: u8,
-
     /// Sample pointer
     pub ptr: u32,
+
+    /// Sample bit depth. i.e 8, 16, 24
+    pub depth: SampleDepth,
+
+    /// Number of audio channels
+    pub channel_type: ChannelType,
 
     /// An index representing its true postition inside a tracker module.
     /// You should call ```index_raw()``` instead as this value is zero indexed.
     pub index_raw: u16, // changed from usize to u16 reduce memory
 
     /// An index TODO We expect this to be zero indexed.
-    pub index_pretty: u16,
+    pub index: u16,
 
     /// Is sample compressed?
     pub is_compressed: bool,
 
-    /// Is the stereo sample data interleaved?
-    pub is_interleaved: bool,
-
     /// Can the sample data be read directly from the buffer?
     /// [deprecated]
-    pub is_readable: bool,
+    // pub is_readable: bool,
 
     /// Looping information
     pub looping: Loop,
@@ -74,7 +68,7 @@ impl Sample {
     }
 
     pub fn index_pretty(&self) -> usize {
-        self.index_pretty as usize + 1
+        self.index as usize + 1
     }
 
     /// Display Sample's name from its raw buffer
@@ -102,9 +96,49 @@ impl Sample {
             None => self.name(),
         }
     }
+
     /// Is the sample stereo?
     pub fn is_stereo(&self) -> bool {
-        self.channels == 2
+        matches!(self.channel_type, ChannelType::Stereo { .. })
+    }
+
+    /// Is the stereo sample data interleaved?
+    pub fn is_interleaved(&self) -> bool {
+        matches!(self.channel_type, ChannelType::Stereo { interleaved: true })
+    }
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChannelType {
+    #[default]
+    Mono,
+    Stereo {
+        interleaved: bool,
+    },
+}
+
+#[derive(Default, Debug, Clone, Copy)]
+pub enum SampleDepth {
+    I8,
+    #[default]
+    U8,
+    I16,
+    U16,
+}
+
+impl SampleDepth {
+    fn bits(&self) -> u8 {
+        match self {
+            Self::I8 | Self::U8 => 8,
+            Self::I16 | Self::U16 => 16,
+        }
+    }
+
+    fn is_signed(&self) -> bool {
+        match self {
+            Self::I8 | Self::I16 => true,
+            Self::U8 | Self::U16 => false,
+        }
     }
 }
 
@@ -133,7 +167,7 @@ pub enum LoopType {
 /// Only has the information needed to extract samples
 pub trait Module {
     /// Display internal text
-    fn comments(&self) -> Cow<str>;
+    // fn comments(&self) -> Cow<str>;
 
     /// display the format
     ///
@@ -171,7 +205,17 @@ pub trait Module {
     /// TODO:   
     ///     I might have a different approach to this
     ///     Should we modifiy the internal buffer?
-    fn pcm(&mut self, index: usize) -> Result<Box<[u8]>, Error>;
+    /// 
+    ///     No, obtaining the pcm data should not cause side effects
+    fn pcm(&self, index: usize) -> Result<Cow<[u8]>, Error>;
+
+    fn pcm_meta(&self, index: usize) -> Result<(&Sample, Cow<[u8]>), Error> {
+        Ok((&self.samples()[index], self.pcm(index)?))
+    }
+    // fn pcm_meta<'a>(&'a self, smp: &'a Sample) -> Result<(&Sample, Cow<[u8]>), Error> {
+    //     Ok((smp, self.pcm(smp.index as usize)?))
+    // }
+
     //  {
     // let len = self.samples()[index].len;
     // let mut buf: Vec<u8> = Vec::with_capacity(len as usize);
