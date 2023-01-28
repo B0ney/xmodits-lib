@@ -31,7 +31,7 @@ pub struct Sample {
     pub ptr: u32,
 
     /// Sample bit depth. i.e 8, 16, 24
-    pub depth: SampleDepth,
+    pub depth: Depth,
 
     /// Number of audio channels
     pub channel_type: ChannelType,
@@ -104,7 +104,18 @@ impl Sample {
 
     /// Is the stereo sample data interleaved?
     pub fn is_interleaved(&self) -> bool {
-        matches!(self.channel_type, ChannelType::Stereo { interleaved: true })
+        self.channel_type == ChannelType::Stereo { interleaved: true }
+    }
+
+    pub fn is_signed(&self) -> bool {
+        self.depth.is_signed()
+    }
+
+    pub fn bits(&self) -> u8 {
+        self.depth.bits()
+    }
+    pub fn channels(&self) -> u16 {
+        self.channel_type.channels()
     }
 }
 
@@ -117,8 +128,18 @@ pub enum ChannelType {
     },
 }
 
+impl ChannelType {
+    #[inline]
+    fn channels(&self) -> u16 {
+        match self {
+            Self::Mono => 1,
+            Self::Stereo { .. } => 2,
+        }
+    }
+}
+
 #[derive(Default, Debug, Clone, Copy)]
-pub enum SampleDepth {
+pub enum Depth {
     I8,
     #[default]
     U8,
@@ -126,7 +147,8 @@ pub enum SampleDepth {
     U16,
 }
 
-impl SampleDepth {
+impl Depth {
+    #[inline]
     fn bits(&self) -> u8 {
         match self {
             Self::I8 | Self::U8 => 8,
@@ -134,6 +156,7 @@ impl SampleDepth {
         }
     }
 
+    #[inline]
     fn is_signed(&self) -> bool {
         match self {
             Self::I8 | Self::I16 => true,
@@ -186,7 +209,6 @@ pub trait Module {
         Self::validate(&data)?;
         Self::load_unchecked(data)
     }
-    // R: Read + Seek;
 
     /// Load tracker module from file without any validation.
     ///
@@ -205,7 +227,7 @@ pub trait Module {
     /// TODO:   
     ///     I might have a different approach to this
     ///     Should we modifiy the internal buffer?
-    /// 
+    ///
     ///     No, obtaining the pcm data should not cause side effects
     fn pcm(&self, index: usize) -> Result<Cow<[u8]>, Error>;
 
@@ -293,91 +315,229 @@ pub trait Ripper: Module {
 }
 impl<T: Module + ?Sized> Ripper for T {}
 
-struct WAV;
-impl Audio for WAV {}
 
-pub trait Audio {
-    fn metadata(smp: &Sample) -> Self
-    where
-        Self: Sized,
-    {
-        todo!()
+#[derive(Clone, Copy)]
+struct Iff;
+impl Audio for Iff {
+    fn extension(&self) -> &str {
+        "iff"
     }
-    fn write<W>(&self, pcm: &[u8], mut writer: W)
-    where
-        W: Write,
-    {
-        writer.write_all(pcm).unwrap();
+
+    fn write(&self, metadata: &Sample, pcm: &[u8], writer: &mut dyn Write) -> Result<(), Error> {
+        todo!()
     }
 }
 
-// impl <T>Ripper<WAV> for T
-// where T: Module {
+#[derive(Clone, Copy)]
+struct Raw;
+impl Audio for Raw {
+    fn extension(&self) -> &str {
+        "raw"
+    }
 
-// }
+    fn write(&self, _: &Sample, pcm: &[u8], writer: &mut dyn Write) -> Result<(), Error> {
+        Ok(writer.write_all(pcm.as_ref())?)
+    }
+}
 
-/// Extension over Module trait.
-/// Adds the ability to extract samples and put them into a file.
-///  
-// pub trait Ripper: Module {
-//     // type Format: AudioFormat;
-//     // should i move the audioformat trait to this function?
-//     fn export<FMT: AudioFormat>(
-//         &mut self,
-//         // Directory to place extracted samples
-//         folder: impl AsRef<Path>,
-//         // Trait to name samples
-//         namer: impl Fn(&Sample, usize, usize) -> String,
-//         format: impl AudioFormat,
-//         params: Option<impl FnMut(&mut FMT)>,
-//     ) {
-//         // FMT::from_pcm;
-//         for _ in 0..self.total_samples() {
-//             let a = namer(&Sample::default(), 69, 69);
-//         }
-//     }
+#[derive(Clone, Copy)]
+struct Wav;
+impl Audio for Wav {
+    fn extension(&self) -> &'static str {
+        "wav"
+    }
 
-//     fn dump(&mut self, folder: impl AsRef<Path>, namer: impl Fn(&Sample, usize, usize) -> String) {}
+    #[allow(clippy::unnecessary_cast)]
+    fn write(&self, metadata: &Sample, pcm: &[u8], writer: &mut dyn Write) -> Result<(), Error> {
+        assert_ne!(pcm.len(), u32::MAX as usize, "Wave file limit exceeded");
 
-//     fn f(&mut self) {
-//         let _ = self.pcm(8);
-//     }
-// }
+        const HEADER_SIZE: u32 = 44;
+        const RIFF: [u8; 4] = [0x52, 0x49, 0x46, 0x46]; // RIFF
+        const WAVE: [u8; 4] = [0x57, 0x41, 0x56, 0x45]; // WAVE
+        const FMT_: [u8; 4] = [0x66, 0x6D, 0x74, 0x20]; // "riff "
+        const DATA: [u8; 4] = [0x64, 0x61, 0x74, 0x61]; // data
+        const SMPL: [u8; 4] = [0x73, 0x6D, 0x70, 0x6C]; // smpl
+        const WAV_SCS: [u8; 4] = 16_u32.to_le_bytes();
+        const WAV_TYPE: [u8; 4] = 1_u32.to_le_bytes();
 
-// // automatically implement trait
-// impl<T: Module> Ripper for T {}
-// //<WAV>
+        // To avoid nasty bugs in future, explicitly cast the types.
 
-// pub trait AudioFormat {
-//     fn from_pcm(buf: impl AsRef<[u8]>, smp: &Sample) -> Self
-//     where
-//         Self: Sized,
-//     {
-//         todo!()
-//     }
-// }
-// // struct WAV;
-// impl AudioFormat for WAV {
-//     fn from_pcm(buf: impl AsRef<[u8]>, smp: &Sample) -> Self {
-//         todo!()
-//     }
-// }
+        let size = HEADER_SIZE - 8 + pcm.len() as u32;
+        let channels = metadata.channels() as u16;
+        let bits = metadata.bits() as u16;
+        let rate = metadata.rate as u32;
+        let block_align = channels * (bits / 8);
 
-// mod AudioType {
-//     pub struct Wav;
-//     pub struct Raw;
-// }
+        writer.write_all(&RIFF)?;
+
+        // wav file size
+        writer.write_all(&size.to_le_bytes())?;
+        writer.write_all(&WAVE)?;
+        writer.write_all(&FMT_)?;
+
+        // wav scs
+        writer.write_all(&WAV_SCS)?;
+
+        // wav type
+        writer.write_all(&WAV_TYPE)?;
+
+        // channels
+        writer.write_all(&channels.to_le_bytes())?;
+
+        // sample frequency
+        writer.write_all(&rate.to_le_bytes())?;
+
+        // bytes per second
+        writer.write_all(&(rate * block_align as u32).to_le_bytes())?;
+
+        // block align
+        writer.write_all(&block_align.to_le_bytes())?;
+
+        // bits per sample
+        writer.write_all(&bits.to_le_bytes())?;
+        writer.write_all(&DATA)?;
+
+        // size of chunk
+        writer.write_all(&(pcm.len() as u32).to_le_bytes())?;
+
+        // write pcm
+        // we need to convert the pcm data to signed integers if they're not already
+        // let mut new_pcm: Option<Vec<u8>> = None;
+
+        /*
+        Note: 
+            for our case, WAV only supports unsigned 8-bit integers and signed 16-bit integers
+        */
+        // let pcm = match metadata.is_signed() {
+        //     true => pcm,
+        //     false => {
+        //         new_pcm = Some(Vec::with_capacity(pcm.len()));
+        //         make_signed(new_pcm.as_mut().unwrap(), metadata.depth);
+        //         new_pcm.as_ref().unwrap()
+        //     }
+        // };
+
+        writer.write_all(pcm)?;
+
+        // write smpl chunk
+        {}
+        Ok(())
+    }
+}
+
+#[inline]
+fn make_signed(buf: &mut [u8], depth: Depth) {
+    match depth {
+        Depth::U16 => make_signed_16bit(buf),
+        Depth::U8 => make_signed_8bit(buf),
+        _ => unreachable!("Logic error"), // should be safe to ignore rather than panicking...
+    }
+}
+
+#[inline]
+fn make_signed_8bit(buf: &mut [u8]) {
+    for i in buf {
+        *i = i.wrapping_sub(i8::MAX as u8 + 1)
+    }
+}
+
+#[inline]
+fn make_signed_16bit(buf: &mut [u8]) {
+    use byteorder::{ByteOrder, LE};
+
+    for i in 0..(buf.len() / 2) {
+        let idx: usize = i * 2;
+        let new = LE::read_u16(&buf[idx..(idx + 2)]).wrapping_sub(i16::MAX as u16 + 1);
+        LE::write_u16(&mut buf[idx..(idx + 2)], new);
+    }
+}
+pub trait Audio {
+    fn extension(&self) -> &str;
+    fn write(&self, metadata: &Sample, pcm: &[u8], writer: &mut dyn Write) -> Result<(), Error>;
+}
+
+mod export {
+    use std::{fs, io::Write, path::Path};
+
+    use super::{Audio, Module, Sample};
+
+    // pub fn to_writer<P, A, W>(fmt: P, mut writer: W, pcm: A, metadata: &Sample)
+    // where
+    //     P: Audio + Sized,
+    //     A: AsRef<[u8]>,
+    //     W: Write,
+    // {
+    //     fmt.write(&pcm.as_ref(), &mut writer)
+    // }
+    pub fn filter_empty_samples(smp: &[Sample]) -> impl Iterator<Item = &Sample> {
+        smp.into_iter().filter(|smp| smp.len != 0)
+    }
+
+    pub fn dump<P, F>(
+        path: P,
+        module: Box<dyn Module>,
+        format: &dyn Audio,
+        namer: F,
+    ) -> Result<(), super::Error>
+    where
+        P: AsRef<Path>,
+        // A: Audio,
+        F: Fn(&Sample, usize, &str) -> String,
+    {
+        let total_samples = module.total_samples();
+
+        for (idx, smp) in filter_empty_samples(module.samples()).enumerate() {
+            let path = path
+                .as_ref()
+                .join(namer(smp, total_samples, format.extension()));
+
+            let mut file = fs::File::create(path).unwrap();
+
+            let pcm = module.pcm(idx).unwrap();
+            format.write(smp, pcm.as_ref(), &mut file)?
+        }
+        Ok(())
+    }
+}
+
+
+struct ModRipper {
+    // format: Box<dyn Audio>
+}
 
 fn nameer(smp: &Sample, idx: usize, total: usize) -> String {
     todo!()
 }
 struct Dummy;
 
+// struct RAW;
+
+enum ExportFormat {
+    IFF,
+    WAV,
+    RAW,
+}
+
+impl ExportFormat {
+    fn get_impl(&self) -> Box<dyn Audio> {
+        match self {
+            Self::IFF => Box::new(Iff),
+            Self::WAV => Box::new(Wav),
+            Self::RAW => Box::new(Raw),
+            
+        }
+    }
+}
+
+// impl Into<dyn Audio> for ExportFormat {
+
+// }
+
 #[test]
 fn a() {
-    let mut A = WAV;
+    let mut A = Wav;
     let mut buf = vec![0];
-    A.write(b"Spam and eggs", &mut buf);
+    // A.write(Cow::Borrowed(b"Spam and eggs").as_ref(), &mut buf);
     dbg!(buf);
     // let mut file = Box::new(std::fs::File::create("path").unwrap());
     // let mut a = Dummy::load(vec![0]).unwrap();

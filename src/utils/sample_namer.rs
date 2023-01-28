@@ -39,15 +39,15 @@ impl Default for SampleNamer {
     }
 }
 
-impl From<SampleNamer> for Box<dyn Fn(&Sample, usize) -> String> {
+impl From<SampleNamer> for Box<dyn Fn(&Sample, usize, &str) -> String> {
     fn from(val: SampleNamer) -> Self {
         Box::new(val.to_func())
     }
 }
 
 impl SampleNamer {
-    pub fn to_func(self) -> impl Fn(&Sample, usize) -> String {
-        move |smp: &Sample, total: usize| -> String {
+    pub fn to_func(self) -> impl Fn(&Sample, usize, &str) -> String {
+        move |smp: &Sample, total: usize, extension: &str| -> String {
             let index_component = {
                 let index = match self.index_raw {
                     true => smp.index_raw(),
@@ -65,7 +65,7 @@ impl SampleNamer {
                     n => n,
                 } as usize;
 
-                format!("{:0padding$}", index)
+                format!("{index:0padding$}", )
             };
 
             let smp_name = || {
@@ -75,11 +75,11 @@ impl SampleNamer {
                 };
 
                 match name {
-                    name if name.is_empty() => format!("{}", name),
+                    name if name.is_empty() => format!("{name}"),
                     name => {
                         let name = name
-                            .trim_end_matches(".wav")
-                            .trim_end_matches(".WAV")
+                            .trim_end_matches(&format!(".{extension}"))
+                            .trim_end_matches(&format!(".{}", extension.to_uppercase()))
                             .replace('.', "_");
 
                         let name = match (self.upper, self.lower) {
@@ -87,7 +87,7 @@ impl SampleNamer {
                             (false, true) => name.to_ascii_lowercase(),
                             _ => name,
                         };
-                        format!(" - {}", name)
+                        format!(" - {name}")
                     }
                 }
             };
@@ -97,7 +97,7 @@ impl SampleNamer {
                 false => smp_name(),
             };
 
-            format!("{}{}.wav", index_component, name_component)
+            format!("{index_component}{name_component}.wav")
         }
     }
 }

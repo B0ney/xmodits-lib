@@ -1,3 +1,3 @@
 pub mod wav;
-pub mod pcm;
+pub mod raw;
 pub mod iff;
