@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{borrow::Cow, io::Write};
 
 use crate::interface::{audio::Audio, sample::Sample, Error};
 
@@ -10,7 +10,12 @@ impl Audio for Iff {
         "iff"
     }
 
-    fn write(&self, metadata: &Sample, pcm: &[u8], writer: &mut dyn Write) -> Result<(), Error> {
+    fn write(
+        &self,
+        metadata: &Sample,
+        pcm: Cow<[u8]>,
+        writer: &mut dyn Write,
+    ) -> Result<(), Error> {
         todo!()
     }
 }

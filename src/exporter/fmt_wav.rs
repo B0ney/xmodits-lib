@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{borrow::Cow, io::Write};
 
 use crate::{
     interface::{
@@ -6,7 +6,7 @@ use crate::{
         sample::{Depth, Sample},
         Error,
     },
-    utils::sampler::{resample_16_bit, resample_8_bit},
+    utils::sampler::{flip_sign_16_bit, flip_sign_8_bit},
 };
 
 #[derive(Clone, Copy)]
@@ -18,9 +18,12 @@ impl Audio for Wav {
     }
 
     #[allow(clippy::unnecessary_cast)]
-    fn write(&self, metadata: &Sample, pcm: &[u8], writer: &mut dyn Write) -> Result<(), Error> {
-        assert_ne!(pcm.len(), u32::MAX as usize, "Wave file limit exceeded");
-
+    fn write(
+        &self,
+        metadata: &Sample,
+        pcm: Cow<[u8]>,
+        writer: &mut dyn Write,
+    ) -> Result<(), Error> {
         const HEADER_SIZE: u32 = 44;
         const RIFF: [u8; 4] = [0x52, 0x49, 0x46, 0x46]; // RIFF
         const WAVE: [u8; 4] = [0x57, 0x41, 0x56, 0x45]; // WAVE
@@ -38,32 +41,18 @@ impl Audio for Wav {
         let block_align = channels * (bits / 8);
 
         writer.write_all(&RIFF)?;
-
-        // wav file size
-        writer.write_all(&size.to_le_bytes())?;
+        writer.write_all(&size.to_le_bytes())?; // wav file size
         writer.write_all(&WAVE)?;
         writer.write_all(&FMT_)?;
         writer.write_all(&WAV_SCS)?;
         writer.write_all(&WAV_TYPE)?;
-
-        // channels
-        writer.write_all(&channels.to_le_bytes())?;
-
-        // sample frequency
-        writer.write_all(&rate.to_le_bytes())?;
-
-        // bytes per second
-        writer.write_all(&(rate * block_align as u32).to_le_bytes())?;
-
-        // block align
-        writer.write_all(&block_align.to_le_bytes())?;
-
-        // bits per sample
-        writer.write_all(&bits.to_le_bytes())?;
+        writer.write_all(&channels.to_le_bytes())?; // channels
+        writer.write_all(&rate.to_le_bytes())?; // sample frequency
+        writer.write_all(&(rate * block_align as u32).to_le_bytes())?; // bytes per second
+        writer.write_all(&block_align.to_le_bytes())?; // block align
+        writer.write_all(&bits.to_le_bytes())?; // bits per sample
         writer.write_all(&DATA)?;
-
-        // size of chunk
-        writer.write_all(&(pcm.len() as u32).to_le_bytes())?;
+        writer.write_all(&(pcm.len() as u32).to_le_bytes())?; // size of chunk
 
         let mut write_pcm = |buf: &[u8]| writer.write_all(buf);
 
@@ -71,16 +60,16 @@ impl Audio for Wav {
         // If not, resample them.
         match metadata.depth {
             Depth::U8 | Depth::I16 => {
-                write_pcm(pcm)?;
+                write_pcm(&pcm)?;
             }
             Depth::I8 => {
-                let mut buf: Vec<u8> = Vec::new();
-                write_pcm(resample_8_bit(pcm, &mut buf))?;
+                let mut pcm = pcm.into_owned();
+                write_pcm(flip_sign_8_bit(&mut pcm))?;
             }
 
             Depth::U16 => {
-                let mut buf: Vec<u16> = Vec::new();
-                write_pcm(resample_16_bit(pcm, &mut buf))?;
+                let mut pcm = pcm.into_owned();
+                write_pcm(flip_sign_16_bit(&mut pcm))?;
             }
         }
         // write smpl chunk
@@ -91,7 +80,9 @@ impl Audio for Wav {
 
 #[cfg(test)]
 mod tests {
-    use crate::interface::{audio::Audio, export::dump, sample::Sample};
+    use std::borrow::Cow;
+
+    use crate::interface::{audio::Audio, sample::Sample};
 
     use super::Wav;
 
@@ -106,7 +97,7 @@ mod tests {
                 rate: 8000,
                 ..Default::default()
             },
-            data,
+            Cow::Borrowed(data),
             &mut file,
         );
         // dbg!(buf);
