@@ -7,7 +7,7 @@ use crate::{parser::{
     bitflag::BitFlag,
     magic::{self, bad_magic_non_consume, magic, magic_non_consume},
     read_str::{self, replace_carriage_return},
-}, interface::Sample};
+}};
 // use std
 pub trait Data: Read + Seek + Send + Sync {
     fn size(&self) -> Option<u64>;
@@ -203,11 +203,11 @@ fn validate<R: ByteReader>(buf: &mut R) -> io::Result<()> {
     // dbg!(String::from_utf8_lossy(&msg));
     println!("{}",String::from_utf8_lossy(&msg));
     println!("\n[debug] Samples\n");
-    let samples = build_samples(buf, smp_ptrs)?;
-    for i in samples {
-        println!("{}", i.filename());
-        println!("{}", i.name());
-    }
+    // let samples = build_samples(buf, smp_ptrs)?;
+    // for i in samples {
+    //     println!("{}", i.filename());
+    //     println!("{}", i.name());
+    // }
     Ok(())
 }
 
@@ -219,20 +219,20 @@ fn validate<R: ByteReader>(buf: &mut R) -> io::Result<()> {
 //     buf
 // }
 
-fn build_samples<R: ByteReader>(reader: &mut R, ptrs: Vec<u32>) -> io::Result<Vec<Sample>> {
-    let mut sample_data: Vec<Sample> = Vec::with_capacity(ptrs.len());
-    reader.size();
-    for ptr in ptrs {
-        reader.set_seek_pos(ptr as u64)?;
-        magic(reader, b"IMPS")?;
-        let filename = reader.read_bytes_boxed_slice(12)?;
-        reader.skip_bytes(4)?;
-        let name = reader.read_bytes_boxed_slice(26)?;
-        sample_data.push(Sample {
-            filename: Some(filename),
-            name,
-            ..Default::default()
-        })
-    }
-    Ok(sample_data)
-}
+// fn build_samples<R: ByteReader>(reader: &mut R, ptrs: Vec<u32>) -> io::Result<Vec<Sample>> {
+//     let mut sample_data: Vec<Sample> = Vec::with_capacity(ptrs.len());
+//     reader.size();
+//     for ptr in ptrs {
+//         reader.set_seek_pos(ptr as u64)?;
+//         magic(reader, b"IMPS")?;
+//         let filename = reader.read_bytes_boxed_slice(12)?;
+//         reader.skip_bytes(4)?;
+//         let name = reader.read_bytes_boxed_slice(26)?;
+//         sample_data.push(Sample {
+//             filename: Some(filename),
+//             name,
+//             ..Default::default()
+//         })
+//     }
+//     Ok(sample_data)
+// }

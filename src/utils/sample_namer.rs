@@ -1,4 +1,6 @@
-use crate::interface::Sample;
+// use crate::interface::Sample;
+
+use crate::interface::sample::Sample;
 
 /// Configure how exported samples are named
 #[derive(Debug, Clone, Copy)]
@@ -25,7 +27,10 @@ pub struct SampleNamer {
     /// Name samples in upper case
     pub upper: bool,
 }
-
+pub struct Info {
+    total_samples: usize,
+    extension: String,
+}
 impl Default for SampleNamer {
     fn default() -> Self {
         Self {
@@ -39,19 +44,19 @@ impl Default for SampleNamer {
     }
 }
 
-impl From<SampleNamer> for Box<dyn Fn(&Sample, usize, &str) -> String> {
-    fn from(val: SampleNamer) -> Self {
-        Box::new(val.to_func())
-    }
-}
+// impl From<SampleNamer> for Box<dyn Fn(&Sample, usize, &str) -> String> {
+//     fn from(val: SampleNamer) -> Self {
+//         Box::new(val.to_func())
+//     }
+// }
 
 impl SampleNamer {
-    pub fn to_func(self) -> impl Fn(&Sample, usize, &str) -> String {
-        move |smp: &Sample, total: usize, extension: &str| -> String {
+    pub fn to_func(self) -> impl Fn(&Sample, &Info, usize) -> String {
+        move |smp: &Sample, info: &Info, index: usize| -> String {
             let index_component = {
                 let index = match self.index_raw {
                     true => smp.index_raw(),
-                    false => smp.index_pretty(),
+                    false => index + 1,
                 };
                 // BUG: There is a potential loophole for using index_raw.
                 //
@@ -60,14 +65,15 @@ impl SampleNamer {
                 // We could add another parameter just like "total" to make sure this doesn't happen, but is doing so worth it?
                 // Instead of &Sample, we *could* use &[Sample], that way we have enough information. but the problem arises
                 // when &[sample] has gaps in beteween them, index_pretty will no longer work.
+                let total = info.total_samples;
                 let padding = match self.index_padding {
                     n if n > 1 && digits(total) > n => digits(total),
                     n => n,
                 } as usize;
 
-                format!("{index:0padding$}", )
+                format!("{index:0padding$}",)
             };
-
+            let extension = &info.extension;
             let smp_name = || {
                 let name = match self.prefer_filename {
                     true => smp.filename_pretty(),
@@ -75,11 +81,11 @@ impl SampleNamer {
                 };
 
                 match name {
-                    name if name.is_empty() => format!("{name}"),
+                    name if name.is_empty() => name.into(),
                     name => {
                         let name = name
                             .trim_end_matches(&format!(".{extension}"))
-                            .trim_end_matches(&format!(".{}", extension.to_uppercase()))
+                            // .trim_end_matches(&format!(".{}", extension.to_uppercase()))
                             .replace('.', "_");
 
                         let name = match (self.upper, self.lower) {
@@ -97,7 +103,7 @@ impl SampleNamer {
                 false => smp_name(),
             };
 
-            format!("{index_component}{name_component}.wav")
+            format!("{index_component}{name_component}.{extension}")
         }
     }
 }
