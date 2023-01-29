@@ -1,9 +1,6 @@
-pub trait BitFlag {
+pub trait BitFlag: Sized + Copy + Into<u8> {
     /// Returns ``true`` if all the **``1s``** in ``rhs`` exist in ``lhs`` (``self``)
-    fn is_set(self, rhs: impl Into<u8> + Copy) -> bool
-    where
-        Self: Sized + Copy + Into<u8>,
-    {
+    fn is_set(self, rhs: impl Into<u8> + Copy) -> bool {
         (self.into() & rhs.into()) == rhs.into()
     }
 }

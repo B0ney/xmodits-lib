@@ -3,13 +3,16 @@ use crate::interface::audio::Audio;
 pub mod fmt_iff;
 pub mod fmt_raw;
 pub mod fmt_wav;
+pub mod fmt_its;
 
 #[derive(Default, Clone, Copy)]
 enum ExportFormat {
+    AIFF,
     IFF,
     #[default]
     WAV,
     RAW,
+    ITS,
 }
 
 impl ExportFormat {
@@ -18,6 +21,8 @@ impl ExportFormat {
             Self::IFF => Box::new(fmt_iff::Iff),
             Self::WAV => Box::new(fmt_wav::Wav),
             Self::RAW => Box::new(fmt_raw::Raw),
+            // Self::AIFF =>
+            _ => unimplemented!()
         }
     }
 }
@@ -28,9 +33,11 @@ impl std::fmt::Display for ExportFormat {
             f,
             "{}",
             match self {
-                Self::IFF => "iff",
+                Self::IFF => "8svx",
                 Self::WAV => "wav",
                 Self::RAW => "raw",
+                Self::AIFF => "aiff",
+                Self::ITS => "its"
             }
         )
     }
