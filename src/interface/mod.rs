@@ -1,7 +1,7 @@
-pub mod error;
-pub mod sample;
-pub mod module;
 pub mod audio;
+pub mod error;
+pub mod module;
+pub mod sample;
 // pub use sample;
 // pub use Module;
 // pub use error;
@@ -18,12 +18,6 @@ use std::{
 use crate::parser::to_str_os;
 
 use self::sample::Depth;
-
-
-
-
-
-
 
 #[inline]
 fn make_signed(buf: &mut [u8], depth: Depth) {
@@ -52,15 +46,13 @@ fn make_signed_16bit(buf: &mut [u8]) {
     }
 }
 
-
 pub mod export;
-
 
 #[test]
 fn a() {
     // let mut A = Wav;
     let mut buf = vec![0];
-    
+
     // A.write(Cow::Borrowed(b"Spam and eggs").as_ref(), &mut buf);
     dbg!(buf);
     // let mut file = Box::new(std::fs::File::create("path").unwrap());

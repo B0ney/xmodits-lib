@@ -3,11 +3,11 @@ use std::{
     vec,
 };
 
-use crate::{parser::{
+use crate::parser::{
     bitflag::BitFlag,
     magic::{self, bad_magic_non_consume, magic, magic_non_consume},
     read_str::{self, replace_carriage_return},
-}};
+};
 // use std
 pub trait Data: Read + Seek + Send + Sync {
     fn size(&self) -> Option<u64>;
@@ -188,20 +188,17 @@ fn validate<R: ByteReader>(buf: &mut R) -> io::Result<()> {
     let skip_offset = 0x00c0 + ord_num + (ins_num * 4);
     buf.set_seek_pos(skip_offset as u64)?;
     let mut smp_ptrs: Vec<u32> = Vec::with_capacity(smp_num as usize);
-    
+
     for _ in 0..smp_num {
         smp_ptrs.push(buf.read_u32_le()?);
     }
     dbg!(smp_num);
     buf.set_seek_pos(msg_offst.into())?;
-    let msg = replace_carriage_return(
-        buf.read_bytes_boxed_slice(msg_length as usize)?
-    );
+    let msg = replace_carriage_return(buf.read_bytes_boxed_slice(msg_length as usize)?);
     // (&mut msg);
-    
-    
+
     // dbg!(String::from_utf8_lossy(&msg));
-    println!("{}",String::from_utf8_lossy(&msg));
+    println!("{}", String::from_utf8_lossy(&msg));
     println!("\n[debug] Samples\n");
     // let samples = build_samples(buf, smp_ptrs)?;
     // for i in samples {

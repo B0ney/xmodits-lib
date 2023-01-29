@@ -1,8 +1,8 @@
 use crate::interface::audio::Audio;
 
-pub mod fmt_wav;
-pub mod fmt_raw;
 pub mod fmt_iff;
+pub mod fmt_raw;
+pub mod fmt_wav;
 
 #[derive(Default, Clone, Copy)]
 enum ExportFormat {
