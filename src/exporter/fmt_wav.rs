@@ -6,7 +6,7 @@ use crate::{
         sample::{Depth, Sample},
         Error,
     },
-    utils::sampler::{flip_sign_16_bit, flip_sign_8_bit},
+    utils::sampler::{flip_sign_16_bit, flip_sign_8_bit, reduce_bit_depth_u16_to_u8},
 };
 
 #[derive(Clone, Copy)]
@@ -34,7 +34,7 @@ impl Audio for Wav {
         // const SMPL: [u8; 4] = [0x73, 0x6D, 0x70, 0x6C]; // smpl
 
         // To avoid nasty bugs in future, explicitly cast the types.
-        let size = HEADER_SIZE - 8 + pcm.len() as u32;
+        let size = HEADER_SIZE - 8 + (pcm.len()/2) as u32;
         let channels = metadata.channels() as u16;
         let bits = metadata.bits() as u16;
         let rate = metadata.rate as u32;
@@ -52,7 +52,7 @@ impl Audio for Wav {
         writer.write_all(&block_align.to_le_bytes())?; // block align
         writer.write_all(&bits.to_le_bytes())?; // bits per sample
         writer.write_all(&DATA)?;
-        writer.write_all(&(pcm.len() as u32).to_le_bytes())?; // size of chunk
+        writer.write_all(&((pcm.len()/2) as u32).to_le_bytes())?; // size of chunk
 
         let mut write_pcm = |buf: &[u8]| writer.write_all(buf);
 
@@ -82,24 +82,26 @@ impl Audio for Wav {
 mod tests {
     use std::borrow::Cow;
 
-    use crate::interface::{audio::Audio, sample::Sample};
+    use crate::interface::{audio::Audio, sample::{Sample, Depth}};
 
     use super::Wav;
 
     #[test]
     fn a() {
-        let mut buf: Vec<u8> = Vec::new();
-        // let data: Vec<u8> = (0..2048).map(|x| (x % i8::MAX as usize) as u8).collect();
-        let data = include_bytes!("../../sine_800.raw");
-        let mut file = std::fs::File::create("./sine.wav").unwrap();
-        Wav.write(
-            &Sample {
-                rate: 8000,
-                ..Default::default()
-            },
-            Cow::Borrowed(data),
-            &mut file,
-        );
+        rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();
+        // let mut buf: Vec<u8> = Vec::new();
+        // // let data: Vec<u8> = (0..2048).map(|x| (x % i8::MAX as usize) as u8).collect();
+        // let data = include_bytes!("../../rise_i16.raw");
+        // let mut file = std::fs::File::create("./rise_u8.wav").unwrap();
+        // Wav.write(
+        //     &Sample {
+        //         rate: 16726,
+        //         depth: Depth::U8,
+        //         ..Default::default()
+        //     },
+        //     Cow::Borrowed(data),
+        //     &mut file,
+        // );
         // dbg!(buf);
     }
 }
