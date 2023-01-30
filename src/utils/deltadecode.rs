@@ -1,4 +1,5 @@
-pub fn delta_decode_u8(pcm: &mut [u8]) -> &[u8] {
+#[inline]
+pub fn delta_decode_u8(mut pcm: Vec<u8>) -> Vec<u8> {
     let mut old = 0;
     let mut new = 0;
 
@@ -11,12 +12,15 @@ pub fn delta_decode_u8(pcm: &mut [u8]) -> &[u8] {
     pcm
 }
 
-pub fn delta_decode_u16(pcm: &mut [u8]) -> &[u8] {
+#[inline]
+pub fn delta_decode_u16(mut pcm: Vec<u8>) -> Vec<u8>  {
     use bytemuck::{cast_slice, cast_slice_mut};
-    cast_slice(_delta_decode_u16(cast_slice_mut(pcm)))
+    _delta_decode_u16(cast_slice_mut(&mut pcm));
+    pcm
 }
 
-fn _delta_decode_u16(pcm: &mut [u16]) -> &[u16] {
+#[inline]
+fn _delta_decode_u16(pcm: &mut [u16]) {
     let mut old = 0;
     let mut new = 0;
 
@@ -25,6 +29,4 @@ fn _delta_decode_u16(pcm: &mut [u16]) -> &[u16] {
         *b = new;
         old = new;
     });
-
-    pcm
 }

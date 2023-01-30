@@ -59,17 +59,11 @@ impl Audio for Wav {
         // Only signed 16 bit & unsigned 8 bit samples are supported.
         // If not, resample them.
         match metadata.depth {
-            Depth::U8 | Depth::I16 => {
-                write_pcm(&pcm)?;
-            }
-            Depth::I8 => {
-                write_pcm(&flip_sign_8_bit(pcm.into_owned()))?;
-            }
+            Depth::U8 | Depth::I16 => write_pcm(&pcm),
+            Depth::I8 => write_pcm(&flip_sign_8_bit(pcm.into_owned())),
+            Depth::U16 => write_pcm(&flip_sign_16_bit(pcm.into_owned())),
+        }?;
 
-            Depth::U16 => {
-                write_pcm(&flip_sign_16_bit(pcm.into_owned()))?;
-            }
-        }
         // write smpl chunk
         {}
         Ok(())
@@ -80,7 +74,10 @@ impl Audio for Wav {
 mod tests {
     use std::borrow::Cow;
 
-    use crate::interface::{audio::Audio, sample::{Sample, Depth}};
+    use crate::interface::{
+        audio::Audio,
+        sample::{Depth, Sample},
+    };
 
     use super::Wav;
 
@@ -89,11 +86,11 @@ mod tests {
         // rayon::ThreadPoolBuilder::new().num_threads(4).build_global().unwrap();
         // let mut buf: Vec<u8> = Vec::new();
         // // let data: Vec<u8> = (0..2048).map(|x| (x % i8::MAX as usize) as u8).collect();
-        // let data = include_bytes!("../../laugh_i16.raw");
-        // let mut file = std::fs::File::create("./laugh_u8_test.wav").unwrap();
+        // let data = include_bytes!("../../pluck_u16.raw");
+        // let mut file = std::fs::File::create("./pluck_u8_test.wav").unwrap();
         // Wav.write(
         //     &Sample {
-        //         rate: 22050,
+        //         rate: 11025,
         //         ..Default::default()
         //     },
         //     Cow::Borrowed(data),
