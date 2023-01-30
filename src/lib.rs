@@ -1,3 +1,4 @@
+#[forbid(unsafe_code)]
 mod exporter;
 pub mod fmt;
 mod interface;
