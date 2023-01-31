@@ -3,10 +3,12 @@ use std::{borrow::Cow, io::Write};
 use crate::{
     interface::{
         audio::Audio,
-        sample::{Depth, Sample},
+        sample::{Channel, Depth, Sample},
         Error,
     },
-    utils::sampler::{flip_sign_16_bit, flip_sign_8_bit, reduce_bit_depth_16_to_8},
+    utils::sampler::{
+        flip_sign_16_bit, flip_sign_8_bit, interleave_u16, interleave_u8,
+    },
 };
 
 #[derive(Clone, Copy)]
@@ -54,18 +56,29 @@ impl Audio for Wav {
         writer.write_all(&DATA)?;
         writer.write_all(&(pcm.len() as u32).to_le_bytes())?; // size of chunk
 
-        let mut write_pcm = |buf: &[u8]| writer.write_all(buf);
-
         // Only signed 16 bit & unsigned 8 bit samples are supported.
         // If not, resample them.
-        match metadata.depth {
-            Depth::U8 | Depth::I16 => write_pcm(&pcm),
-            Depth::I8 => write_pcm(&flip_sign_8_bit(pcm.into_owned())),
-            Depth::U16 => write_pcm(&flip_sign_16_bit(pcm.into_owned())),
+        let pcm = match metadata.depth {
+            Depth::U8 | Depth::I16 => pcm,
+            Depth::I8 => flip_sign_8_bit(pcm.into_owned()).into(),
+            Depth::U16 => flip_sign_16_bit(pcm.into_owned()).into(),
+        };
+
+        let mut write_pcm = |buf: &[u8]| writer.write_all(buf);
+         
+        match metadata.channel_type {
+            Channel::Stereo { interleaved: false } => match metadata.depth {
+                Depth::U8 | Depth::I8 => write_pcm(&interleave_u8(&pcm)),
+                Depth::U16 | Depth::I16 => {
+                    let mut buf = Vec::with_capacity(pcm.len());
+                    write_pcm(interleave_u16(&pcm, &mut buf))
+                }
+            },
+            _ => write_pcm(&pcm),
         }?;
 
         // write smpl chunk
-        {}
+
         Ok(())
     }
 }
