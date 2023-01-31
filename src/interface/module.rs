@@ -5,7 +5,7 @@ use super::{sample::Sample, Error};
 /// A barebones representation of a tracker module.
 ///
 /// Only has the information needed to extract samples
-pub trait Module {
+pub trait Module: Send + Sync {
     /// Display the name of the tracker module
     fn name(&self) -> &str;
 

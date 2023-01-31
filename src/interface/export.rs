@@ -1,30 +1,35 @@
-use std::{fs, io::Write, path::Path};
+// use rayon::prelude::*;
+use std::{fs, io::Write, path::Path, sync::Arc};
 
-use super::{audio::Audio, module::Module, sample::Sample};
+use crate::{exporter::fmt_wav::Wav, utils::sample_namer};
+
+use super::{audio::AudioTrait, module::Module, sample::Sample};
 
 pub fn filter_empty_samples(smp: &[Sample]) -> impl Iterator<Item = &Sample> {
     smp.iter().filter(|smp| smp.len != 0)
 }
 
 pub fn dump<P, F>(
-    path: P,
     module: &dyn Module,
-    format: &dyn Audio,
-    namer: F,
+    path: P,
+
+    sample_format: &dyn AudioTrait,
+    sample_namer: F,
 ) -> Result<(), super::Error>
 where
     P: AsRef<Path>,
-    F: Fn(&Sample, usize, &str) -> String,
+    F: Fn(&Sample, usize, &str) -> String + Sync + Send,
 {
     let total_samples = module.total_samples();
+    // let path = Arc::new(path.as_ref());
 
     for (idx, smp) in filter_empty_samples(module.samples()).enumerate() {
         let path = path
             .as_ref()
-            .join(namer(smp, total_samples, format.extension()));
+            .join(sample_namer(smp, total_samples, sample_format.extension()));
 
         let mut file = fs::File::create(path)?;
-        format.write(smp, module.pcm(smp)?, &mut file)?;
+        sample_format.write(smp, module.pcm(smp)?, &mut file)?;
     }
     Ok(())
 }

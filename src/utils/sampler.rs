@@ -35,7 +35,7 @@ fn align_u16(pcm_16_bit: &mut Vec<u8>) {
     #[cold]
     #[inline(never)]
     fn inner(p: &mut Vec<u8>) {
-        dbg!("Unaligned 16-bit pcm detected! There is most likely a bug with the pcm function. This will slow things down.");
+        // dbg!("Unaligned 16-bit pcm detected!");
         p.push(0);
     }
     // if the pcm length is odd, then it is unaligned.
@@ -48,7 +48,6 @@ fn align_u16(pcm_16_bit: &mut Vec<u8>) {
 /// The sign is preserved.
 #[inline]
 pub fn reduce_bit_depth_16_to_8(mut pcm_16_bit: Vec<u8>) -> Vec<u8> {
-    // ensure pcm is properly aligned
     align_u16(&mut pcm_16_bit);
     _reduce_bit_depth_u16_to_u8(cast_slice(&pcm_16_bit))
 }
@@ -86,13 +85,17 @@ fn interleave<T: Copy>(buf: &[T]) -> impl Iterator<Item = T> + '_ {
 }
 
 #[inline]
-pub fn interleave_u8(pcm: &[u8]) -> Vec<u8> {
+pub fn interleave_8_bit(pcm: &[u8]) -> Vec<u8> {
     interleave(pcm).collect()
 }
 
 #[inline]
-pub fn interleave_u16(pcm: &[u8], ) -> Vec<u16> {
-    _interleave_u16(cast_slice(pcm))
+/// Interleave 16 bit samples
+/// 
+/// We need to own the pcm to ensure it is aligned.
+pub fn interleave_16_bit(mut pcm: Vec<u8>) -> Vec<u16> {
+    align_u16(&mut pcm);
+    _interleave_u16(cast_slice(&pcm))
 }
 
 #[inline]

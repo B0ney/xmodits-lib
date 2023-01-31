@@ -1,12 +1,12 @@
 use std::{borrow::Cow, io::Write};
 
-use crate::interface::{audio::Audio, sample::Sample, Error};
+use crate::interface::{audio::AudioTrait, sample::Sample, Error};
 
 /// Impulse tracker sample
 #[derive(Clone, Copy)]
-pub struct Iff;
+pub struct Its;
 
-impl Audio for Iff {
+impl AudioTrait for Its {
     fn extension(&self) -> &str {
         "its"
     }

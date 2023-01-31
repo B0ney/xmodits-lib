@@ -1,11 +1,11 @@
 use std::{borrow::Cow, io::Write};
 
-use crate::interface::{audio::Audio, sample::Sample, Error};
+use crate::interface::{audio::AudioTrait, sample::Sample, Error};
 
 #[derive(Clone, Copy)]
 pub struct Raw;
 
-impl Audio for Raw {
+impl AudioTrait for Raw {
     fn extension(&self) -> &str {
         "raw"
     }

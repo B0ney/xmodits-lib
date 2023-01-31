@@ -2,7 +2,7 @@ use std::{borrow::Cow, io::Write};
 
 use crate::{
     interface::{
-        audio::Audio,
+        audio::AudioTrait,
         sample::{Depth, Sample},
         Error,
     },
@@ -12,7 +12,7 @@ use crate::{
 #[derive(Clone, Copy)]
 pub struct Iff;
 
-impl Audio for Iff {
+impl AudioTrait for Iff {
     fn extension(&self) -> &str {
         "8svx"
     }

@@ -2,6 +2,7 @@ pub mod audio;
 pub mod error;
 pub mod module;
 pub mod sample;
+pub mod export;
 // pub use sample;
 // pub use Module;
 // pub use error;

@@ -2,7 +2,7 @@ use std::{borrow::Cow, io::Write};
 
 use super::{sample::Sample, Error};
 
-pub trait Audio {
+pub trait AudioTrait: Send + Sync {
     /// Audio format's file extension
     fn extension(&self) -> &str;
     

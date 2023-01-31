@@ -51,7 +51,7 @@ impl Default for SampleNamer {
 // }
 
 impl SampleNamer {
-    pub fn to_func(self) -> impl Fn(&Sample, &Info, usize) -> String {
+    pub fn to_func(self) -> impl Fn(&Sample, &Info, usize) -> String + Send + Sync {
         move |smp: &Sample, info: &Info, index: usize| -> String {
             let index_component = {
                 let index = match self.index_raw {
