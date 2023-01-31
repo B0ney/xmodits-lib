@@ -91,9 +91,8 @@ pub fn interleave_u8(pcm: &[u8]) -> Vec<u8> {
 }
 
 #[inline]
-pub fn interleave_u16<'a>(pcm: &[u8], buf: &'a mut Vec<u16>) -> &'a [u8] {
-    *buf = _interleave_u16(cast_slice(pcm));
-    cast_slice(buf)
+pub fn interleave_u16(pcm: &[u8], ) -> Vec<u16> {
+    _interleave_u16(cast_slice(pcm))
 }
 
 #[inline]

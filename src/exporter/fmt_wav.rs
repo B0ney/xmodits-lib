@@ -1,14 +1,14 @@
 use std::{borrow::Cow, io::Write};
 
+use bytemuck::cast_slice;
+
 use crate::{
     interface::{
         audio::Audio,
         sample::{Channel, Depth, Sample},
         Error,
     },
-    utils::sampler::{
-        flip_sign_16_bit, flip_sign_8_bit, interleave_u16, interleave_u8,
-    },
+    utils::sampler::{flip_sign_16_bit, flip_sign_8_bit, interleave_u16, interleave_u8},
 };
 
 #[derive(Clone, Copy)]
@@ -65,14 +65,11 @@ impl Audio for Wav {
         };
 
         let mut write_pcm = |buf: &[u8]| writer.write_all(buf);
-         
+
         match metadata.channel_type {
             Channel::Stereo { interleaved: false } => match metadata.depth {
                 Depth::U8 | Depth::I8 => write_pcm(&interleave_u8(&pcm)),
-                Depth::U16 | Depth::I16 => {
-                    let mut buf = Vec::with_capacity(pcm.len());
-                    write_pcm(interleave_u16(&pcm, &mut buf))
-                }
+                Depth::U16 | Depth::I16 => write_pcm(cast_slice(&interleave_u16(&pcm))),
             },
             _ => write_pcm(&pcm),
         }?;
