@@ -70,3 +70,33 @@ fn _reduce_bit_depth_u16_to_u8(pcm_16_bit: &[u16]) -> Vec<u8> {
 
     resampled
 }
+
+#[inline]
+/// TODO: use rayon
+fn interleave<T: Copy>(buf: &[T]) -> impl Iterator<Item = T> + '_ {
+    use std::iter;
+
+    let half = buf.len() / 2;
+    let left = &buf[..half];
+    let right = &buf[half..];
+
+    left.iter()
+        .zip(right)
+        .flat_map(|(l, r)| iter::once(*l).chain(iter::once(*r)))
+}
+
+#[inline]
+pub fn interleave_u8(pcm: &[u8]) -> Vec<u8> {
+    interleave(pcm).collect()
+}
+
+#[inline]
+pub fn interleave_u16<'a>(pcm: &[u8], buf: &'a mut Vec<u16>) -> &'a [u8] {
+    *buf = _interleave_u16(cast_slice(pcm));
+    cast_slice(buf)
+}
+
+#[inline]
+fn _interleave_u16(pcm: &[u16]) -> Vec<u16> {
+    interleave(pcm).collect()
+}
