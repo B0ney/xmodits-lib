@@ -1,10 +1,21 @@
-use std::collections::HashMap;
-
 // #[macro_export]
 // macro_rules! Hash {
 //     () => {
 //         compile_fail!()
 //     };
+// }
+// macro_mash_map!(
+//     LOADERS {
+//         "it" | "mptm" => IT,
+//         "s3m" => S3M,
+//         "mod" => MOD,
+//         "xm" => XM,
+//         "umx" => UMX,
+//         _ => () // <-- optional
+//     }
+// );
+// trait MacroHash<T> {
+//     fn get()
 // }
 
 // /// Compile-time, immutable hash-like struct
