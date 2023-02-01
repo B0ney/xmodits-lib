@@ -7,7 +7,7 @@ pub mod fmt_its;
 pub mod fmt_aiff;
 
 #[derive(Default, Clone, Copy)]
-enum ExportFormat {
+pub enum ExportFormat {
     AIFF,
     IFF,
     #[default]
@@ -17,7 +17,7 @@ enum ExportFormat {
 }
 
 impl ExportFormat {
-    fn get_impl(&self) -> Box<dyn AudioTrait> {
+    pub fn get_impl(&self) -> Box<dyn AudioTrait> {
         match self {
             Self::IFF => Box::new(fmt_iff::Iff),
             Self::WAV => Box::new(fmt_wav::Wav),

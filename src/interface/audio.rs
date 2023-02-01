@@ -10,3 +10,28 @@ pub trait AudioTrait: Send + Sync {
     fn write(&self, metadata: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write)
         -> Result<(), Error>;
 }
+
+// impl AudioTrait for Box<dyn AudioTrait> {
+//     fn extension(&self) -> &str {
+//         todo!()
+//     }
+
+//     fn write(&self, metadata: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write)
+//         -> Result<(), Error> {
+//         todo!()
+//     }
+// }
+
+// Implement methods for boxed version of itself
+
+// causes a stack overflow
+impl AudioTrait for Box<dyn AudioTrait> {
+    fn extension(&self) -> &str {
+        self.extension()
+    }
+
+    fn write(&self, metadata: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write)
+        -> Result<(), Error> {
+        (self as &dyn AudioTrait).write(metadata, pcm, writer)
+    }
+}

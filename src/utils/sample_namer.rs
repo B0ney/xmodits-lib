@@ -51,12 +51,12 @@ impl Default for SampleNamer {
 // }
 
 impl SampleNamer {
-    pub fn to_func(self) -> impl Fn(&Sample, &Info, usize) -> String + Send + Sync {
-        move |smp: &Sample, info: &Info, index: usize| -> String {
+    pub fn to_func(self) -> impl Fn(&Sample, usize, &str) -> String + Send + Sync {
+        move |smp: &Sample, total: usize, ext:&str| -> String {
             let index_component = {
                 let index = match self.index_raw {
                     true => smp.index_raw(),
-                    false => index + 1,
+                    false => 1 + 1,
                 };
                 // BUG: There is a potential loophole for using index_raw.
                 //
@@ -65,7 +65,8 @@ impl SampleNamer {
                 // We could add another parameter just like "total" to make sure this doesn't happen, but is doing so worth it?
                 // Instead of &Sample, we *could* use &[Sample], that way we have enough information. but the problem arises
                 // when &[sample] has gaps in beteween them, index_pretty will no longer work.
-                let total = info.total_samples;
+                // let total = info.total_samples;
+                let total = 0;
                 let padding = match self.index_padding {
                     n if n > 1 && digits(total) > n => digits(total),
                     n => n,
@@ -73,7 +74,7 @@ impl SampleNamer {
 
                 format!("{index:0padding$}",)
             };
-            let extension = &info.extension;
+            let extension = ext;
             let smp_name = || {
                 let name = match self.prefer_filename {
                     true => smp.filename_pretty(),
