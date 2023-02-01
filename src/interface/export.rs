@@ -1,20 +1,20 @@
+use crate::exporter::ExportFormat;
+use crate::interface::audio::DynAudioTrait;
+use crate::interface::name::{DynSampleNamerTrait, Info, SampleNamer};
+use crate::interface::Error;
+use crate::interface::Module;
+use crate::interface::Sample;
 use rayon::prelude::*;
 use std::{fs, path::Path};
 
-use crate::exporter::ExportFormat;
-use crate::interface::audio::DynAudioTrait;
-use crate::interface::module::Module;
-use crate::interface::name::{Info, SampleNamer, DynSampleNamerTrait};
-use crate::interface::sample::Sample;
-use crate::interface::Error;
-
-pub fn filter_empty_samples(smp: &[Sample]) -> impl Iterator<Item = &Sample> {
-    smp.iter().filter(|smp| smp.len != 0)
-}
-
+/// Struct to rip samples from a module
+///
+/// Requires a sample namer and an audio format
 pub struct Ripper {
-    // Function trait object to name samples
+    /// Function object to name samples
     namer: DynSampleNamerTrait,
+
+    /// Process raw PCM to the implemented format  
     format: DynAudioTrait,
 }
 
@@ -46,12 +46,11 @@ impl Ripper {
     pub fn rip(&self, directory: impl AsRef<Path>, module: &dyn Module) -> Result<(), Error> {
         let directory = directory.as_ref();
 
-        // We need to put the samples into a directory that exists...
         if !directory.is_dir() {
-            todo!()
+            return Error::io_error("Path provided is a file");
         }
 
-        let info = Info::new(module.samples().len(), self.format.extension());
+        let info = build_info(module, &self.format);
 
         let extract_samples = |(index, smp): (usize, &Sample)| -> Result<(), Error> {
             let path = directory.join((self.namer)(smp, &info, index));
@@ -73,6 +72,25 @@ impl Ripper {
             _ => Error::partial_extraction(errors),
         }
     }
+}
+
+pub fn build_info<'a>(module: &dyn Module, audio_format: &'a DynAudioTrait) -> Info<'a> {
+    Info::new(
+        module.samples().len(),
+        audio_format.extension(),
+        module
+            .samples()
+            .iter()
+            .map(Sample::index_raw)
+            .max()
+            .unwrap(), // samples have a unique index so it shouldn't panic
+    )
+}
+
+/// Might be used...
+/// TODO: indexes may not be synchronised
+pub fn filter_empty_samples(smp: &[Sample]) -> impl ParallelIterator<Item = &Sample> {
+    smp.par_iter().filter(|smp| smp.len != 0)
 }
 
 #[test]

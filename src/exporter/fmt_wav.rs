@@ -1,15 +1,11 @@
-use std::{borrow::Cow, io::Write};
-
-use bytemuck::cast_slice;
-
-use crate::{
-    interface::{
-        audio::AudioTrait,
-        sample::{Channel, Depth, Sample},
-        Error,
-    },
-    utils::sampler::{flip_sign_16_bit, flip_sign_8_bit, interleave_16_bit, interleave_8_bit},
+use crate::interface::audio::AudioTrait;
+use crate::interface::sample::{Channel, Depth, Sample};
+use crate::interface::Error;
+use crate::utils::sampler::{
+    flip_sign_16_bit, flip_sign_8_bit, interleave_16_bit, interleave_8_bit,
 };
+use bytemuck::cast_slice;
+use std::{borrow::Cow, io::Write};
 
 #[derive(Clone, Copy)]
 pub struct Wav;

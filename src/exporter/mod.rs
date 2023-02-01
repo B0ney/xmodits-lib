@@ -1,5 +1,4 @@
 use crate::interface::audio::DynAudioTrait;
-
 pub mod fmt_aiff;
 pub mod fmt_iff;
 pub mod fmt_its;

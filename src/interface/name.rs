@@ -10,13 +10,23 @@ impl<T: Fn(&Sample, &Info, usize) -> String + Send + Sync> SampleNamerTrait for 
 ///
 /// Should be used to make naming samples consistent.
 pub struct Info<'a> {
+    /// Total samples
     pub total: usize,
+
+    /// File extension of audio format
     pub extension: &'a str,
+
+    /// Highest sample index
+    pub highest: usize,
 }
 
 impl<'a> Info<'a> {
-    pub fn new(total: usize, extension: &'a str) -> Self {
-        Self { total, extension }
+    pub fn new(total: usize, extension: &'a str, highest: usize) -> Self {
+        Self {
+            total,
+            extension,
+            highest,
+        }
     }
 }
 
@@ -69,12 +79,12 @@ impl SampleNamer {
     pub fn to_func(self) -> impl SampleNamerTrait {
         move |smp: &Sample, info: &Info, index: usize| -> String {
             let index_component = {
-                let index = match self.index_raw {
-                    true => smp.index_raw(),
-                    false => index + 1,
+                let (index, largest) = match self.index_raw {
+                    true => (smp.index_raw(), info.highest),
+                    false => (index + 1, info.total),
                 };
 
-                let total = info.total;
+                let total = largest;
                 let padding = match self.index_padding {
                     n if n > 1 && digits(total) > n => digits(total),
                     n => n,

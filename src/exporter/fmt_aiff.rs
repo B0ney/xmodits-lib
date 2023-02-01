@@ -1,10 +1,7 @@
+use crate::interface::audio::AudioTrait;
+use crate::interface::sample::{Depth, Sample};
+use crate::interface::Error;
 use std::{borrow::Cow, io::Write};
-
-use crate::interface::{
-    audio::AudioTrait,
-    sample::{Depth, Sample},
-    Error,
-};
 
 #[derive(Clone, Copy)]
 pub struct Aiff;

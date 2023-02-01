@@ -5,3 +5,5 @@ pub mod module;
 pub mod name;
 pub mod sample;
 pub use error::Error;
+pub use module::Module;
+pub use sample::Sample;

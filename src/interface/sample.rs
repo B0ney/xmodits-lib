@@ -27,8 +27,9 @@ pub struct Sample {
     pub channel_type: Channel,
 
     /// An index representing its true postition inside a tracker module.
+    ///
     /// You should call ```index_raw()``` instead as this value is zero indexed.
-    pub index_raw: u16, // changed from usize to u16 reduce memory
+    pub index_raw: u16,
 
     /// Is sample compressed?
     pub is_compressed: bool,
@@ -49,10 +50,6 @@ impl Sample {
     pub fn index_raw(&self) -> usize {
         self.index_raw as usize + 1
     }
-
-    // pub fn index_pretty(&self) -> usize {
-    //     self.index as usize + 1
-    // }
 
     /// Display Sample's name from its raw buffer
     pub fn name(&self) -> Cow<str> {

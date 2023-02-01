@@ -33,7 +33,11 @@ impl Error {
     }
 
     /// The sample could not be extracted to the desired format
-    pub fn sample_format_error(error: String) -> Result<(), Self> {
-        Err(Self::AudioFormat(error))
+    pub fn sample_format_error(error: &str) -> Result<(), Self> {
+        Err(Self::AudioFormat(error.into()))
+    }
+    pub fn io_error(error: &str) -> Result<(), Self> {
+        // Err()
+        todo!()
     }
 }
