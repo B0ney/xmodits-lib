@@ -91,7 +91,7 @@ pub fn interleave_8_bit(pcm: &[u8]) -> Vec<u8> {
 
 #[inline]
 /// Interleave 16 bit samples
-/// 
+///
 /// We need to own the pcm to ensure it is aligned.
 pub fn interleave_16_bit(mut pcm: Vec<u8>) -> Vec<u16> {
     align_u16(&mut pcm);

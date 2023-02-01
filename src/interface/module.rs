@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use super::{sample::Sample, Error};
+use crate::interface::{sample::Sample, Error};
 
 /// A barebones representation of a tracker module.
 ///

@@ -1,11 +1,7 @@
 pub mod audio;
 pub mod error;
-pub mod module;
-pub mod sample;
 pub mod export;
+pub mod module;
 pub mod name;
-// pub use sample;
-// pub use Module;
-// pub use error;
-// pub use sample::{Sample, Depth, Channel};
+pub mod sample;
 pub use error::Error;

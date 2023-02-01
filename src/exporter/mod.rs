@@ -1,23 +1,28 @@
-use crate::interface::audio::AudioTrait;
+use crate::interface::audio::DynAudioTrait;
 
+pub mod fmt_aiff;
 pub mod fmt_iff;
+pub mod fmt_its;
 pub mod fmt_raw;
 pub mod fmt_wav;
-pub mod fmt_its;
-pub mod fmt_aiff;
 
 #[derive(Default, Clone, Copy)]
 pub enum ExportFormat {
+    /// Aiff
     AIFF,
+    /// Amiga 8svx, only supports signed 8 bit samples.
     IFF,
+    /// Wav
     #[default]
     WAV,
+    /// Raw PCM
     RAW,
+    /// Impulse Tracker Sample
     ITS,
 }
 
 impl ExportFormat {
-    pub fn get_impl(&self) -> Box<dyn AudioTrait> {
+    pub fn get_impl(&self) -> DynAudioTrait {
         match self {
             Self::IFF => Box::new(fmt_iff::Iff),
             Self::WAV => Box::new(fmt_wav::Wav),
@@ -28,8 +33,8 @@ impl ExportFormat {
     }
 }
 
-impl Into<Box<dyn AudioTrait>> for ExportFormat {
-    fn into(self) -> Box<dyn AudioTrait> {
+impl Into<DynAudioTrait> for ExportFormat {
+    fn into(self) -> DynAudioTrait {
         self.get_impl()
     }
 }
@@ -44,7 +49,7 @@ impl std::fmt::Display for ExportFormat {
                 Self::WAV => "wav",
                 Self::RAW => "raw",
                 Self::AIFF => "aiff",
-                Self::ITS => "its"
+                Self::ITS => "its",
             }
         )
     }

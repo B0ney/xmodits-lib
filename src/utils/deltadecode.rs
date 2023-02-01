@@ -13,8 +13,8 @@ pub fn delta_decode_u8(mut pcm: Vec<u8>) -> Vec<u8> {
 }
 
 #[inline]
-pub fn delta_decode_u16(mut pcm: Vec<u8>) -> Vec<u8>  {
-    use bytemuck::{cast_slice, cast_slice_mut};
+pub fn delta_decode_u16(mut pcm: Vec<u8>) -> Vec<u8> {
+    use bytemuck::cast_slice_mut;
     _delta_decode_u16(cast_slice_mut(&mut pcm));
     pcm
 }
