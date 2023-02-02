@@ -12,13 +12,16 @@ pub enum Error {
     Extraction, // Maybe add the errors?
 
     #[error("{0}")]
-    Unsupported(String),
+    UnsupportedModule(String),
 
     #[error("{0}")]
-    Invalid(String),
+    InvalidModule(String),
 
     #[error("The sample could not be extracted to the desired format: {0}")]
     AudioFormat(String),
+
+    #[error("The sample metadata is invalid")]
+    BadSample
 }
 
 impl From<Error> for Result<(), Error> {
@@ -46,8 +49,9 @@ impl Error {
         // Err()
         Ok(todo!())
     }
+
     /// The sample metadata is invalid
     pub fn bad_sample() -> Self {
-        todo!()
+        Self::BadSample
     }
 }

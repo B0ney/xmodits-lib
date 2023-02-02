@@ -20,17 +20,11 @@ impl Module for IT {
         "Impulse Tracker"
     }
 
-    fn validate(buf: &[u8]) -> Result<(), Error>
-    where
-        Self: Sized,
-    {
+    fn validate(buf: &[u8]) -> Result<(), Error> {
         todo!()
     }
 
-    fn load_unchecked(buf: Vec<u8>) -> Result<Box<dyn Module>, Error>
-    where
-        Self: Sized,
-    {
+    fn load_unchecked(buf: Vec<u8>) -> Result<Box<dyn Module>, Error> {
         todo!()
     }
 

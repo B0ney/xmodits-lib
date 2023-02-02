@@ -4,7 +4,7 @@ use crate::interface::sample::Depth;
 use crate::interface::{Error, Module, Sample};
 use crate::utils::deltadecode::{delta_decode_u16, delta_decode_u8};
 
-use super::utils::get_buf;
+use super::utils::get_buf_owned;
 
 pub struct XM {
     buf: Vec<u8>,
@@ -35,7 +35,7 @@ impl Module for XM {
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
         Ok(Cow::Owned(delta_decode(smp)(
-            get_buf(&self.buf, smp.ptr_range())?.to_owned(),
+            get_buf_owned(&self.buf, smp.ptr_range())?,
         )))
     }
 

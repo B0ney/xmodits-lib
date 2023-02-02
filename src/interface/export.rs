@@ -1,11 +1,12 @@
+use rayon::prelude::*;
+use std::{fs, path::Path};
+
 use crate::exporter::ExportFormat;
 use crate::interface::audio::DynAudioTrait;
 use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer};
 use crate::interface::Error;
 use crate::interface::Module;
 use crate::interface::Sample;
-use rayon::prelude::*;
-use std::{fs, path::Path};
 
 /// Struct to rip samples from a module
 ///

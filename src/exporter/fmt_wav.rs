@@ -1,11 +1,12 @@
+use bytemuck::cast_slice;
+use std::{borrow::Cow, io::Write};
+
 use crate::interface::audio::AudioTrait;
 use crate::interface::sample::{Channel, Depth, Sample};
 use crate::interface::Error;
 use crate::utils::sampler::{
     flip_sign_16_bit, flip_sign_8_bit, interleave_16_bit, interleave_8_bit,
 };
-use bytemuck::cast_slice;
-use std::{borrow::Cow, io::Write};
 
 #[derive(Clone, Copy)]
 pub struct Wav;
@@ -63,11 +64,9 @@ impl AudioTrait for Wav {
         let mut write_pcm = |buf: &[u8]| writer.write_all(buf);
 
         match metadata.channel_type {
-            Channel::Stereo { interleaved: false } => match metadata.depth {
-                Depth::U8 | Depth::I8 => write_pcm(&interleave_8_bit(&pcm)),
-                Depth::U16 | Depth::I16 => {
-                    write_pcm(cast_slice(&interleave_16_bit(pcm.into_owned())))
-                }
+            Channel::Stereo { interleaved: false } => match metadata.is_8_bit() {
+                true => write_pcm(&interleave_8_bit(&pcm)),
+                false => write_pcm(cast_slice(&interleave_16_bit(pcm.into_owned()))),
             },
             _ => write_pcm(&pcm),
         }?;

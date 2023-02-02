@@ -29,8 +29,8 @@ fn _flip_sign_16_bit_ref_mut(pcm_16_bit: &mut [u16]) {
         .for_each(|b| *b = b.wrapping_sub(i16::MAX as u16 + 1));
 }
 
-#[inline]
 /// Ensures the pcm has an even number of elements
+#[inline]
 fn align_u16(pcm_16_bit: &mut Vec<u8>) {
     #[cold]
     #[inline(never)]
@@ -85,16 +85,18 @@ fn interleave<T: Copy>(buf: &[T]) -> impl Iterator<Item = T> + '_ {
         .zip(right)
         .flat_map(|(l, r)| iter::once(*l).chain(iter::once(*r)))
 }
-
+/// Interleave 8 bit pcm
+/// 
+/// We don't need to own the pcm.
 #[inline]
 pub fn interleave_8_bit(pcm: &[u8]) -> Vec<u8> {
     interleave(pcm).collect()
 }
 
-#[inline]
 /// Interleave 16 bit samples
 ///
 /// We need to own the pcm to ensure it is aligned.
+#[inline]
 pub fn interleave_16_bit(mut pcm: Vec<u8>) -> Vec<u16> {
     align_u16(&mut pcm);
     _interleave_u16(cast_slice(&pcm))

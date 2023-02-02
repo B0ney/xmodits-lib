@@ -1,8 +1,9 @@
+use std::{borrow::Cow, io::Write};
+
 use crate::interface::audio::AudioTrait;
 use crate::interface::sample::{Depth, Sample};
 use crate::interface::Error;
 use crate::utils::sampler::{flip_sign_8_bit, reduce_bit_depth_16_to_8};
-use std::{borrow::Cow, io::Write};
 
 #[derive(Clone, Copy)]
 pub struct Iff;
