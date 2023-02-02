@@ -94,6 +94,11 @@ impl Sample {
     pub fn bits(&self) -> u8 {
         self.depth.bits()
     }
+    
+    // TODO
+    pub fn is_8_bit(&self) -> bool {
+        self.depth.bits() == 16
+    }
     pub fn channels(&self) -> u16 {
         self.channel_type.channels()
     }
@@ -130,10 +135,17 @@ pub enum Channel {
 
 impl Channel {
     #[inline]
-    fn channels(&self) -> u16 {
+    pub fn channels(&self) -> u16 {
         match self {
             Self::Mono => 1,
             Self::Stereo { .. } => 2,
+        }
+    }
+
+    pub fn new(is_stereo: bool, interleaved: bool) -> Self {
+        match is_stereo {
+            true => Self::Stereo { interleaved },
+            false => Self::Mono,
         }
     }
 }
@@ -150,7 +162,7 @@ pub enum Depth {
 
 impl Depth {
     #[inline]
-    fn bits(&self) -> u8 {
+    pub fn bits(&self) -> u8 {
         match self {
             Self::I8 | Self::U8 => 8,
             Self::I16 | Self::U16 => 16,
@@ -158,10 +170,23 @@ impl Depth {
     }
 
     #[inline]
-    fn is_signed(&self) -> bool {
+    pub fn is_signed(&self) -> bool {
         match self {
             Self::I8 | Self::I16 => true,
             Self::U8 | Self::U16 => false,
+        }
+    }
+
+    pub fn new(is_8_bit: bool, _8_signed: bool, _16_signed: bool) -> Self {
+        match is_8_bit {
+            true => match _8_signed {
+                true => Self::I8,
+                false => Self::U8,
+            },
+            false => match _16_signed {
+                true => Self::I16,
+                false => Self::U16,
+            },
         }
     }
 }

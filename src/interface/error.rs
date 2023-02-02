@@ -3,7 +3,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("{0}")]
-    IoError(#[from] std::io::Error),
+    Io(#[from] std::io::Error),
 
     #[error("Not all of the samples could be extracted: {0:?}")]
     PartialExtraction(Vec<Error>),
@@ -19,6 +19,12 @@ pub enum Error {
 
     #[error("The sample could not be extracted to the desired format: {0}")]
     AudioFormat(String),
+}
+
+impl From<Error> for Result<(), Error> {
+    fn from(val: Error) -> Self {
+        Err(val)
+    }
 }
 
 impl Error {
@@ -38,6 +44,10 @@ impl Error {
     }
     pub fn io_error(error: &str) -> Result<(), Self> {
         // Err()
+        Ok(todo!())
+    }
+    /// The sample metadata is invalid
+    pub fn bad_sample() -> Self {
         todo!()
     }
 }

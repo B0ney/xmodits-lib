@@ -32,9 +32,9 @@ impl ExportFormat {
     }
 }
 
-impl Into<DynAudioTrait> for ExportFormat {
-    fn into(self) -> DynAudioTrait {
-        self.get_impl()
+impl From<ExportFormat> for DynAudioTrait {
+    fn from(val: ExportFormat) -> Self {
+        val.get_impl()
     }
 }
 
