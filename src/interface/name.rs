@@ -2,14 +2,14 @@ use crate::interface::sample::Sample;
 
 pub type DynSampleNamerTrait = Box<dyn SampleNamerTrait>;
 
-pub trait SampleNamerTrait: Fn(&Sample, &Info, usize) -> String + Send + Sync {}
+pub trait SampleNamerTrait: Fn(&Sample, &Context, usize) -> String + Send + Sync {}
 
-impl<T: Fn(&Sample, &Info, usize) -> String + Send + Sync> SampleNamerTrait for T {}
+impl<T: Fn(&Sample, &Context, usize) -> String + Send + Sync> SampleNamerTrait for T {}
 
 /// Provide context about the ripping process.
 ///
 /// Should be used to make naming samples consistent.
-pub struct Info<'a> {
+pub struct Context<'a> {
     /// Total samples
     pub total: usize,
 
@@ -20,7 +20,7 @@ pub struct Info<'a> {
     pub highest: usize,
 }
 
-impl<'a> Info<'a> {
+impl<'a> Context<'a> {
     pub fn new(total: usize, extension: &'a str, highest: usize) -> Self {
         Self {
             total,
@@ -77,11 +77,11 @@ impl From<SampleNamer> for Box<dyn SampleNamerTrait> {
 
 impl SampleNamer {
     pub fn to_func(self) -> impl SampleNamerTrait {
-        move |smp: &Sample, info: &Info, index: usize| -> String {
+        move |smp: &Sample, ctx: &Context, index: usize| -> String {
             let index_component = {
                 let (index, largest) = match self.index_raw {
-                    true => (smp.index_raw(), info.highest),
-                    false => (index + 1, info.total),
+                    true => (smp.index_raw(), ctx.highest),
+                    false => (index + 1, ctx.total),
                 };
 
                 let total = largest;
@@ -93,7 +93,7 @@ impl SampleNamer {
                 format!("{index:0padding$}",)
             };
 
-            let extension = info.extension.trim_matches('.');
+            let extension = ctx.extension.trim_matches('.');
 
             let smp_name = || {
                 let name = match self.prefer_filename {

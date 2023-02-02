@@ -69,9 +69,11 @@ fn _reduce_bit_depth_u16_to_u8(pcm_16_bit: &[u16]) -> Vec<u8> {
 
     resampled
 }
-
+/// Interleave data
+/// 
+/// The output is dependent on another 
+/// meaning turning this into a parallel iterator hurts performance
 #[inline]
-/// TODO: use rayon
 fn interleave<T: Copy>(buf: &[T]) -> impl Iterator<Item = T> + '_ {
     use std::iter;
 

@@ -1,6 +1,6 @@
 use crate::exporter::ExportFormat;
 use crate::interface::audio::DynAudioTrait;
-use crate::interface::name::{DynSampleNamerTrait, Info, SampleNamer};
+use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer};
 use crate::interface::Error;
 use crate::interface::Module;
 use crate::interface::Sample;
@@ -47,10 +47,10 @@ impl Ripper {
         let directory = directory.as_ref();
 
         if !directory.is_dir() {
-            return Error::io_error("Path provided is a file");
+            return Error::io_error("Path provided is a directory");
         }
 
-        let info = build_info(module, &self.format);
+        let info = build_context(module, &self.format);
 
         let extract_samples = |(index, smp): (usize, &Sample)| -> Result<(), Error> {
             let path = directory.join((self.namer)(smp, &info, index));
@@ -74,8 +74,8 @@ impl Ripper {
     }
 }
 
-pub fn build_info<'a>(module: &dyn Module, audio_format: &'a DynAudioTrait) -> Info<'a> {
-    Info::new(
+pub fn build_context<'a>(module: &dyn Module, audio_format: &'a DynAudioTrait) -> Context<'a> {
+    Context::new(
         module.samples().len(),
         audio_format.extension(),
         module
