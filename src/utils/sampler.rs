@@ -70,8 +70,8 @@ fn _reduce_bit_depth_u16_to_u8(pcm_16_bit: &[u16]) -> Vec<u8> {
     resampled
 }
 /// Interleave data
-/// 
-/// The output is dependent on another 
+///
+/// The output is dependent on another
 /// meaning turning this into a parallel iterator hurts performance
 #[inline]
 fn interleave<T: Copy>(buf: &[T]) -> impl Iterator<Item = T> + '_ {
@@ -86,7 +86,7 @@ fn interleave<T: Copy>(buf: &[T]) -> impl Iterator<Item = T> + '_ {
         .flat_map(|(l, r)| iter::once(*l).chain(iter::once(*r)))
 }
 /// Interleave 8 bit pcm
-/// 
+///
 /// We don't need to own the pcm.
 #[inline]
 pub fn interleave_8_bit(pcm: &[u8]) -> Vec<u8> {

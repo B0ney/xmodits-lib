@@ -36,6 +36,8 @@ pub struct Sample {
 
     /// Looping information
     pub looping: Loop,
+
+    pub sample_kind: SampleKind,
 }
 
 impl Sample {
@@ -94,7 +96,7 @@ impl Sample {
     pub fn bits(&self) -> u8 {
         self.depth.bits()
     }
-    
+
     // TODO
     pub fn is_8_bit(&self) -> bool {
         self.depth.bits() == 16
@@ -189,4 +191,15 @@ impl Depth {
             },
         }
     }
+}
+
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SampleKind {
+    /// Samples are stored as PCM values
+    #[default]
+    PCM,
+
+    /// Samples are stored as Delta Values,
+    DELTA,
 }

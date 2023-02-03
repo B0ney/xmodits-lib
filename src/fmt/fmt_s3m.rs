@@ -56,8 +56,8 @@ impl Module for S3M {
 // #[test]
 pub fn a() {
     let flags = 3u8;
-    let depth = Depth::new(!flags.is_set_for_right(FLAG_BITS), false, true);
-    let channel_type = Channel::new(flags.is_set_for_right(FLAG_STEREO), false);
+    let depth = Depth::new(!flags.contains(FLAG_BITS), false, true);
+    let channel_type = Channel::new(flags.contains(FLAG_STEREO), false);
     let len = 0;
     let len = len * channel_type.channels() as u32 * depth.bits() as u32;
 
@@ -73,5 +73,6 @@ pub fn a() {
         index_raw: todo!(),
         is_compressed: todo!(),
         looping: todo!(),
+        sample_kind: todo!(),
     };
 }

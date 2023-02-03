@@ -1,6 +1,7 @@
 use bytemuck::cast_slice;
 use std::{borrow::Cow, io::Write};
 
+use crate::exporter::utils::maybe_delta_decode;
 use crate::interface::audio::AudioTrait;
 use crate::interface::sample::{Channel, Depth, Sample};
 use crate::interface::Error;
@@ -52,6 +53,9 @@ impl AudioTrait for Wav {
         writer.write_all(&bits.to_le_bytes())?; // bits per sample
         writer.write_all(&DATA)?;
         writer.write_all(&(pcm.len() as u32).to_le_bytes())?; // size of chunk
+
+        // Delta decode pcm if it is. A delta coded pcm will be quiet 
+        let pcm = maybe_delta_decode(&metadata)(pcm);
 
         // Only signed 16 bit & unsigned 8 bit samples are supported.
         // If not, resample them.

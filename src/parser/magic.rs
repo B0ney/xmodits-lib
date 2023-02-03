@@ -8,7 +8,6 @@ pub fn magic_header(magic: &[u8], buf: &[u8]) -> bool {
     &buf[..magic.len()] == magic
 }
 
-
 use super::io::ByteReader;
 
 pub fn magic<R>(reader: &mut R, magic: &[u8]) -> io::Result<()>

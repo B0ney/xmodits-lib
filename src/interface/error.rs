@@ -21,7 +21,7 @@ pub enum Error {
     AudioFormat(String),
 
     #[error("The sample metadata is invalid")]
-    BadSample
+    BadSample,
 }
 
 impl From<Error> for Result<(), Error> {

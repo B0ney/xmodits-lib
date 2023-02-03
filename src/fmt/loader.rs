@@ -10,9 +10,7 @@ struct Private;
 
 pub struct Loader(Private);
 
-impl Loader {
-
-}
+impl Loader {}
 
 impl Module for Loader {
     fn name(&self) -> &str {
@@ -25,13 +23,12 @@ impl Module for Loader {
 
     fn validate(buf: &[u8]) -> Result<(), Error>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         todo!()
     }
 
-    fn load_unchecked(buf: Vec<u8>) -> Result<Self, (Error, Vec<u8>)>
-    {
-
+    fn load_unchecked(buf: Vec<u8>) -> Result<Self, (Error, Vec<u8>)> {
         todo!()
     }
 
@@ -54,5 +51,5 @@ impl Module for Loader {
 //         "s3m" => S3M::load(buf),
 //         _ => todo!(),
 //     };
-    
+
 // }

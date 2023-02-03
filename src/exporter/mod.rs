@@ -4,6 +4,7 @@ pub mod fmt_iff;
 pub mod fmt_its;
 pub mod fmt_raw;
 pub mod fmt_wav;
+mod utils;
 
 #[derive(Default, Clone, Copy)]
 pub enum ExportFormat {

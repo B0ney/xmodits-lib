@@ -26,7 +26,7 @@ pub trait Module: Send + Sync {
         Self: Sized,
     {
         if let Err(e) = Self::validate(&data) {
-            return Err((e, data))
+            return Err((e, data));
         };
 
         Self::load_unchecked(data)

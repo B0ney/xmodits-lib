@@ -5,7 +5,7 @@ use crate::interface::{Error, Module, Sample};
 use super::utils::get_buf;
 
 pub struct MOD {
-    buf: Box<[u8]>
+    buf: Box<[u8]>,
 }
 
 impl Module for MOD {
@@ -19,12 +19,12 @@ impl Module for MOD {
 
     fn load(buf: Vec<u8>) -> Result<MOD, (Error, Vec<u8>)>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         todo!()
     }
 
-    fn load_unchecked(buf: Vec<u8>) -> Result<Self, (Error, Vec<u8>)>
-    {
+    fn load_unchecked(buf: Vec<u8>) -> Result<Self, (Error, Vec<u8>)> {
         todo!()
     }
 
@@ -42,7 +42,8 @@ impl Module for MOD {
 
     fn validate(buf: &[u8]) -> Result<(), Error>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         todo!()
     }
 }
