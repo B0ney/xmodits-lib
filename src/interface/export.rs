@@ -1,22 +1,24 @@
 use rayon::prelude::*;
 use std::{fs, path::Path};
+use tracing::{debug, error, info, span, warn, Level};
 
 use crate::exporter::ExportFormat;
-use crate::interface::audio::DynAudioTrait;
-use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer};
+use crate::interface::audio::{DynAudioTrait, AudioTrait};
+use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
 use crate::interface::Error;
 use crate::interface::Module;
 use crate::interface::Sample;
+
 
 /// Struct to rip samples from a module
 ///
 /// Requires a sample namer and an audio format
 pub struct Ripper {
     /// Function object to name samples
-    namer: DynSampleNamerTrait,
+    namer: Box<dyn SampleNamerTrait>,
 
     /// Process raw PCM to the implemented format  
-    format: DynAudioTrait,
+    format: Box<dyn AudioTrait>,
 }
 
 impl Default for Ripper {
@@ -48,6 +50,7 @@ impl Ripper {
         let directory = directory.as_ref();
 
         if !directory.is_dir() {
+            error!("Path is a directory");
             return Error::io_error("Path provided is a directory");
         }
 
@@ -105,6 +108,10 @@ fn a() {
     let mut def = Ripper::default();
     // def.rip(directory, module).unwrap();
 
+    let xm = crate::fmt::fmt_xm::XM::load(vec![0]).unwrap();
+    let s3m = Box::new(crate::fmt::fmt_s3m::S3M::load(vec![0]).unwrap());
+
+    def.rip("directory", &xm).unwrap();
     dbg!(def.format.extension());
 
     /*

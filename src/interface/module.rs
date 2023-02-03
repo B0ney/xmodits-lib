@@ -21,11 +21,14 @@ pub trait Module: Send + Sync {
     /// The implementation should keep hold of the reader object,
     /// but it is possible to load everything into a Vec<u8>
     /// This function should not panic.
-    fn load(data: Vec<u8>) -> Result<Box<dyn Module>, Error>
+    fn load(data: Vec<u8>) -> Result<Self, (Error, Vec<u8>)>
     where
         Self: Sized,
     {
-        Self::validate(&data)?;
+        if let Err(e) = Self::validate(&data) {
+            return Err((e, data))
+        };
+
         Self::load_unchecked(data)
     }
 
@@ -37,7 +40,7 @@ pub trait Module: Send + Sync {
     /// Load tracker module from file without any validation.
     ///
     /// Can panic if used without any form of external validation
-    fn load_unchecked(buf: Vec<u8>) -> Result<Box<dyn Module>, Error>
+    fn load_unchecked(buf: Vec<u8>) -> Result<Self, (Error, Vec<u8>)>
     where
         Self: Sized;
 

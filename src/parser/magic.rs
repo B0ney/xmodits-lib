@@ -1,5 +1,14 @@
 use std::io::{self, SeekFrom};
 
+/// Returns true if bytes matches the slice
+pub fn magic_header(magic: &[u8], buf: &[u8]) -> bool {
+    if buf.len() < magic.len() {
+        return false;
+    }
+    &buf[..magic.len()] == magic
+}
+
+
 use super::io::ByteReader;
 
 pub fn magic<R>(reader: &mut R, magic: &[u8]) -> io::Result<()>
