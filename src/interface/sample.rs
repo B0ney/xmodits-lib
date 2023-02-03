@@ -170,6 +170,10 @@ impl Depth {
             Self::I16 | Self::U16 => 16,
         }
     }
+    #[inline]
+    pub fn bytes(&self) -> u8 {
+        self.bits() / 8
+    }
 
     #[inline]
     pub fn is_signed(&self) -> bool {

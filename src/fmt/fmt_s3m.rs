@@ -5,6 +5,9 @@ use crate::interface::{Error, Module, Sample};
 use crate::parser::bitflag::BitFlag;
 
 use nom::bytes::complete::tag;
+use nom::error::{ContextError, ParseError};
+use nom::number::complete::{le_u16, le_u24, le_u32, le_u8};
+use nom::IResult;
 
 use super::utils::get_buf;
 
@@ -51,6 +54,110 @@ impl Module for S3M {
     fn total_samples(&self) -> usize {
         todo!()
     }
+}
+
+fn header<'i, E>(buf: &'i [u8]) -> IResult<&'i [u8], (), E>
+where
+    E: ParseError<&'i [u8]> + ContextError<&'i [u8]>,
+{
+    let entire = buf;
+
+    let (buf, _) = tag(MAGIC_HEADER)(buf)?;
+
+    let (buf, ord_count) = le_u16(buf)?;
+    let (buf, ins_count) = le_u16(buf)?;
+
+    let ins_ptr_list: u16 = 0x0060 + ord_count;
+
+    let ins_ptrs = build_instrument_ptrs::<E>(&entire, ins_count, ins_ptr_list);
+
+    Ok((buf, ()))
+}
+
+fn build_instrument_ptrs<'i, E>(
+    module: &'i [u8],
+    ins_count: u16,
+    ins_ptr_list: u16,
+) -> impl Iterator<Item = usize> + 'i
+where
+    E: ParseError<&'i [u8]> + ContextError<&'i [u8]>,
+{
+    (0..ins_count as usize)
+        .map(move |i| ins_ptr_list as usize + (i * 2))
+        .filter_map(|offset| module.get(offset..))
+        .filter_map(|buf| le_u16::<&[u8], E>(buf).ok())
+        .map(|(_, ptr)| (ptr as usize) << 4)
+}
+const INS_FILENAME: usize = 12;
+
+fn build_samples<'i, E>(module: &'i [u8], ptrs: impl Iterator<Item = usize>) -> Vec<Sample>
+where
+    E: ParseError<&'i [u8]> + ContextError<&'i [u8]>,
+{
+    let le_u32: _ = |buf: &'i [u8]| le_u32::<_, E>(buf).ok();
+    let le_u24: _ = |buf: &'i [u8]| le_u24::<_, E>(buf).ok();
+    let le_u8: _ = |buf: &'i [u8]| le_u8::<_, E>(buf).ok();
+    let mut terminate = false;
+    
+    ptrs.enumerate()
+        .filter_map(|(idx, ptr)| Some((idx as u16, module.get(ptr..)?)))
+        .filter_map(|(index_raw, ins_hdr)| {
+            // return None if it is not a PCM instrument
+            // or if we need to terminate the closure
+            if terminate {
+                return None;
+            }
+
+            // make sure instrument type is 1 (pcm)
+            let Some((buf, 1)) = le_u8(ins_hdr) else {
+                return None;
+            };
+
+            let buf = buf.get(INS_FILENAME..)?; // skip instrument filename
+            let (buf, ptr) = le_u24(buf)?; // ptr to sample
+            let (buf, len) = le_u32(buf)?; // length of sample
+            
+            let len = len & 0xffff; // ignore upper 4 bytes
+
+            // return None if the sample length is empty
+            if len == 0 {
+                return None;
+            }
+
+            let (buf, loop_start) = le_u32(buf)?;
+            let (buf, loop_end) = le_u32(buf)?;
+            let (buf, _) = le_u24(buf)?; // skip 3, 8 bytes
+            let (buf, flags) = le_u8(buf)?;
+            let (buf, rate) = le_u32(buf)?;
+            let buf = buf.get(12..)?; //skip
+
+            let channel_type = Channel::new(flags.contains(FLAG_STEREO), false);
+            let depth = Depth::new(!flags.contains(FLAG_BITS), false, true);
+
+            let len: u32 = len * channel_type.channels() as u32 * depth.bytes() as u32;
+
+            // If the pointer to the pcm is out of bounds,
+            // Return None and terminate the closure
+            if (ptr + len) as usize > module.len() {
+                terminate = true;
+                return None;
+            }
+
+            let name: Box<[u8]> = Vec::from(*b"test").into_boxed_slice();
+
+            Some(Sample {
+                filename: None,
+                name,
+                len,
+                rate,
+                ptr,
+                depth,
+                channel_type,
+                index_raw,
+                ..Default::default()
+            })
+        })
+        .collect()
 }
 
 // #[test]
