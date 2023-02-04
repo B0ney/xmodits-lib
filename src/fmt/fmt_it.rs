@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use crate::interface::module::GenericTracker;
 use crate::interface::sample::{Channel, Depth};
 use crate::interface::{Error, Module, Sample};
 use crate::parser::bitflag::BitFlag;
@@ -8,7 +9,6 @@ use nom::bytes::complete::{tag, take};
 use nom::number::complete::{le_u16, le_u32, u8};
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
-use super::utils::get_buf;
 
 const NAME: &str = "Impulse Tracker";
 
@@ -35,10 +35,9 @@ mod CvtFlags {
     pub const FLAG_DELTA: u8 = 1 << 2; // off = PCM values, ON = Delta values
 }
 
-
 /// Impulse Tracker module
 pub struct IT {
-    buf: Box<[u8]>,
+    inner: GenericTracker,
     version: u16,
 }
 
@@ -68,17 +67,16 @@ impl Module for IT {
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
         Ok(match smp.is_compressed {
-            true => Cow::Owned(decompress(smp)(
-                get_buf(&self.buf, smp.ptr as usize..)?,
-                smp.len,
-                self.it215(),
-            )?),
-            false => Cow::Borrowed(get_buf(&self.buf, smp.ptr_range())?),
+            true => {
+                let compressed = self.inner.get_slice_trailing(smp)?;
+                decompress(smp)(compressed, smp.len, self.it215())?.into()
+            }
+            false => self.inner.get_slice(smp)?.into(),
         })
     }
 
     fn samples(&self) -> &[Sample] {
-        todo!()
+        &self.inner.samples
     }
 
     fn total_samples(&self) -> usize {

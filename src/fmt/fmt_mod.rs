@@ -1,12 +1,10 @@
 use std::borrow::Cow;
 
-use crate::interface::{Error, Module, Sample};
+use crate::interface::{Error, Module, Sample, module::GenericTracker};
 
-use super::utils::get_buf;
 
-pub struct MOD {
-    buf: Box<[u8]>,
-}
+/// Amiga Protracker
+pub struct MOD(GenericTracker);
 
 impl Module for MOD {
     fn name(&self) -> &str {
@@ -29,7 +27,7 @@ impl Module for MOD {
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(Cow::Borrowed(get_buf(&self.buf, smp.ptr_range())?))
+        Ok(self.0.get_slice(smp)?.into())
     }
 
     fn samples(&self) -> &[Sample] {

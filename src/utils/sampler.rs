@@ -1,6 +1,23 @@
 use bytemuck::{cast_slice, cast_slice_mut};
 use rayon::prelude::*;
 
+/// Ensures the pcm has an even number of elements
+/// 
+/// This will prevent panics when casting
+#[inline]
+pub fn align_u16(pcm_16_bit: &mut Vec<u8>) {
+    #[cold]
+    #[inline(never)]
+    fn inner(p: &mut Vec<u8>) {
+        // dbg!("Unaligned 16-bit pcm detected!");
+        p.push(0);
+    }
+    // if the pcm length is odd, then it is unaligned.
+    if (pcm_16_bit.len() & 1) == 1 {
+        inner(pcm_16_bit)
+    }
+}
+
 #[inline]
 /// flips the sign on a pcm
 pub fn flip_sign_8_bit(mut pcm_8_bit: Vec<u8>) -> Vec<u8> {
@@ -29,21 +46,6 @@ fn _flip_sign_16_bit_ref_mut(pcm_16_bit: &mut [u16]) {
         .for_each(|b| *b = b.wrapping_sub(i16::MAX as u16 + 1));
 }
 
-/// Ensures the pcm has an even number of elements
-#[inline]
-fn align_u16(pcm_16_bit: &mut Vec<u8>) {
-    #[cold]
-    #[inline(never)]
-    fn inner(p: &mut Vec<u8>) {
-        // dbg!("Unaligned 16-bit pcm detected!");
-        p.push(0);
-    }
-    // if the pcm length is odd, then it is unaligned.
-    if (pcm_16_bit.len() & 1) == 1 {
-        inner(pcm_16_bit)
-    }
-}
-
 /// Reduce bit depth of 16 bit sample to 8 bit sample.
 /// The sign is preserved.
 #[inline]
@@ -57,7 +59,7 @@ fn _reduce_bit_depth_u16_to_u8(pcm_16_bit: &[u16]) -> Vec<u8> {
     const SCALE: u16 = u16::MAX / u8::MAX as u16;
 
     // Pre-allocate buffer for resampled pcm
-    let mut resampled: Vec<u8> = Vec::with_capacity(pcm_16_bit.len() / 2);
+    let mut resampled: Vec<u8> = Vec::with_capacity(pcm_16_bit.len());
 
     // TODO: Add random noise to mitigate quantization error AND without the nasty clicks
     // Divide sample by 257 to quantize u16 to u8
@@ -69,6 +71,7 @@ fn _reduce_bit_depth_u16_to_u8(pcm_16_bit: &[u16]) -> Vec<u8> {
 
     resampled
 }
+
 /// Interleave data
 ///
 /// The output is dependent on another
@@ -85,6 +88,7 @@ fn interleave<T: Copy>(buf: &[T]) -> impl Iterator<Item = T> + '_ {
         .zip(right)
         .flat_map(|(l, r)| iter::once(*l).chain(iter::once(*r)))
 }
+
 /// Interleave 8 bit pcm
 ///
 /// We don't need to own the pcm.

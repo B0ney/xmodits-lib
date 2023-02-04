@@ -8,8 +8,8 @@ pub enum Error {
     #[error("Not all of the samples could be extracted: {0:?}")]
     PartialExtraction(Vec<Error>),
 
-    #[error("Could not rip from this module")]
-    Extraction, // Maybe add the errors?
+    #[error("Could not rip from this module {0}")]
+    Extraction(String), // Maybe add the errors?
 
     #[error("{0}")]
     UnsupportedModule(String),
@@ -37,8 +37,8 @@ impl Error {
     }
 
     /// Could not extract anything
-    pub fn extraction_failure() -> Result<(), Self> {
-        Err(Self::Extraction)
+    pub fn extraction_failure(error: &str) -> Result<(), Self> {
+        Err(Self::Extraction(error.into()))
     }
 
     /// The sample could not be extracted to the desired format

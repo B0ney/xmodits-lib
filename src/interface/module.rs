@@ -2,6 +2,57 @@ use std::borrow::Cow;
 
 use crate::interface::{sample::Sample, Error};
 
+pub struct Name {
+    pub ptr: usize,
+    pub len: usize,
+}
+
+impl From<(usize, usize)> for Name {
+    fn from((ptr, len): (usize, usize)) -> Self {
+        Self { ptr, len }
+    }
+}
+
+pub struct GenericTracker {
+    /// Name of the module
+    pub name: Name,
+
+    /// Stored module
+    pub buf: Box<[u8]>,
+
+    /// Processed samples
+    pub samples: Box<[Sample]>,
+}
+
+impl GenericTracker {
+    // pub fn name_raw(&self) -> Option<&[u8]> {
+    //     let Name { ptr, len } = self.name;
+    //     self.buf.get(ptr..(ptr + len))
+    // }
+
+    #[inline]
+    pub fn get_slice(&self, smp: &Sample) -> Result<&[u8], Error> {
+        self.buf.get(smp.ptr_range()).ok_or_else(Error::bad_sample)
+    }
+
+    #[inline]
+    pub fn get_slice_trailing(&self, smp: &Sample) -> Result<&[u8], Error> {
+        self.buf
+            .get(smp.ptr as usize..)
+            .ok_or_else(Error::bad_sample)
+    }
+
+    #[inline]
+    pub fn get_owned_slice(&self, smp: &Sample) -> Result<Vec<u8>, Error> {
+        Ok(self.get_slice(smp)?.to_owned())
+    }
+
+    #[inline]
+    pub fn get_owned_slice_trailing(&self, smp: &Sample) -> Result<Vec<u8>, Error> {
+        Ok(self.get_slice_trailing(smp)?.to_owned())
+    }
+}
+
 /// A barebones representation of a tracker module.
 ///
 /// Only has the information needed to extract samples

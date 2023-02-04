@@ -1,9 +1,10 @@
 use std::borrow::Cow;
 
+use crate::interface::module::GenericTracker;
 use crate::interface::sample::Depth;
 use crate::interface::{Error, Module, Sample};
 
-use super::utils::{delta_decode, get_buf_owned};
+use super::utils::delta_decode;
 
 const NAME: &str = "Extended Module";
 
@@ -14,9 +15,7 @@ const MAGIC_MIN_VER: u16 = 0x0104;
 
 const FLAG_BITS: u8 = 1 << 4;
 
-pub struct XM {
-    buf: Box<[u8]>,
-}
+pub struct XM(GenericTracker);
 
 impl Module for XM {
     fn name(&self) -> &str {
@@ -42,10 +41,7 @@ impl Module for XM {
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(Cow::Owned(delta_decode(smp)(get_buf_owned(
-            &self.buf,
-            smp.ptr_range(),
-        )?)))
+        Ok(delta_decode(smp)(self.0.get_owned_slice(smp)?).into())
     }
 
     fn samples(&self) -> &[Sample] {
