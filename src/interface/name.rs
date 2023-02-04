@@ -84,13 +84,12 @@ impl SampleNamer {
                     false => (index + 1, ctx.total),
                 };
 
-                let total = largest;
                 let padding = match self.index_padding {
-                    n if n > 1 && digits(total) > n => digits(total),
+                    n if n > 1 && digits(largest) > n => digits(largest),
                     n => n,
                 } as usize;
 
-                format!("{index:0padding$}",)
+                format!("{index:0padding$}")
             };
 
             let extension = ctx.extension.trim_matches('.');

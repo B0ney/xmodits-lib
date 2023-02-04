@@ -1,10 +1,13 @@
 use crate::interface::Error;
+use crate::parser::bytes::le_u16 as _le_u16;
 use bytemuck::cast_slice;
-use byteorder::{ByteOrder, LE};
 
-#[inline]
-fn le_u16(buf: &[u8], offset: usize) -> Option<u16> {
-    Some(LE::read_u16(buf.get(offset..(offset + 2))?))
+fn le_u16(buf: &[u8], offset: usize) -> Result<u16, Error> {
+    _le_u16(buf, offset).ok_or_else(Error::bad_sample)
+}
+
+fn get_byte(buf: &[u8], offset: usize) -> Result<u8, Error> {
+    buf.get(offset).ok_or_else(Error::bad_sample).copied()
 }
 
 #[rustfmt::skip] 
@@ -29,14 +32,14 @@ impl<'a> BitReader<'a> {
 
     fn read_next_block(&mut self) -> Result<(), Error> {
         // First 2 bytes combined to u16 (LE). Tells us size of compressed block.
-        let block_size = le_u16(self.buf, self.block_offset).ok_or_else(Error::bad_sample)?;
+        let block_size = le_u16(self.buf, self.block_offset)?;
 
         // Set to 2 to skip length field
         self.blk_index = 2 + self.block_offset;
 
         // Initialize bit buffers.
         // (Following the original by setting it to 0 caused a lot of headaches :D)
-        self.bitbuf = *self.buf.get(self.blk_index).ok_or_else(Error::bad_sample)? as u32;
+        self.bitbuf = get_byte(self.buf, self.blk_index)? as u32;
         self.bitnum = 8;
         self.block_offset += block_size as usize + 2;
         Ok(())
@@ -55,7 +58,7 @@ impl<'a> BitReader<'a> {
         for _ in 0..n {
             if self.bitnum == 0 {
                 self.blk_index += 1;
-                self.bitbuf = *self.buf.get(self.blk_index).ok_or_else(Error::bad_sample)? as u32;
+                self.bitbuf = get_byte(self.buf, self.blk_index)? as u32;
                 self.bitnum = 8;
             }
             value >>= 1;
