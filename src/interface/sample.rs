@@ -99,7 +99,7 @@ impl Sample {
 
     // TODO
     pub fn is_8_bit(&self) -> bool {
-        self.depth.bits() == 16
+        matches!(self.depth, Depth::U8 | Depth::I8)
     }
     pub fn channels(&self) -> u16 {
         self.channel_type.channels()
@@ -196,7 +196,6 @@ impl Depth {
         }
     }
 }
-
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SampleKind {

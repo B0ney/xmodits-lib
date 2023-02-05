@@ -38,6 +38,7 @@ mod CvtFlags {
 /// Impulse Tracker module
 pub struct IT {
     inner: GenericTracker,
+    samples: Box<[Sample]>,
     version: u16,
 }
 
@@ -76,7 +77,7 @@ impl Module for IT {
     }
 
     fn samples(&self) -> &[Sample] {
-        &self.inner.samples
+        &self.samples
     }
 
     fn total_samples(&self) -> usize {

@@ -1,10 +1,12 @@
 use std::borrow::Cow;
 
-use crate::interface::{Error, Module, Sample, module::GenericTracker};
-
+use crate::interface::{module::GenericTracker, Error, Module, Sample};
 
 /// Amiga Protracker
-pub struct MOD(GenericTracker);
+pub struct MOD {
+    inner: GenericTracker,
+    samples: Box<[Sample]>,
+}
 
 impl Module for MOD {
     fn name(&self) -> &str {
@@ -27,11 +29,11 @@ impl Module for MOD {
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(self.0.get_slice(smp)?.into())
+        Ok(self.inner.get_slice(smp)?.into())
     }
 
     fn samples(&self) -> &[Sample] {
-        todo!()
+        &self.samples
     }
 
     fn total_samples(&self) -> usize {

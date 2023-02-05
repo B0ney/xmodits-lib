@@ -1,15 +1,16 @@
 use bytemuck::{cast_slice, cast_slice_mut};
+use log::warn;
 use rayon::prelude::*;
 
 /// Ensures the pcm has an even number of elements
-/// 
+///
 /// This will prevent panics when casting
 #[inline]
 pub fn align_u16(pcm_16_bit: &mut Vec<u8>) {
     #[cold]
     #[inline(never)]
     fn inner(p: &mut Vec<u8>) {
-        // dbg!("Unaligned 16-bit pcm detected!");
+        warn!("Unaligned 16-bit pcm detected!");
         p.push(0);
     }
     // if the pcm length is odd, then it is unaligned.
@@ -109,4 +110,10 @@ pub fn interleave_16_bit(mut pcm: Vec<u8>) -> Vec<u16> {
 #[inline]
 fn _interleave_u16(pcm: &[u16]) -> Vec<u16> {
     interleave(pcm).collect()
+}
+
+#[test]
+fn al() {
+    let mut a = vec![0];
+    align_u16(&mut a);
 }

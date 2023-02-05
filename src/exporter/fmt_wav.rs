@@ -1,7 +1,6 @@
 use bytemuck::cast_slice;
 use std::{borrow::Cow, io::Write};
 
-use crate::exporter::utils::maybe_delta_decode;
 use crate::interface::audio::AudioTrait;
 use crate::interface::sample::{Channel, Depth, Sample};
 use crate::interface::Error;
@@ -34,7 +33,7 @@ impl AudioTrait for Wav {
         // const SMPL: [u8; 4] = [0x73, 0x6D, 0x70, 0x6C]; // smpl
 
         // To avoid nasty bugs in future, explicitly cast the types.
-        let size = HEADER_SIZE - 8 + pcm.len() as u32;
+        let size = HEADER_SIZE - 8 + pcm.len() as u32; // TODO: double check for stereo samples
         let channels = metadata.channels() as u16;
         let bits = metadata.bits() as u16;
         let rate = metadata.rate as u32;
@@ -54,11 +53,8 @@ impl AudioTrait for Wav {
         writer.write_all(&DATA)?;
         writer.write_all(&(pcm.len() as u32).to_le_bytes())?; // size of chunk
 
-        // Delta decode pcm if it is. A delta coded pcm will be quiet 
-        let pcm = maybe_delta_decode(&metadata)(pcm);
-
         // Only signed 16 bit & unsigned 8 bit samples are supported.
-        // If not, resample them.
+        // If not, flip the sign.
         let pcm = match metadata.depth {
             Depth::U8 | Depth::I16 => pcm,
             Depth::I8 => flip_sign_8_bit(pcm.into_owned()).into(),

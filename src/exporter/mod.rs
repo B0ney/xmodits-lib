@@ -4,7 +4,6 @@ pub mod fmt_iff;
 pub mod fmt_its;
 pub mod fmt_raw;
 pub mod fmt_wav;
-mod utils;
 
 #[derive(Default, Clone, Copy)]
 pub enum ExportFormat {
@@ -22,6 +21,9 @@ pub enum ExportFormat {
 }
 
 impl ExportFormat {
+    /// Returns an AudioTrait object.
+    ///
+    /// If the implementation is zero sized, it won't allocate.
     pub fn get_impl(&self) -> DynAudioTrait {
         match self {
             Self::IFF => Box::new(fmt_iff::Iff),

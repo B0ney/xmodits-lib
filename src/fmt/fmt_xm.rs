@@ -15,7 +15,10 @@ const MAGIC_MIN_VER: u16 = 0x0104;
 
 const FLAG_BITS: u8 = 1 << 4;
 
-pub struct XM(GenericTracker);
+pub struct XM {
+    inner: GenericTracker,
+    samples: Box<[Sample]>,
+}
 
 impl Module for XM {
     fn name(&self) -> &str {
@@ -41,11 +44,11 @@ impl Module for XM {
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(delta_decode(smp)(self.0.get_owned_slice(smp)?).into())
+        Ok(delta_decode(smp)(self.inner.get_owned_slice(smp)?).into())
     }
 
     fn samples(&self) -> &[Sample] {
-        todo!()
+        &self.samples
     }
 
     fn total_samples(&self) -> usize {

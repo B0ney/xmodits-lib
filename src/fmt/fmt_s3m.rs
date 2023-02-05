@@ -10,7 +10,6 @@ use nom::number::complete::{le_u16, le_u24, le_u32, le_u8};
 use nom::{Err, IResult};
 // use nom::IResult;
 
-
 const NAME: &str = "Scream Tracker";
 
 const MAGIC_HEADER: [u8; 4] = *b"SCRM";
@@ -23,7 +22,10 @@ enum Flag {
     BITS = 1 << 2,
 }
 
-pub struct S3M(GenericTracker);
+pub struct S3M {
+    inner: GenericTracker,
+    samples: Box<[Sample]>,
+}
 
 impl Module for S3M {
     fn name(&self) -> &str {
@@ -32,7 +34,7 @@ impl Module for S3M {
     }
 
     fn format(&self) -> &str {
-        NAME 
+        NAME
     }
 
     fn validate(buf: &[u8]) -> Result<(), Error>
@@ -47,11 +49,11 @@ impl Module for S3M {
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(Cow::Borrowed(self.0.get_slice(smp)?))
+        Ok(Cow::Borrowed(self.inner.get_slice(smp)?))
     }
 
     fn samples(&self) -> &[Sample] {
-        &self.0.samples
+        &self.samples
     }
 
     fn total_samples(&self) -> usize {
@@ -96,10 +98,7 @@ where
 }
 const INS_FILENAME: usize = 12;
 
-fn aa<'a>(
-    ins_hdr: &'a [u8],
-    index_raw: u16,
-) -> IResult<&'a [u8], Sample> {
+fn aa<'a>(ins_hdr: &'a [u8], index_raw: u16) -> IResult<&'a [u8], Sample> {
     // make sure instrument type is 1 (pcm)
     let (buf, typer) = le_u8(ins_hdr)?;
 
@@ -176,7 +175,7 @@ where
         .filter_map(|(idx, ptr)| Some((idx as u16, module.get(ptr..)?)))
         .filter_map(|(index_raw, ins_hdr)| match terminate {
             true => None,
-            false => aa(ins_hdr, index_raw).ok()
+            false => aa(ins_hdr, index_raw).ok(),
         })
         .map(|(_, sample)| sample)
         .collect()

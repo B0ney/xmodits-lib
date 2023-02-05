@@ -2,31 +2,36 @@ use std::borrow::Cow;
 
 use crate::interface::{sample::Sample, Error};
 
-pub struct Name {
-    pub ptr: usize,
-    pub len: usize,
-}
+// struct NamePtr {
+//     pub ptr: usize,
+//     pub len: usize,
+// }
 
-impl From<(usize, usize)> for Name {
-    fn from((ptr, len): (usize, usize)) -> Self {
-        Self { ptr, len }
-    }
-}
+// impl From<(usize, usize)> for NamePtr {
+//     fn from((ptr, len): (usize, usize)) -> Self {
+//         Self { ptr, len }
+//     }
+// }
 
+/// Panic free wrapper to obtain raw samples from a module
+///
 pub struct GenericTracker {
-    /// Name of the module
-    pub name: Name,
-
+    // /// Name of the module
+    // name: NamePtr,
     /// Stored module
-    pub buf: Box<[u8]>,
-
-    /// Processed samples
-    pub samples: Box<[Sample]>,
+    buf: Box<[u8]>,
+    // pub samples: Option<Box<[Sample]>>,
 }
 
 impl GenericTracker {
+    pub fn new(buf: Vec<u8>) -> Self {
+        Self {
+            buf: buf.into_boxed_slice(),
+        }
+    }
+
     // pub fn name_raw(&self) -> Option<&[u8]> {
-    //     let Name { ptr, len } = self.name;
+    //     let NamePtr { ptr, len } = self.name;
     //     self.buf.get(ptr..(ptr + len))
     // }
 
@@ -95,9 +100,10 @@ pub trait Module: Send + Sync {
     where
         Self: Sized;
 
-    /// Obtain stored pcm data.
-    /// Make return type a COW<u8> to make implementaion diverse.
-    /// The PCM has been processed so that it can be directly embedded.
+    /// Obtain readable pcm data.
+    ///
+    /// Returns a ``Cow<[u8]>`` to allow referencing the inner buffer
+    /// or an owned vec if any processing was done to make the pcm readable, e.g decompression.
     ///
     /// obtaining the pcm data should not cause side effects
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error>;

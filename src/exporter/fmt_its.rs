@@ -1,8 +1,7 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
-use crate::interface::sample::Sample;
-use crate::interface::Error;
+use crate::interface::{Error, Sample};
 
 /// Impulse tracker sample
 #[derive(Clone, Copy)]

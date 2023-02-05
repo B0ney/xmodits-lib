@@ -12,4 +12,3 @@ pub fn magic_header(magic: &[u8], buf: &[u8]) -> bool {
 pub fn le_u16(buf: &[u8], offset: usize) -> Option<u16> {
     Some(LE::read_u16(buf.get(offset..(offset + 2))?))
 }
-

@@ -1,11 +1,11 @@
+use log::{debug, error, info, warn, Level};
 use rayon::prelude::*;
 use std::{fs, path::Path};
-use tracing::{debug, error, info, span, warn, Level};
 
 use crate::exporter::ExportFormat;
 use crate::interface::audio::{AudioTrait, DynAudioTrait};
 use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
-use crate::interface::{Sample, Error, Module};
+use crate::interface::{Error, Module, Sample};
 
 /// Struct to rip samples from a module
 ///
