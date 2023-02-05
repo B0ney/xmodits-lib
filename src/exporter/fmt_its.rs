@@ -23,7 +23,7 @@ impl AudioTrait for Its {
         const PLACE_HOLDER: [u8; 4] = [0, 0, 0, 0];
 
         let flags: u8 = 0; // TODO
-        let length = metadata.len as u32; // TODO: check if lengh is in bytes or samples
+        let length = metadata.length as u32; // TODO: check if lengh is in bytes or samples
         let c5speed = metadata.rate as u32;
 
         writer.write_all(&HEADER)?;

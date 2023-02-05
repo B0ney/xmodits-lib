@@ -12,19 +12,19 @@ pub struct Sample {
     pub name: Box<[u8]>,
 
     /// Sample length in BYTES
-    pub len: u32,
+    pub length: u32,
 
     /// Sample rate
     pub rate: u32,
 
     /// Sample pointer
-    pub ptr: u32,
+    pub pointer: u32,
 
     /// Sample bit depth. i.e 8, 16, 24
     pub depth: Depth,
 
     /// Type of audio channel. Stereo / Mono
-    pub channel_type: Channel,
+    pub channel: Channel,
 
     /// An index representing its true postition inside a tracker module.
     ///
@@ -32,12 +32,10 @@ pub struct Sample {
     pub index_raw: u16,
 
     /// Is sample compressed?
-    pub is_compressed: bool,
+    pub compressed: bool,
 
     /// Looping information
     pub looping: Loop,
-
-    pub sample_kind: SampleKind,
 }
 
 impl Sample {
@@ -45,7 +43,7 @@ impl Sample {
     ///
     /// If the stored sample is compressed, you may not want to use this.
     pub fn ptr_range(&self) -> std::ops::Range<usize> {
-        self.ptr as usize..(self.ptr + self.len) as usize
+        self.pointer as usize..(self.pointer + self.length) as usize
     }
 
     /// Return Sample's index as if it's listed in a tracker module.
@@ -81,12 +79,12 @@ impl Sample {
 
     /// Is the sample stereo?
     pub fn is_stereo(&self) -> bool {
-        matches!(self.channel_type, Channel::Stereo { .. })
+        matches!(self.channel, Channel::Stereo { .. })
     }
 
     /// Is the stereo sample data interleaved?
     pub fn is_interleaved(&self) -> bool {
-        self.channel_type == Channel::Stereo { interleaved: true }
+        self.channel == Channel::Stereo { interleaved: true }
     }
 
     pub fn is_signed(&self) -> bool {
@@ -102,7 +100,7 @@ impl Sample {
         matches!(self.depth, Depth::U8 | Depth::I8)
     }
     pub fn channels(&self) -> u16 {
-        self.channel_type.channels()
+        self.channel.channels()
     }
 }
 
@@ -197,12 +195,12 @@ impl Depth {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SampleKind {
-    /// Samples are stored as PCM values
-    #[default]
-    PCM,
+// #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+// pub enum SampleKind {
+//     /// Samples are stored as PCM values
+//     #[default]
+//     PCM,
 
-    /// Samples are stored as Delta Values,
-    DELTA,
-}
+//     /// Samples are stored as Delta Values,
+//     DELTA,
+// }

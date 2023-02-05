@@ -30,11 +30,6 @@ impl GenericTracker {
         }
     }
 
-    // pub fn name_raw(&self) -> Option<&[u8]> {
-    //     let NamePtr { ptr, len } = self.name;
-    //     self.buf.get(ptr..(ptr + len))
-    // }
-
     #[inline]
     pub fn get_slice(&self, smp: &Sample) -> Result<&[u8], Error> {
         self.buf.get(smp.ptr_range()).ok_or_else(Error::bad_sample)
@@ -43,7 +38,7 @@ impl GenericTracker {
     #[inline]
     pub fn get_slice_trailing(&self, smp: &Sample) -> Result<&[u8], Error> {
         self.buf
-            .get(smp.ptr as usize..)
+            .get(smp.pointer as usize..)
             .ok_or_else(Error::bad_sample)
     }
 
@@ -55,6 +50,17 @@ impl GenericTracker {
     #[inline]
     pub fn get_owned_slice_trailing(&self, smp: &Sample) -> Result<Vec<u8>, Error> {
         Ok(self.get_slice_trailing(smp)?.to_owned())
+    }
+}
+
+impl From<Box<[u8]>> for GenericTracker {
+    fn from(value: Box<[u8]>) -> Self {
+        Self { buf: value }
+    }
+}
+impl From<Vec<u8>> for GenericTracker {
+    fn from(value: Vec<u8>) -> Self {
+        Self { buf: value.into() }
     }
 }
 

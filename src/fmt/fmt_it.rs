@@ -1,9 +1,15 @@
 use std::borrow::Cow;
+use std::fs::File;
+use std::io::Read;
 
 use crate::interface::module::GenericTracker;
-use crate::interface::sample::{Channel, Depth};
+use crate::interface::sample::{Channel, Depth, Loop, LoopType};
 use crate::interface::{Error, Module, Sample};
-use crate::parser::bitflag::BitFlag;
+use crate::parser::{
+    bitflag::BitFlag,
+    io::{ByteReader, ReadSeek},
+    magic::verify_magic,
+};
 
 use nom::bytes::complete::{tag, take};
 use nom::number::complete::{le_u16, le_u32, u8};
@@ -13,14 +19,14 @@ use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 const NAME: &str = "Impulse Tracker";
 
 /* Magic values */
-const MAGIC_HEADER: [u8; 4] = *b"IMPM";
-const MAGIC_SAMPLE: [u8; 4] = *b"IMPS";
+const MAGIC_IMPM: [u8; 4] = *b"IMPM";
+const MAGIC_IMPS: [u8; 4] = *b"IMPS";
 const MAGIC_ZIRCONA: [u8; 7] = *b"ziRCONa";
 const MAGIC_IT215: u16 = 0x0215;
 
 /* Sample flags */
 mod SampleFlags {
-    pub const BITS: u8 = 1 << 1;
+    pub const BITS_16: u8 = 1 << 1;
     pub const STEREO: u8 = 1 << 2;
     pub const COMPRESSION: u8 = 1 << 3;
     pub const LOOP: u8 = 1 << 4;
@@ -67,10 +73,10 @@ impl Module for IT {
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(match smp.is_compressed {
+        Ok(match smp.compressed {
             true => {
                 let compressed = self.inner.get_slice_trailing(smp)?;
-                decompress(smp)(compressed, smp.len, self.it215())?.into()
+                decompress(smp)(compressed, smp.length, self.it215())?.into()
             }
             false => self.inner.get_slice(smp)?.into(),
         })
@@ -85,6 +91,101 @@ impl Module for IT {
     }
 }
 
+fn build(file: &mut std::fs::File) -> Result<IT, Error> {
+    parse_(file).map(|samples| {
+        let mut buf: Vec<u8> = Vec::new();
+        file.read_to_end(&mut buf).unwrap();
+        IT {
+            inner: buf.into(),
+            samples,
+            version: 13,
+        }
+    })
+}
+
+fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
+    verify_magic(file, &MAGIC_IMPM)?;
+
+    let title = file.read_bytes(26)?;
+    file.skip_bytes(2)?;
+
+    let ord_num = file.read_u16_le()?;
+    let ins_num = file.read_u16_le()?;
+    let smp_num = file.read_u16_le()?;
+    file.skip_bytes(2)?;
+
+    let compat_ver = file.read_u16_le()?;
+    file.set_seek_pos((0x00c0 + ord_num + (ins_num * 4)) as u64)?;
+
+    let mut smp_ptrs: Vec<u32> = Vec::with_capacity(smp_num as usize);
+    for _ in 0..smp_num {
+        smp_ptrs.push(file.read_u32_le()?);
+    }
+
+    build_samples(file, smp_ptrs).map(|samples| samples.into())
+}
+
+fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>, Error> {
+    let mut samples: Vec<Sample> = Vec::with_capacity(ptrs.len());
+
+    for (index_raw, sample_header) in ptrs.into_iter().enumerate() {
+        file.set_seek_pos(sample_header as u64)?;
+        verify_magic(file, &MAGIC_IMPS)?;
+
+        // Check if the sample is empty so we don't waste resources.
+        file.skip_bytes(44)?;
+        let length = file.read_u32_le()?;
+        if length == 0 {
+            continue;
+        }
+        file.skip_bytes(-44 - 4)?;
+
+
+        let filename = file.read_bytes(12)?.into_boxed_slice();
+        file.skip_bytes(2)?; // zero, gvl
+
+        let flags = file.read_byte()?;
+        file.skip_bytes(1)?; // vol
+
+        let name = file.read_bytes(26)?.into_boxed_slice();
+        file.skip_bytes(2)?; // cvt, dfp
+        file.skip_bytes(4)?; // sample length since it's not empty
+        
+        let loop_start = file.read_u32_le()?;
+        let loop_end = file.read_u32_le()?;
+        let rate = file.read_u32_le()?;
+        file.skip_bytes(8)?; // susloopbegin, susloopend
+
+        let pointer = file.read_u32_le()?;
+        let compressed = flags.contains(SampleFlags::COMPRESSION);
+        let depth = Depth::new(!flags.contains(SampleFlags::BITS_16), false, true);
+        let channel = Channel::new(flags.contains(SampleFlags::STEREO), false);
+
+        // convert to length in bytes
+        let length = length * depth.bytes() as u32 * channel.channels() as u32;
+        let index_raw = index_raw as u16;
+
+        samples.push(Sample {
+            filename: Some(filename),
+            name,
+            index_raw,
+            looping: Loop {
+                start: loop_start,
+                stop: loop_end,
+                kind: LoopType::OFF, // TODO
+            },
+            depth,
+            length,
+            pointer,
+            compressed,
+            rate,
+            channel,
+        })
+    }
+
+    Ok(samples)
+}
+
 #[inline]
 fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Error> {
     match smp.is_8_bit() {
@@ -95,27 +196,17 @@ fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Erro
 
 #[test]
 pub fn a() {
-    let smp_flags: u8 = 0b_0000_0011;
-    dbg!(smp_flags.contains(0b_0000_0010));
-    // dbg!(smp_flags.contains(FLAG_FORWARD));
-    // dbg!(smp_flags.contains(FLAG_PINGPONG));
+    let mut file = File::open("./utmenu.it").unwrap();
 
-    let flags = 3u8;
-    let depth = Depth::new(!flags.contains(SampleFlags::BITS), false, true);
-    let channel_type = Channel::new(flags.contains(SampleFlags::STEREO), false);
-    let len = 0;
-    let len = len * channel_type.channels() as u32 * depth.bits() as u32;
+    let samples = parse_(&mut file).unwrap();
 
-    // let sample = Sample {
-    //     filename: None,
-    //     name: todo!(),
-    //     len: todo!(),
-    //     rate: todo!(),
-    //     ptr: todo!(),
-    //     depth,
-    //     channel_type,
-    //     index_raw: todo!(),
-    //     is_compressed: flags.is_set_right_side(FLAG_COMPRESSION),
-    //     looping: todo!(),
-    // };
+    dbg!(samples.len());
+
+    for i in samples.iter() {
+        dbg!(i.length);
+        dbg!(i.compressed);
+        println!("{}", i.filename());
+        println!("{}\n", i.name());
+    }
+
 }

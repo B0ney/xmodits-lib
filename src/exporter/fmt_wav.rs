@@ -63,7 +63,7 @@ impl AudioTrait for Wav {
 
         let mut write_pcm = |buf: &[u8]| writer.write_all(buf);
 
-        match metadata.channel_type {
+        match metadata.channel {
             Channel::Stereo { interleaved: false } => match metadata.is_8_bit() {
                 true => write_pcm(&interleave_8_bit(&pcm)),
                 false => write_pcm(cast_slice(&interleave_16_bit(pcm.into_owned()))),
@@ -102,7 +102,7 @@ mod tests {
             &Sample {
                 depth: Depth::I16,
                 rate: 11025,
-                channel_type: Channel::Stereo { interleaved: false },
+                channel: Channel::Stereo { interleaved: false },
                 ..Default::default()
             },
             Cow::Borrowed(data),

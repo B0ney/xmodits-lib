@@ -1,89 +1,14 @@
-/samples/
-/target/
-/test/
-/.vscode/
+/test
+/.vscode
 /build/
-/extras/aseprite/
-/extras/old/
+
 *.wav
 *.umx
-!/app/gui/res/**/*.wav
-/pylib/.github/
-/pylib/dev/
-Cargo.lock
 *.raw
-# Byte-compiled / optimized / DLL files
-__pycache__/
-.pytest_cache/
-*.py[cod]
+*.it
 
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-.venv/
-env/
-bin/
-build/
-develop-eggs/
-dist/
-eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-include/
-man/
-venv/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-pip-selfcheck.json
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.cache
-nosetests.xml
-coverage.xml
-
-# Translations
-*.mo
-
-# Mr Developer
-.mr.developer.cfg
-.project
-.pydevproject
-
-# Rope
-.ropeproject
-
-# Django stuff:
-*.log
-*.pot
-
-.DS_Store
-
-# Sphinx documentation
-docs/_build/
-
-# PyCharm
-.idea/
-
-# VSCode
-.vscode/
-
-# Pyenv
-.python-version
+!/app/gui/res/**/*.wav
 
 # Added by cargo
-
 /target
 /Cargo.lock

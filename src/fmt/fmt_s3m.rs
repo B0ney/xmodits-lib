@@ -146,11 +146,11 @@ fn aa<'a>(ins_hdr: &'a [u8], index_raw: u16) -> IResult<&'a [u8], Sample> {
         Sample {
             filename: None,
             name,
-            len,
+            length: len,
             rate,
-            ptr,
+            pointer: ptr,
             depth,
-            channel_type,
+            channel: channel_type,
             index_raw,
             looping: Loop {
                 start: loop_start,
@@ -193,14 +193,14 @@ pub fn a() {
     let sample = Sample {
         filename: None,
         name: todo!(),
-        len: todo!(),
+        length: todo!(),
         rate: todo!(),
-        ptr: todo!(),
+        pointer: todo!(),
         depth,
-        channel_type,
+        channel: channel_type,
         index_raw: todo!(),
-        is_compressed: todo!(),
+        compressed: todo!(),
         looping: todo!(),
-        sample_kind: todo!(),
+        // sample_kind: todo!(),
     };
 }

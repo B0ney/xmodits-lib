@@ -1,7 +1,7 @@
 #[forbid(unsafe_code)]
 mod exporter;
 pub mod fmt;
-mod interface;
+pub mod interface;
 mod macros;
 pub mod parser;
 mod utils;

@@ -5,21 +5,22 @@ use std::{
 
 use crate::parser::{
     bitflag::BitFlag,
-    magic::{self, bad_magic_non_consume, magic, magic_non_consume},
+    magic::{self, bad_magic_non_consume, verify_magic, magic_non_consume},
     read_str::{self, replace_carriage_return},
 };
+
 // use std
-pub trait Data: Read + Seek + Send + Sync {
+pub trait ReadSeek: Read + Seek + Send + Sync {
     fn size(&self) -> Option<u64>;
 }
 
-impl<T: AsRef<[u8]> + Send + Sync> Data for Cursor<T> {
+impl<T: AsRef<[u8]> + Send + Sync> ReadSeek for Cursor<T> {
     fn size(&self) -> Option<u64> {
         Some(self.get_ref().as_ref().len() as u64)
     }
 }
 
-impl Data for std::fs::File {
+impl ReadSeek for std::fs::File {
     fn size(&self) -> Option<u64> {
         match self.metadata() {
             Ok(x) => Some(x.len()),
@@ -28,23 +29,23 @@ impl Data for std::fs::File {
     }
 }
 
-impl<T: Data> Data for BufReader<T> {
+impl<T: ReadSeek> ReadSeek for BufReader<T> {
     fn size(&self) -> Option<u64> {
         self.get_ref().size()
     }
 }
 
-impl From<Box<dyn Data>> for DataStream {
-    fn from(inner: Box<dyn Data>) -> Self {
+impl From<Box<dyn ReadSeek>> for DataStream {
+    fn from(inner: Box<dyn ReadSeek>) -> Self {
         Self { inner }
     }
 }
 
 struct DataStream {
-    inner: Box<dyn Data>,
+    inner: Box<dyn ReadSeek>,
 }
 impl DataStream {
-    fn new(data: Box<dyn Data>) -> Self {
+    fn new(data: Box<dyn ReadSeek>) -> Self {
         Self { inner: data }
     }
 }
@@ -92,11 +93,11 @@ pub trait ByteReader {
     }
     fn skip_bytes(&mut self, bytes: i64) -> io::Result<()>;
     fn set_seek_pos(&mut self, offset: u64) -> io::Result<()>;
-    fn read_bytes_boxed_slice(&mut self, bytes: usize) -> io::Result<Box<[u8]>>;
+    fn read_bytes(&mut self, bytes: usize) -> io::Result<Vec<u8>>;
     fn size(&self) -> Option<u64>;
 }
 
-impl<T: Data> ByteReader for T {
+impl<T: ReadSeek> ByteReader for T {
     fn read_word(&mut self) -> io::Result<[u8; 2]> {
         let mut buf = [0u8; 2];
         self.read_exact(&mut buf)?;
@@ -118,10 +119,10 @@ impl<T: Data> ByteReader for T {
         self.seek(SeekFrom::Current(bytes)).map(|_| ())
     }
 
-    fn read_bytes_boxed_slice(&mut self, bytes: usize) -> io::Result<Box<[u8]>> {
+    fn read_bytes(&mut self, bytes: usize) -> io::Result<Vec<u8>> {
         let mut buf = vec![0; bytes];
         self.read_exact(&mut buf)?;
-        Ok(buf.into_boxed_slice())
+        Ok(buf)
     }
 
     fn set_seek_pos(&mut self, offset: u64) -> io::Result<()> {
@@ -132,6 +133,10 @@ impl<T: Data> ByteReader for T {
         T::size(self)
     }
 }
+
+
+
+
 mod flag {
     pub const STEREO: u8 = 1 << 3;
 }
@@ -167,34 +172,40 @@ fn g() {
 }
 
 /// Experimental
-fn validate<R: ByteReader>(buf: &mut R) -> io::Result<()> {
+fn validate(buf: &mut impl ByteReader) -> io::Result<()> {
     dbg!(buf.size());
     bad_magic_non_consume(buf, b"ziRCON")?;
-    magic(buf, b"IMPM")?;
+    verify_magic(buf, b"IMPM")?;
     // buf.skip_bytes(4)?;
-    let title = buf.read_bytes_boxed_slice(26)?;
+    let title = buf.read_bytes(26)?;
     dbg!(String::from_utf8_lossy(&title));
     buf.skip_bytes(2)?; //
+
     let ord_num = buf.read_u16_le()?;
     let ins_num = buf.read_u16_le()?;
     let smp_num = buf.read_u16_le()?;
+
     buf.skip_bytes(2)?;
     let compat_ver = buf.read_u16_le()?;
+
     // buf.skip_bytes(9)?;
     buf.set_seek_pos(0x0036)?;
+
     let msg_length = buf.read_u16_le()?;
     let msg_offst = buf.read_u32_le()?;
 
     let skip_offset = 0x00c0 + ord_num + (ins_num * 4);
+
     buf.set_seek_pos(skip_offset as u64)?;
     let mut smp_ptrs: Vec<u32> = Vec::with_capacity(smp_num as usize);
 
     for _ in 0..smp_num {
         smp_ptrs.push(buf.read_u32_le()?);
     }
+
     dbg!(smp_num);
     buf.set_seek_pos(msg_offst.into())?;
-    let msg = replace_carriage_return(buf.read_bytes_boxed_slice(msg_length as usize)?);
+    let msg = replace_carriage_return(buf.read_bytes(msg_length as usize)?.into());
     // (&mut msg);
 
     // dbg!(String::from_utf8_lossy(&msg));
