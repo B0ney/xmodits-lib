@@ -64,7 +64,7 @@ impl Default for SampleNamer {
             index_raw: false,
             lower: false,
             upper: false,
-            prefer_filename: false,
+            prefer_filename: true,
         }
     }
 }

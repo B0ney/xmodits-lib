@@ -69,7 +69,7 @@ impl Ripper {
 
         match errors.len() {
             0 => Ok(()),
-            n if n == module.samples().len() => Error::extraction_failure(todo!()),
+            // n if n == module.samples().len() => Error::extraction_failure(todo!()),
             _ => Error::partial_extraction(errors),
         }
     }

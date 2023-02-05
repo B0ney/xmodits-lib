@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Seek};
 
+use crate::interface::export::Ripper;
 use crate::interface::module::GenericTracker;
 use crate::interface::sample::{Channel, Depth, Loop, LoopType};
 use crate::interface::{Error, Module, Sample};
@@ -158,7 +159,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
         let pointer = file.read_u32_le()?;
         let compressed = flags.contains(SampleFlags::COMPRESSION);
-        let depth = Depth::new(!flags.contains(SampleFlags::BITS_16), false, true);
+        let depth = Depth::new(!flags.contains(SampleFlags::BITS_16), true, true);
         let channel = Channel::new(flags.contains(SampleFlags::STEREO), false);
 
         // convert to length in bytes
@@ -196,17 +197,19 @@ fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Erro
 
 #[test]
 pub fn a() {
-    let mut file = File::open("./utmenu.it").unwrap();
-
+    let mut file = File::open("./slayerdsm.it").unwrap();
     let samples = parse_(&mut file).unwrap();
 
-    dbg!(samples.len());
+    file.rewind().unwrap();
+    let mut buf: Vec<u8> = Vec::new();
+    file.read_to_end(&mut buf).unwrap();
 
-    for i in samples.iter() {
-        dbg!(i.length);
-        dbg!(i.compressed);
-        println!("{}", i.filename());
-        println!("{}\n", i.name());
-    }
 
+    let tracker = IT {
+        inner: buf.into(),
+        samples,
+        version: 0x0214,
+    };
+
+    Ripper::default().rip("./again/", &tracker).unwrap()
 }

@@ -21,6 +21,7 @@ const FORBIDDEN_CHARS: &[char] = &[
     '/', // Linux/Unix
     '*', '\\', '!', '<', '>', ':', '"', '|', '?', // Windows
     '+', '=', '[', ']', ';', ',', //
+    '\0' // for now
 ];
 
 /// Removes any os-incompatible chars from a cow string
