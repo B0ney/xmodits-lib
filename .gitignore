@@ -6,6 +6,8 @@
 *.umx
 *.raw
 *.it
+*.s3m
+*.xm
 
 !/app/gui/res/**/*.wav
 

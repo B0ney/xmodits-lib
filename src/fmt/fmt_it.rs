@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::fs::File;
 use std::io::{Read, Seek};
 
+use crate::exporter::ExportFormat;
 use crate::interface::export::Ripper;
 use crate::interface::module::GenericTracker;
 use crate::interface::sample::{Channel, Depth, Loop, LoopType};
@@ -12,8 +13,7 @@ use crate::parser::{
     magic::verify_magic,
 };
 
-use nom::bytes::complete::{tag, take};
-use nom::number::complete::{le_u16, le_u32, u8};
+use log::warn;
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 
@@ -37,9 +37,9 @@ mod SampleFlags {
 }
 
 mod CvtFlags {
-    pub const FLAG_SIGNED: u8 = 1; // IT 2.01 and below use unsigned samples
-                                   // IT 2.02 and above use signed samples
-    pub const FLAG_DELTA: u8 = 1 << 2; // off = PCM values, ON = Delta values
+    pub const SIGNED: u8 = 1; // IT 2.01 and below use unsigned samples
+                              // IT 2.02 and above use signed samples
+    pub const DELTA: u8 = 1 << 2; // off = PCM values, ON = Delta values
 }
 
 /// Impulse Tracker module
@@ -51,7 +51,7 @@ pub struct IT {
 
 impl IT {
     fn it215(&self) -> bool {
-        self.version == 0x0215
+        self.version == MAGIC_IT215
     }
 }
 
@@ -92,18 +92,6 @@ impl Module for IT {
     }
 }
 
-fn build(file: &mut std::fs::File) -> Result<IT, Error> {
-    parse_(file).map(|samples| {
-        let mut buf: Vec<u8> = Vec::new();
-        file.read_to_end(&mut buf).unwrap();
-        IT {
-            inner: buf.into(),
-            samples,
-            version: 13,
-        }
-    })
-}
-
 fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
     verify_magic(file, &MAGIC_IMPM)?;
 
@@ -113,9 +101,10 @@ fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
     let ord_num = file.read_u16_le()?;
     let ins_num = file.read_u16_le()?;
     let smp_num = file.read_u16_le()?;
-    file.skip_bytes(2)?;
+    file.skip_bytes(4)?;
 
     let compat_ver = file.read_u16_le()?;
+
     file.set_seek_pos((0x00c0 + ord_num + (ins_num * 4)) as u64)?;
 
     let mut smp_ptrs: Vec<u32> = Vec::with_capacity(smp_num as usize);
@@ -141,30 +130,45 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         }
         file.skip_bytes(-44 - 4)?;
 
-
         let filename = file.read_bytes(12)?.into_boxed_slice();
         file.skip_bytes(2)?; // zero, gvl
 
-        let flags = file.read_byte()?;
+        let flags = file.read_u8()?;
         file.skip_bytes(1)?; // vol
 
         let name = file.read_bytes(26)?.into_boxed_slice();
-        file.skip_bytes(2)?; // cvt, dfp
+        let cvt = file.read_u8()?;
+        file.skip_bytes(1)?; // dfp
         file.skip_bytes(4)?; // sample length since it's not empty
-        
+
         let loop_start = file.read_u32_le()?;
         let loop_end = file.read_u32_le()?;
         let rate = file.read_u32_le()?;
         file.skip_bytes(8)?; // susloopbegin, susloopend
 
         let pointer = file.read_u32_le()?;
+        let signed = cvt.contains(CvtFlags::SIGNED);
+
+        if cvt.contains(CvtFlags::DELTA) {
+            warn!("This sample is stored as delta values. Samples may sound quiet.")
+        }
+
         let compressed = flags.contains(SampleFlags::COMPRESSION);
-        let depth = Depth::new(!flags.contains(SampleFlags::BITS_16), true, true);
+        let depth = Depth::new(!flags.contains(SampleFlags::BITS_16), signed, signed);
         let channel = Channel::new(flags.contains(SampleFlags::STEREO), false);
 
         // convert to length in bytes
         let length = length * depth.bytes() as u32 * channel.channels() as u32;
         let index_raw = index_raw as u16;
+
+        let kind = match flags {
+            f if (SampleFlags::PINGPONG | SampleFlags::PINGPONG_SUSTAIN).contains(f) => {
+                LoopType::PingPong
+            }
+            f if f.contains(SampleFlags::LOOP) => LoopType::Forward,
+            f if f.contains(SampleFlags::SUSTAIN) => LoopType::Backward,
+            _ => LoopType::OFF,
+        };
 
         samples.push(Sample {
             filename: Some(filename),
@@ -173,7 +177,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
             looping: Loop {
                 start: loop_start,
                 stop: loop_end,
-                kind: LoopType::OFF, // TODO
+                kind,
             },
             depth,
             length,
@@ -197,19 +201,28 @@ fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Erro
 
 #[test]
 pub fn a() {
-    let mut file = File::open("./slayerdsm.it").unwrap();
+    let mut file = std::io::BufReader::new(File::open("./utmenu.it").unwrap());
+    // let mut file = std::io::Cursor::new(std::fs::read("./gambit_-_ben_yosef__-_www.it").unwrap());
+
     let samples = parse_(&mut file).unwrap();
 
-    file.rewind().unwrap();
-    let mut buf: Vec<u8> = Vec::new();
-    file.read_to_end(&mut buf).unwrap();
+    for s in samples.iter().filter(|f| f.looping.kind != LoopType::OFF) {
+        dbg!(s.filename_pretty());
+        dbg!(s.length);
+        dbg!(&s.looping);
+    }
 
+    // file.rewind().unwrap();
+    // let mut buf: Vec<u8> = Vec::new();
+    // file.read_to_end(&mut buf).unwrap();
 
-    let tracker = IT {
-        inner: buf.into(),
-        samples,
-        version: 0x0214,
-    };
+    // let tracker = IT {
+    //     inner: buf.into(),
+    //     samples,
+    //     version: 0x0214,
+    // };
 
-    Ripper::default().rip("./again/", &tracker).unwrap()
+    // let mut ripper = Ripper::default();
+    // ripper.change_format(ExportFormat::IFF.into());
+    // ripper.rip("./stereo/", &tracker).unwrap()
 }

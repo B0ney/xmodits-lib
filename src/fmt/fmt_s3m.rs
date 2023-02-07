@@ -1,14 +1,15 @@
 use std::borrow::Cow;
+use std::io::{Read, Seek};
 
+use crate::interface::export::Ripper;
 use crate::interface::module::GenericTracker;
 use crate::interface::sample::{Channel, Depth, Loop, LoopType};
 use crate::interface::{Error, Module, Sample};
-use crate::parser::bitflag::BitFlag;
-use nom::bytes::complete::tag;
-use nom::error::{ContextError, ErrorKind, ParseError};
-use nom::number::complete::{le_u16, le_u24, le_u32, le_u8};
-use nom::{Err, IResult};
-// use nom::IResult;
+use crate::parser::{
+    bitflag::BitFlag,
+    io::{ByteReader, ReadSeek},
+    magic::verify_magic,
+};
 
 const NAME: &str = "Scream Tracker";
 
@@ -20,6 +21,7 @@ const MAGIC_NUMBER: u8 = 0x10;
 enum Flag {
     STEREO = 1 << 1,
     BITS = 1 << 2,
+    Loop = 1 << 0,
 }
 
 pub struct S3M {
@@ -61,146 +63,112 @@ impl Module for S3M {
     }
 }
 
-fn header<'i, E>(buf: &'i [u8]) -> Result<Vec<Sample>, Err<E>>
-where
-    E: ParseError<&'i [u8]> + 'i,
-{
-    let entire = buf;
+fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
+    let title = file.read_bytes(28)?.into_boxed_slice();
 
-    let (buf, _) = tag(MAGIC_HEADER)(buf)?;
+    verify_magic(file, &[0x1a])?;
+    verify_magic(file, &[0x10])?;
+    file.skip_bytes(2)?; // skip reserved
 
-    let (buf, ord_count) = le_u16(buf)?;
-    let (buf, ins_count) = le_u16(buf)?;
+    let ord_count = file.read_u16_le()?;
+    let ins_count = file.read_u16_le()?;
+    file.skip_bytes(6)?; // pattern ptr, flags, tracker version
 
-    let ins_ptr_list: u16 = 0x0060 + ord_count;
+    let signed = match file.read_u16_le()? {
+        1 => true,
+        2 => false,
+        f => {
+            dbg!(f);
+            false
+        }
+    };
 
-    let samples = build_samples::<E>(
-        entire,
-        build_instrument_ptrs::<E>(&entire, ins_count, ins_ptr_list),
-    );
+    verify_magic(file, &MAGIC_HEADER)?;
+
+    file.set_seek_pos((0x0060 + ord_count) as u64)?;
+    let mut ptrs: Vec<u32> = Vec::with_capacity(ins_count as usize);
+
+    for _ in 0..ins_count {
+        ptrs.push((file.read_u16_le()? as u32) << 4);
+    }
+
+    build(file, ptrs, signed)
+}
+
+fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<Sample>, Error> {
+    let mut samples: Vec<Sample> = Vec::with_capacity(ptrs.len());
+
+    for (index_raw, ptr) in ptrs.into_iter().enumerate() {
+        file.set_seek_pos(ptr as u64)?;
+
+        if file.read_u8()? != 1 {
+            continue;
+        }
+        let filename = file.read_bytes(12)?.into_boxed_slice();
+        let pointer = file.read_u24_le()?;
+        let length = file.read_u32_le()? & 0xffff; // ignore upper 16 bits
+        let loop_start = file.read_u32_le()?;
+        let loop_stop = file.read_u32_le()?;
+        file.skip_bytes(3)?; // vol, reserved byte, pack
+
+        let flags = file.read_u8()?;
+        let loop_kind = match flags.contains(Flag::Loop as u8) {
+            true => LoopType::Forward,
+            false => LoopType::OFF,
+        };
+
+        let rate = file.read_u32_le()?;
+        file.skip_bytes(12)?; // internal buffer used during playback
+
+        let name = file.read_bytes(28)?.into_boxed_slice();
+        let depth = Depth::new(!flags.contains(Flag::BITS as u8), signed, signed);
+        let channel = Channel::new(flags.contains(Flag::STEREO as u8), false);
+        let length = length * channel.channels() as u32 * depth.bytes() as u32;
+        let index_raw = index_raw as u16;
+
+        samples.push(Sample {
+            filename: Some(filename),
+            name,
+            length,
+            rate,
+            pointer,
+            depth,
+            channel,
+            index_raw,
+            looping: Loop {
+                start: loop_start,
+                stop: loop_stop,
+                kind: loop_kind,
+            },
+            ..Default::default()
+        })
+    }
 
     Ok(samples)
 }
 
-fn build_instrument_ptrs<'i, E>(
-    module: &'i [u8],
-    ins_count: u16,
-    ins_ptr_list: u16,
-) -> impl Iterator<Item = usize> + 'i
-where
-    E: ParseError<&'i [u8]> + 'i,
-{
-    (0..ins_count as usize)
-        .map(move |i| ins_ptr_list as usize + (i * 2))
-        .filter_map(|offset| module.get(offset..))
-        .filter_map(|buf| le_u16::<&[u8], E>(buf).ok())
-        .map(|(_, ptr)| (ptr as usize) << 4)
-}
-const INS_FILENAME: usize = 12;
-
-fn aa<'a>(ins_hdr: &'a [u8], index_raw: u16) -> IResult<&'a [u8], Sample> {
-    // make sure instrument type is 1 (pcm)
-    let (buf, typer) = le_u8(ins_hdr)?;
-
-    // let Some(buf) = buf.get(INS_FILENAME..) else {
-    //     return exit;
-    // }; // skip instrument filename
-
-    let (buf, ptr) = le_u24(buf)?; // ptr to sample
-    let (buf, len) = le_u32(buf)?; // length of sample
-
-    let len = len & 0xffff; // ignore upper 4 bytes
-
-    // return None if the sample length is empty
-    // if len == 0 {
-    //     return exit;
-    // }
-
-    let (buf, loop_start) = le_u32(buf)?;
-    let (buf, loop_end) = le_u32(buf)?;
-    let (buf, _) = le_u24(buf)?; // skip 3, 8 bytes
-    let (buf, flags) = le_u8(buf)?;
-    let (buf, rate) = le_u32(buf)?;
-
-    // let Some(buf) = buf.get(12..) else {
-    //     return exit;
-    // }; //skip
-
-    // let a: u8 = Flag::BITS;
-    let channel_type = Channel::new(flags.contains(Flag::STEREO as u8), false);
-    let depth = Depth::new(!flags.contains(Flag::BITS as u8), false, true);
-
-    let len: u32 = len * channel_type.channels() as u32 * depth.bytes() as u32;
-
-    // If the pointer to the pcm is out of bounds,
-    // Return None and terminate the closure
-    // if (ptr + len) > module_len {
-    //     *terminate = true;
-    //     return exit;
-    // }
-
-    let name: Box<[u8]> = Vec::from(*b"test").into_boxed_slice();
-
-    Ok((
-        ins_hdr,
-        Sample {
-            filename: None,
-            name,
-            length: len,
-            rate,
-            pointer: ptr,
-            depth,
-            channel: channel_type,
-            index_raw,
-            looping: Loop {
-                start: loop_start,
-                stop: loop_end,
-                kind: LoopType::OFF,
-            },
-            ..Default::default()
-        },
-    ))
-}
-
-fn build_samples<'i, E>(module: &'i [u8], ptrs: impl Iterator<Item = usize>) -> Vec<Sample>
-where
-    E: ParseError<&'i [u8]>,
-{
-    let le_u32: _ = |buf: &'i [u8]| le_u32::<_, E>(buf).ok();
-    let le_u24: _ = |buf: &'i [u8]| le_u24::<_, E>(buf).ok();
-    let le_u8: _ = |buf: &'i [u8]| le_u8::<_, E>(buf).ok();
-    let mut terminate = false;
-
-    ptrs.enumerate()
-        .filter_map(|(idx, ptr)| Some((idx as u16, module.get(ptr..)?)))
-        .filter_map(|(index_raw, ins_hdr)| match terminate {
-            true => None,
-            false => aa(ins_hdr, index_raw).ok(),
-        })
-        .map(|(_, sample)| sample)
-        .collect()
-}
-
-// #[test]
+#[test]
 pub fn a() {
-    let flags = 3u8;
-    let depth = Depth::new(!flags.contains(Flag::BITS as u8), false, true);
-    let channel_type = Channel::new(flags.contains(Flag::STEREO as u8), false);
-    let len = 0;
-    let len = len * channel_type.channels() as u32 * depth.bits() as u32;
+    let mut file = std::fs::File::open("./underwater_world_part_ii.s3m").unwrap();
+    let samples = parse(&mut file).unwrap();
+    for i in samples.iter() {
+        // dbg!(i.filename_pretty());
+        dbg!(i.name_pretty());
+        dbg!(i.bits());
+        dbg!(&i.looping);
+        // dbg!(i.bits());
+    }
 
-    // let a = Depth::from_bool(!flags.is_set(MASK_BITS), false, true);
-    let sample = Sample {
-        filename: None,
-        name: todo!(),
-        length: todo!(),
-        rate: todo!(),
-        pointer: todo!(),
-        depth,
-        channel: channel_type,
-        index_raw: todo!(),
-        compressed: todo!(),
-        looping: todo!(),
-        // sample_kind: todo!(),
+    file.rewind().unwrap();
+    let mut inner = Vec::new();
+    file.read_to_end(&mut inner).unwrap();
+
+    let module = S3M {
+        inner: inner.into(),
+        samples: samples.into(),
     };
+
+    let ripper = Ripper::default();
+    // ripper.change_format(ExportFormat::IFF.into());
+    ripper.rip("./water/", &module).unwrap()
 }

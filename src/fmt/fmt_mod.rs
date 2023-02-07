@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::interface::{module::GenericTracker, Error, Module, Sample};
 
-/// Amiga Protracker
+/// Amiga SoundTracker 
 pub struct MOD {
     inner: GenericTracker,
     samples: Box<[Sample]>,

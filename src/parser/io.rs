@@ -91,6 +91,12 @@ pub trait ByteReader {
     fn read_u32_be(&mut self) -> io::Result<u32> {
         Ok(u32::from_be_bytes(self.read_dword()?))
     }
+    fn read_u24_le(&mut self) -> io::Result<u32> {
+        let hi = self.read_byte()? as u32;
+        let low = self.read_u16_le()? as u32;
+
+        Ok((hi >> 16) | (low << 4))
+    }
     fn skip_bytes(&mut self, bytes: i64) -> io::Result<()>;
     fn set_seek_pos(&mut self, offset: u64) -> io::Result<()>;
     fn read_bytes(&mut self, bytes: usize) -> io::Result<Vec<u8>>;
