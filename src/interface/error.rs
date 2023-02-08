@@ -20,7 +20,7 @@ pub enum Error {
     #[error("The sample could not be extracted to the desired format: {0}")]
     AudioFormat(String),
 
-    #[error("The sample metadata is invalid")]
+    #[error("The sample metadata points to an invalid offset. The module might be corrupted or there's a bug in the program.")]
     BadSample,
 }
 
@@ -45,16 +45,24 @@ impl Error {
     pub fn sample_format_error(error: &str) -> Result<(), Self> {
         Err(Self::AudioFormat(error.into()))
     }
+
+    /// Custom IO Error
     pub fn io_error(error: &str) -> Result<(), Self> {
-        // Err()
-        Ok(todo!())
+        Err(Self::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            error,
+        )))
     }
+
+    /// The module is invalid
     pub fn invalid(error: &str) -> Self {
         Self::InvalidModule(error.into())
     }
-    pub fn unsupported(error: &str) -> Self{
+    /// The module appears to be valid, but it is unsupported
+    pub fn unsupported(error: &str) -> Self {
         Self::UnsupportedModule(error.into())
     }
+
     /// The sample metadata is invalid
     pub fn bad_sample() -> Self {
         Self::BadSample

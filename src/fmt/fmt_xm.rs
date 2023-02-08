@@ -1,8 +1,15 @@
+use core::panic;
 use std::borrow::Cow;
 
-use crate::interface::module::GenericTracker;
-use crate::interface::sample::Depth;
-use crate::interface::{Error, Module, Sample};
+use crate::interface::module::{GenericTracker, Module};
+use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
+use crate::interface::Error;
+use crate::parser::magic::bad_magic_non_consume;
+use crate::parser::{
+    bitflag::BitFlag,
+    io::{ByteReader, ReadSeek},
+    magic::verify_magic,
+};
 use crate::utils::deltadecode::{delta_decode_u16, delta_decode_u8};
 
 const NAME: &str = "Extended Module";
@@ -10,9 +17,13 @@ const NAME: &str = "Extended Module";
 const MAGIC_HEADER: [u8; 17] = *b"Extended Module: ";
 const MAGIC_MOD_PLUGIN_PACKED: [u8; 20] = *b"MOD Plugin packed   ";
 const MAGIC_NUMBER: u8 = 0x1A;
-const MAGIC_MIN_VER: u16 = 0x0104;
+const MINIMUM_VERSION: u16 = 0x0104;
 
 const FLAG_BITS: u8 = 1 << 4;
+
+const FLAG_LOOP_OFF: u8 = 0;
+const FLAG_LOOP_FORWARD: u8 = 1 << 0;
+const FLAG_LOOP_PINGPONG: u8 = 3;
 
 pub struct XM {
     inner: GenericTracker,
@@ -60,5 +71,69 @@ pub fn delta_decode(smp: &Sample) -> impl Fn(Vec<u8>) -> Vec<u8> {
     match smp.is_8_bit() {
         true => delta_decode_u8,
         false => delta_decode_u16,
+    }
+}
+
+fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
+    bad_magic_non_consume(file, &MAGIC_MOD_PLUGIN_PACKED)
+        .map_err(|_| Error::unsupported("Extened Module uses 'MOD Plugin packed'"))?;
+
+    verify_magic(file, &MAGIC_HEADER)
+        .map_err(|_| Error::invalid("Not a valid Extended Module"))?;
+
+    let module_name = file.read_bytes(20)?;
+
+    verify_magic(file, &[MAGIC_NUMBER])
+        .map_err(|_| Error::invalid("Not a valid Extended Module"))?;
+    file.skip_bytes(20)?; // Name of the tracking software that made the module.
+
+    if file.read_u16_le()? < MINIMUM_VERSION {
+        return Err(Error::unsupported("Extended Module is below version 0104"));
+    }
+
+    let header_size = file.read_u32_le()?;
+    file.skip_bytes(6)?; // song length, song restart position, channels
+
+    let patnum = file.read_u16_le()?;
+    let insnum = file.read_u16_le()?;
+
+    if patnum > 256 {
+        return Err(Error::invalid(
+            "Extended Module has more than 256 patterns",
+        ));
+    }
+    if insnum > 128 {
+        return Err(Error::invalid(
+            "Extended Module has more than 128 instruments",
+        ));
+    }
+
+    // skip_header_patterns(file, patnum, header_size)?;
+    Ok(Vec::new().into())
+    // todo!()
+}
+
+fn skip_header_patterns(
+    file: &mut impl ReadSeek,
+    patterns: u16,
+    header_size: u32,
+) -> Result<(), Error> {
+    todo!()
+}
+
+fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
+    todo!()
+}
+
+#[cfg(test)]
+mod test {
+    use std::fs::File;
+
+    use super::parse_;
+
+    #[test]
+    fn validate() {
+        let mut file = File::open("./external.xm").unwrap();
+        parse_(&mut file).unwrap();
     }
 }
