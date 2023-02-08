@@ -3,8 +3,7 @@ use std::borrow::Cow;
 use crate::interface::module::GenericTracker;
 use crate::interface::sample::Depth;
 use crate::interface::{Error, Module, Sample};
-
-use super::utils::delta_decode;
+use crate::utils::deltadecode::{delta_decode_u16, delta_decode_u8};
 
 const NAME: &str = "Extended Module";
 
@@ -53,5 +52,13 @@ impl Module for XM {
 
     fn total_samples(&self) -> usize {
         todo!()
+    }
+}
+
+#[inline]
+pub fn delta_decode(smp: &Sample) -> impl Fn(Vec<u8>) -> Vec<u8> {
+    match smp.is_8_bit() {
+        true => delta_decode_u8,
+        false => delta_decode_u16,
     }
 }

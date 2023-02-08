@@ -1,10 +1,8 @@
 use std::borrow::Cow;
-use std::io::{Read, Seek};
 
-use crate::interface::export::Ripper;
-use crate::interface::module::GenericTracker;
-use crate::interface::sample::{Channel, Depth, Loop, LoopType};
-use crate::interface::{Error, Module, Sample};
+use crate::interface::module::{Module, GenericTracker};
+use crate::interface::sample::{Sample, Channel, Depth, Loop, LoopType};
+use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     io::{ByteReader, ReadSeek},
@@ -14,13 +12,14 @@ use crate::parser::{
 const NAME: &str = "Scream Tracker";
 
 const MAGIC_HEADER: [u8; 4] = *b"SCRM";
-const MAGIC_NUMBER: u8 = 0x10;
+const MAGIC_SAMPLE: [u8; 4] = *b"SCRS";
+const INVALID: &str = "Not a valid Scream Tracker module";
 
 #[repr(u8)]
 #[derive(Copy, Clone)]
 enum Flag {
-    STEREO = 1 << 1,
-    BITS = 1 << 2,
+    STEREO = 1 << 2,
+    BITS = 1 << 3,
     Loop = 1 << 0,
 }
 
@@ -66,8 +65,9 @@ impl Module for S3M {
 fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
     let title = file.read_bytes(28)?.into_boxed_slice();
 
-    verify_magic(file, &[0x1a])?;
-    verify_magic(file, &[0x10])?;
+    verify_magic(file, &[0x1a, 0x10])
+        .map_err(|_| Error::invalid(INVALID))?;
+
     file.skip_bytes(2)?; // skip reserved
 
     let ord_count = file.read_u16_le()?;
@@ -83,7 +83,8 @@ fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
         }
     };
 
-    verify_magic(file, &MAGIC_HEADER)?;
+    verify_magic(file, &MAGIC_HEADER)
+        .map_err(|_| Error::invalid(INVALID))?;
 
     file.set_seek_pos((0x0060 + ord_count) as u64)?;
     let mut ptrs: Vec<u32> = Vec::with_capacity(ins_count as usize);
@@ -102,11 +103,16 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         file.set_seek_pos(ptr as u64)?;
 
         if file.read_u8()? != 1 {
+            // make sure it is a pcm instrument
             continue;
         }
         let filename = file.read_bytes(12)?.into_boxed_slice();
-        let pointer = file.read_u24_le()?;
+
+        let pointer = file.read_u24_le()?; //
         let length = file.read_u32_le()? & 0xffff; // ignore upper 16 bits
+        if length == 0 {
+            continue;
+        }
         let loop_start = file.read_u32_le()?;
         let loop_stop = file.read_u32_le()?;
         file.skip_bytes(3)?; // vol, reserved byte, pack
@@ -117,10 +123,14 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
             false => LoopType::OFF,
         };
 
-        let rate = file.read_u32_le()?;
+        let rate = file.read_u32_le()? & 0xffff;
         file.skip_bytes(12)?; // internal buffer used during playback
 
         let name = file.read_bytes(28)?.into_boxed_slice();
+
+        verify_magic(file, &MAGIC_SAMPLE)
+            .map_err(|_| Error::invalid(INVALID))?;
+
         let depth = Depth::new(!flags.contains(Flag::BITS as u8), signed, signed);
         let channel = Channel::new(flags.contains(Flag::STEREO as u8), false);
         let length = length * channel.channels() as u32 * depth.bytes() as u32;
@@ -149,26 +159,31 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
 
 #[test]
 pub fn a() {
-    let mut file = std::fs::File::open("./underwater_world_part_ii.s3m").unwrap();
+    use std::io::{Read, Seek};
+
+    use crate::interface::export::Ripper;
+    
+    let mut file = std::fs::File::open("./dusk.s3m").unwrap();
     let samples = parse(&mut file).unwrap();
     for i in samples.iter() {
-        // dbg!(i.filename_pretty());
+        // dbg!(i.is_stereo());
+        dbg!(i.filename_pretty());
         dbg!(i.name_pretty());
         dbg!(i.bits());
         dbg!(&i.looping);
-        // dbg!(i.bits());
+        dbg!(i.bits());
     }
 
-    file.rewind().unwrap();
-    let mut inner = Vec::new();
-    file.read_to_end(&mut inner).unwrap();
+    // file.rewind().unwrap();
+    // let mut inner = Vec::new();
+    // file.read_to_end(&mut inner).unwrap();
 
-    let module = S3M {
-        inner: inner.into(),
-        samples: samples.into(),
-    };
+    // let module = S3M {
+    //     inner: inner.into(),
+    //     samples: samples.into(),
+    // };
 
-    let ripper = Ripper::default();
-    // ripper.change_format(ExportFormat::IFF.into());
-    ripper.rip("./water/", &module).unwrap()
+    // let ripper = Ripper::default();
+    // // ripper.change_format(ExportFormat::IFF.into());
+    // ripper.rip("./s3m_stereo/", &module).unwrap()
 }

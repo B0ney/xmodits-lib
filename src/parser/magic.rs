@@ -1,4 +1,4 @@
-use std::io::{self, SeekFrom};
+use std::io;
 
 use super::io::ByteReader;
 

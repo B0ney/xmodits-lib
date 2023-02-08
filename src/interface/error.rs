@@ -49,7 +49,12 @@ impl Error {
         // Err()
         Ok(todo!())
     }
-
+    pub fn invalid(error: &str) -> Self {
+        Self::InvalidModule(error.into())
+    }
+    pub fn unsupported(error: &str) -> Self{
+        Self::UnsupportedModule(error.into())
+    }
     /// The sample metadata is invalid
     pub fn bad_sample() -> Self {
         Self::BadSample

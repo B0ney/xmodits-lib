@@ -1,16 +1,12 @@
 use std::borrow::Cow;
-use std::fs::File;
-use std::io::{Read, Seek};
 
-use crate::exporter::ExportFormat;
-use crate::interface::export::Ripper;
-use crate::interface::module::GenericTracker;
-use crate::interface::sample::{Channel, Depth, Loop, LoopType};
-use crate::interface::{Error, Module, Sample};
+use crate::interface::module::{GenericTracker, Module};
+use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
+use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     io::{ByteReader, ReadSeek},
-    magic::verify_magic,
+    magic::{bad_magic_non_consume, verify_magic},
 };
 
 use log::warn;
@@ -93,7 +89,12 @@ impl Module for IT {
 }
 
 fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
-    verify_magic(file, &MAGIC_IMPM)?;
+    bad_magic_non_consume(file, &MAGIC_ZIRCONA).map_err(|_| {
+        Error::unsupported("Impulse Tracker Module uses 'ziRCON' sample compression")
+    })?;
+
+    verify_magic(file, &MAGIC_IMPM)
+        .map_err(|_| Error::invalid("Not a valid Impulse Tracker module"))?;
 
     let title = file.read_bytes(26)?;
     file.skip_bytes(2)?;
@@ -120,7 +121,9 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
     for (index_raw, sample_header) in ptrs.into_iter().enumerate() {
         file.set_seek_pos(sample_header as u64)?;
-        verify_magic(file, &MAGIC_IMPS)?;
+
+        verify_magic(file, &MAGIC_IMPS)
+            .map_err(|_| Error::invalid("Not a valid Impulse Tracker sample"))?;
 
         // Check if the sample is empty so we don't waste resources.
         file.skip_bytes(44)?;
@@ -156,12 +159,10 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         let compressed = flags.contains(SampleFlags::COMPRESSION);
         let depth = Depth::new(!flags.contains(SampleFlags::BITS_16), signed, signed);
         let channel = Channel::new(flags.contains(SampleFlags::STEREO), false);
-
-        // convert to length in bytes
-        let length = length * depth.bytes() as u32 * channel.channels() as u32;
+        let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
         let index_raw = index_raw as u16;
 
-        let kind = match flags {
+        let loop_kind = match flags {
             f if (SampleFlags::PINGPONG | SampleFlags::PINGPONG_SUSTAIN).contains(f) => {
                 LoopType::PingPong
             }
@@ -173,18 +174,18 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         samples.push(Sample {
             filename: Some(filename),
             name,
+            length,
+            rate,
+            pointer,
+            depth,
+            channel,
             index_raw,
+            compressed,
             looping: Loop {
                 start: loop_start,
                 stop: loop_end,
-                kind,
+                kind: loop_kind,
             },
-            depth,
-            length,
-            pointer,
-            compressed,
-            rate,
-            channel,
         })
     }
 
@@ -201,6 +202,11 @@ fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Erro
 
 #[test]
 pub fn a() {
+    use crate::exporter::ExportFormat;
+    use crate::interface::export::Ripper;
+    use std::fs::File;
+    use std::io::{Read, Seek};
+
     let mut file = std::io::BufReader::new(File::open("./utmenu.it").unwrap());
     // let mut file = std::io::Cursor::new(std::fs::read("./gambit_-_ben_yosef__-_www.it").unwrap());
 
