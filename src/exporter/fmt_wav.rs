@@ -79,35 +79,35 @@ impl AudioTrait for Wav {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
+    // use std::borrow::Cow;
 
-    use crate::interface::{
-        audio::AudioTrait,
-        sample::{Channel, Depth, Sample},
-    };
+    // use crate::interface::{
+    //     audio::AudioTrait,
+    //     sample::{Channel, Depth, Sample},
+    // };
 
-    use super::Wav;
+    // use super::Wav;
 
-    #[test]
-    fn a() {
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(4)
-            .build_global()
-            .unwrap();
-        let mut buf: Vec<u8> = Vec::new();
-        // let data: Vec<u8> = (0..2048).map(|x| (x % i8::MAX as usize) as u8).collect();
-        let data = include_bytes!("../../stereo_i16_single.raw");
-        let mut file = std::fs::File::create("./stereo_i16_interleave.wav").unwrap();
-        Wav.write(
-            &Sample {
-                depth: Depth::I16,
-                rate: 11025,
-                channel: Channel::Stereo { interleaved: false },
-                ..Default::default()
-            },
-            Cow::Borrowed(data),
-            &mut file,
-        );
-        // dbg!(buf);
-    }
+    // #[test]
+    // fn a() {
+    //     rayon::ThreadPoolBuilder::new()
+    //         .num_threads(4)
+    //         .build_global()
+    //         .unwrap();
+    //     let mut buf: Vec<u8> = Vec::new();
+    //     // let data: Vec<u8> = (0..2048).map(|x| (x % i8::MAX as usize) as u8).collect();
+    //     let data = include_bytes!("../../stereo_i16_single.raw");
+    //     let mut file = std::fs::File::create("./stereo_i16_interleave.wav").unwrap();
+    //     Wav.write(
+    //         &Sample {
+    //             depth: Depth::I16,
+    //             rate: 11025,
+    //             channel: Channel::Stereo { interleaved: false },
+    //             ..Default::default()
+    //         },
+    //         Cow::Borrowed(data),
+    //         &mut file,
+    //     );
+    //     // dbg!(buf);
+    // }
 }

@@ -9,7 +9,7 @@ use crate::parser::{
     magic::{bad_magic_non_consume, verify_magic},
 };
 
-use log::warn;
+use log::{info, warn};
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 
@@ -128,9 +128,12 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         // Check if the sample is empty so we don't waste resources.
         file.skip_bytes(44)?;
         let length = file.read_u32_le()?;
+
         if length == 0 {
+            info!("Skipping empty sample at index {}...", index_raw + 1);
             continue;
         }
+
         file.skip_bytes(-44 - 4)?;
 
         let filename = file.read_bytes(12)?.into_boxed_slice();
@@ -153,13 +156,22 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         let signed = cvt.contains(CvtFlags::SIGNED);
 
         if cvt.contains(CvtFlags::DELTA) {
-            warn!("This sample is stored as delta values. Samples may sound quiet.")
+            warn!("This Impulse Tracker sample is stored as delta values. Samples may sound quiet.")
         }
 
         let compressed = flags.contains(SampleFlags::COMPRESSION);
         let depth = Depth::new(!flags.contains(SampleFlags::BITS_16), signed, signed);
         let channel = Channel::new(flags.contains(SampleFlags::STEREO), false);
         let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
+
+        match file.size() {
+            Some(s) if (pointer + length) as u64 > s => {
+                info!("Skipping invalid sample at index {}...", index_raw + 1);
+                continue;
+            }
+            _ => (),
+        };
+
         let index_raw = index_raw as u16;
 
         let loop_kind = match flags {
@@ -194,6 +206,8 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
 #[inline]
 fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Error> {
+    info!("Decompressing Impulse Tracker sample {}", smp.index_raw());
+
     match smp.is_8_bit() {
         true => decompress_8_bit,
         false => decompress_16_bit,
@@ -202,12 +216,17 @@ fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Erro
 
 #[test]
 pub fn a() {
+    // env_logger::init();
     use crate::exporter::ExportFormat;
     use crate::interface::export::Ripper;
     use std::fs::File;
     use std::io::{Read, Seek};
 
-    let mut file = std::io::BufReader::new(File::open("./utmenu.it").unwrap());
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(4)
+        .build_global()
+        .unwrap();
+    let mut file = std::io::BufReader::new(File::open("./sj-kboar.it").unwrap());
     // let mut file = std::io::Cursor::new(std::fs::read("./gambit_-_ben_yosef__-_www.it").unwrap());
 
     let samples = parse_(&mut file).unwrap();
@@ -218,17 +237,17 @@ pub fn a() {
         dbg!(&s.looping);
     }
 
-    // file.rewind().unwrap();
-    // let mut buf: Vec<u8> = Vec::new();
-    // file.read_to_end(&mut buf).unwrap();
+    file.rewind().unwrap();
+    let mut buf: Vec<u8> = Vec::new();
+    file.read_to_end(&mut buf).unwrap();
 
-    // let tracker = IT {
-    //     inner: buf.into(),
-    //     samples,
-    //     version: 0x0214,
-    // };
+    let tracker = IT {
+        inner: buf.into(),
+        samples,
+        version: 0x0214,
+    };
 
-    // let mut ripper = Ripper::default();
+    let mut ripper = Ripper::default();
     // ripper.change_format(ExportFormat::IFF.into());
-    // ripper.rip("./stereo/", &tracker).unwrap()
+    ripper.rip("./kobar/", &tracker).unwrap()
 }

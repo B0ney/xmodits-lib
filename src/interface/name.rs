@@ -104,7 +104,8 @@ impl SampleNamer {
                     name if name.is_empty() => name.into(),
                     name => {
                         let name = name
-                            .trim_end_matches(&format!(".{extension}"))
+                            .trim_end_matches(&format!(".{}", extension.to_ascii_lowercase()))
+                            .trim_end_matches(&format!(".{}", extension.to_ascii_uppercase()))
                             .replace('.', "_");
 
                         let name = match (self.upper, self.lower) {

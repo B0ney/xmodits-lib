@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
-use crate::interface::module::{Module, GenericTracker};
-use crate::interface::sample::{Sample, Channel, Depth, Loop, LoopType};
+use log::info;
+
+use crate::interface::module::{GenericTracker, Module};
+use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
@@ -65,8 +67,7 @@ impl Module for S3M {
 fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
     let title = file.read_bytes(28)?.into_boxed_slice();
 
-    verify_magic(file, &[0x1a, 0x10])
-        .map_err(|_| Error::invalid(INVALID))?;
+    verify_magic(file, &[0x1a, 0x10]).map_err(|_| Error::invalid(INVALID))?;
 
     file.skip_bytes(2)?; // skip reserved
 
@@ -83,8 +84,7 @@ fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
         }
     };
 
-    verify_magic(file, &MAGIC_HEADER)
-        .map_err(|_| Error::invalid(INVALID))?;
+    verify_magic(file, &MAGIC_HEADER).map_err(|_| Error::invalid(INVALID))?;
 
     file.set_seek_pos((0x0060 + ord_count) as u64)?;
     let mut ptrs: Vec<u32> = Vec::with_capacity(ins_count as usize);
@@ -103,16 +103,19 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         file.set_seek_pos(ptr as u64)?;
 
         if file.read_u8()? != 1 {
-            // make sure it is a pcm instrument
+            info!("Skipping non-pcm instrument at index {}", index_raw + 1);
             continue;
         }
         let filename = file.read_bytes(12)?.into_boxed_slice();
 
         let pointer = file.read_u24_le()?; //
         let length = file.read_u32_le()? & 0xffff; // ignore upper 16 bits
+
         if length == 0 {
+            info!("Skipping empty sample at index {}", index_raw + 1);
             continue;
         }
+
         let loop_start = file.read_u32_le()?;
         let loop_stop = file.read_u32_le()?;
         file.skip_bytes(3)?; // vol, reserved byte, pack
@@ -128,12 +131,20 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
 
         let name = file.read_bytes(28)?.into_boxed_slice();
 
-        verify_magic(file, &MAGIC_SAMPLE)
-            .map_err(|_| Error::invalid(INVALID))?;
+        verify_magic(file, &MAGIC_SAMPLE).map_err(|_| Error::invalid(INVALID))?;
 
         let depth = Depth::new(!flags.contains(Flag::BITS as u8), signed, signed);
         let channel = Channel::new(flags.contains(Flag::STEREO as u8), false);
         let length = length * channel.channels() as u32 * depth.bytes() as u32;
+
+        match file.size() {
+            Some(s) if (pointer + length) as u64 > s => {
+                info!("Skipping invalid sample at index {}...", index_raw + 1);
+                continue;
+            }
+            _ => (),
+        };
+
         let index_raw = index_raw as u16;
 
         samples.push(Sample {
@@ -162,7 +173,7 @@ pub fn a() {
     use std::io::{Read, Seek};
 
     use crate::interface::export::Ripper;
-    
+
     let mut file = std::fs::File::open("./dusk.s3m").unwrap();
     let samples = parse(&mut file).unwrap();
     for i in samples.iter() {

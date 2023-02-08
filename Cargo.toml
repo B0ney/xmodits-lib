@@ -6,12 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# byteorder = "1.4.3"
 thiserror = "1.0.38"
 bytemuck = "1.13.0"
 rayon = "1.6.1"
 fastrand = "1.8.0"
 log = "0.4.17"
+
+[dev-ddependencies]
+env_logger = "0.10.0"
 
 [features]
 log = []

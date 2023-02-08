@@ -1,6 +1,8 @@
 use core::panic;
 use std::borrow::Cow;
 
+use log::info;
+
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -68,6 +70,8 @@ impl Module for XM {
 
 #[inline]
 pub fn delta_decode(smp: &Sample) -> impl Fn(Vec<u8>) -> Vec<u8> {
+    info!("Delta decoding sample {}", smp.index_raw());
+    
     match smp.is_8_bit() {
         true => delta_decode_u8,
         false => delta_decode_u16,

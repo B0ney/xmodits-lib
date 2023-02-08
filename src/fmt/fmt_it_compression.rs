@@ -1,6 +1,7 @@
 use crate::interface::Error;
 use crate::parser::bytes::le_u16 as _le_u16;
 use bytemuck::cast_slice;
+use log::warn;
 
 fn le_u16(buf: &[u8], offset: usize) -> Result<u16, Error> {
     _le_u16(buf, offset).ok_or_else(Error::bad_sample)
@@ -99,7 +100,9 @@ pub fn decompress_8_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8>
         while blkpos < blklen {
 
             if width > 9 {
-                return Err(Error::Extraction(format!("Invalid Bit width. Why is it {}?", width)));
+                warn!("Failed to fully extract this sample due to an invalid bit width: {}. (Should be < 10)", width);
+                return Ok(dest_buf);
+                // return Err(Error::Extraction(format!("Invalid Bit width. Why is it {}?", width)));
             };
 
             value = bitreader.read_bits_u16(width)?;
@@ -194,7 +197,9 @@ pub fn decompress_16_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8
         while blkpos < blklen {
 
             if width > 17 {
-                return Err(Error::Extraction(format!("Invalid Bit width. Why is it {}?", width)));
+                warn!("Failed to fully extract this sample due to an invalid bit width: {}. (Should be < 18)", width);
+                return Ok(dest_buf);
+                // return Err(Error::Extraction(format!("Invalid Bit width. Why is it {}?", width)));
             }
 
             value = bitreader.read_bits_u32(width)?;
