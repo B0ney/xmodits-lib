@@ -165,7 +165,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
 
         match file.size() {
-            Some(s) if (pointer + length) as u64 > s => {
+            Some(len) if (pointer + length) as u64 > len && !compressed => {
                 info!("Skipping invalid sample at index {}...", index_raw + 1);
                 continue;
             }

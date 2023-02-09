@@ -2,8 +2,7 @@ use std::io;
 
 use super::io::ByteReader;
 
-pub fn verify_magic(reader: &mut impl ByteReader, magic: &[u8]) -> io::Result<()>
-{
+pub fn verify_magic(reader: &mut impl ByteReader, magic: &[u8]) -> io::Result<()> {
     match reader.read_bytes(magic.len())? {
         buf if buf == magic => Ok(()),
         _ => Err(io::Error::new(
@@ -16,8 +15,7 @@ pub fn verify_magic(reader: &mut impl ByteReader, magic: &[u8]) -> io::Result<()
 /// Is Ok(()) when the read bytes are not equal to the magic slice
 /// Is Err when the magic slice matches the read buffer
 /// TODO: Add option to make custom error?
-pub fn bad_magic(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<()>
-{
+pub fn bad_magic(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<()> {
     match reader.read_bytes(magc.len()) {
         Ok(buf) if buf != magc => Ok(()),
         Err(e) if e.kind() != io::ErrorKind::Other => Ok(()),
@@ -29,13 +27,11 @@ pub fn bad_magic(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<()>
 }
 
 /// TODO: have a better name
-pub fn bad_magic_non_consume(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<()>
-{
+pub fn bad_magic_non_consume(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<()> {
     non_consume(reader, magc, bad_magic)
 }
 
-pub fn magic_non_consume(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<()>
-{
+pub fn magic_non_consume(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<()> {
     non_consume(reader, magc, verify_magic)
 }
 

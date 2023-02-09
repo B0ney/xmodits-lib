@@ -25,6 +25,7 @@ enum Flag {
     Loop = 1 << 0,
 }
 
+/// Scream Tracker
 pub struct S3M {
     inner: GenericTracker,
     samples: Box<[Sample]>,
@@ -75,14 +76,7 @@ fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
     let ins_count = file.read_u16_le()?;
     file.skip_bytes(6)?; // pattern ptr, flags, tracker version
 
-    let signed = match file.read_u16_le()? {
-        1 => true,
-        2 => false,
-        f => {
-            dbg!(f);
-            false
-        }
-    };
+    let signed = matches!(file.read_u16_le()?, 1);
 
     verify_magic(file, &MAGIC_HEADER).map_err(|_| Error::invalid(INVALID))?;
 
@@ -138,7 +132,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         let length = length * channel.channels() as u32 * depth.bytes() as u32;
 
         match file.size() {
-            Some(s) if (pointer + length) as u64 > s => {
+            Some(len) if (pointer + length) as u64 > len => {
                 info!("Skipping invalid sample at index {}...", index_raw + 1);
                 continue;
             }

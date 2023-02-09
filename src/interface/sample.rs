@@ -153,10 +153,14 @@ impl Channel {
 /// Type of sample bit depth
 #[derive(Default, Debug, Clone, Copy)]
 pub enum Depth {
+    /// Signed 8 bit
     I8,
+    /// Unsigned 8 bit
     #[default]
     U8,
+    /// Signed 16 bit
     I16,
+    /// Unsigned 16 bit
     U16,
 }
 

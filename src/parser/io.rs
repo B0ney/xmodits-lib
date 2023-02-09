@@ -1,10 +1,10 @@
 use std::io::{self, BufReader, Cursor, Read, Seek, SeekFrom};
 
-pub trait ReadSeek: Read + Seek + Send + Sync {
+pub trait ReadSeek: Read + Seek {
     fn size(&self) -> Option<u64>;
 }
 
-impl<T: AsRef<[u8]> + Send + Sync> ReadSeek for Cursor<T> {
+impl<T: AsRef<[u8]>> ReadSeek for Cursor<T> {
     fn size(&self) -> Option<u64> {
         Some(self.get_ref().as_ref().len() as u64)
     }
