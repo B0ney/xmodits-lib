@@ -18,8 +18,8 @@ const MAGIC_SAMPLE: [u8; 4] = *b"SCRS";
 const INVALID: &str = "Not a valid Scream Tracker module";
 
 const FLAG_LOOP: u8 = 1 << 0;
-const FLAG_STEREO: u8 = 1 << 2;
-const FLAG_BITS: u8 = 1 << 3;
+const FLAG_STEREO: u8 = 1 << 1;
+const FLAG_BITS: u8 = 1 << 2;
 
 /// Scream Tracker
 pub struct S3M {
@@ -87,7 +87,7 @@ fn parse(file: &mut impl ReadSeek) -> Result<S3M, Error> {
     for _ in 0..ins_count {
         ptrs.push((file.read_u16_le()? as u32) << 4);
     }
-
+    dbg!(signed);
     let samples = build(file, ptrs, signed)?;
 
     file.set_seek_pos(restart_position).unwrap();
@@ -179,7 +179,7 @@ pub fn a() {
 
     use crate::interface::export::Ripper;
 
-    let mut file = std::fs::File::open("./underwater_world_part_ii.s3m").unwrap();
+    let mut file = std::fs::File::open("./dusk.s3m").unwrap();
     let tracker = parse(&mut file).unwrap();
     for i in tracker.samples() {
         // dbg!(i.is_stereo());
@@ -201,5 +201,5 @@ pub fn a() {
 
     let ripper = Ripper::default();
     // ripper.change_format(ExportFormat::IFF.into());
-    ripper.rip("./water/", &tracker).unwrap()
+    ripper.rip("./dusk/", &tracker).unwrap()
 }
