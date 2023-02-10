@@ -45,28 +45,24 @@ impl Sample {
     pub fn ptr_range(&self) -> std::ops::Range<usize> {
         self.pointer as usize..(self.pointer + self.length) as usize
     }
-
     /// Return Sample's index as if it's listed in a tracker module.
     pub fn index_raw(&self) -> usize {
         self.index_raw as usize + 1
     }
-
     /// Display Sample's name from its raw buffer
     pub fn name(&self) -> Cow<str> {
         String::from_utf8_lossy(&self.name)
     }
-
     /// Prettify Sample's name
     /// We need to make sure that the name is os_friendly and doesn't have any trailing whitespace.
     /// This is different from the sample namer during export
     pub fn name_pretty(&self) -> Cow<str> {
         to_str_os(self.name())
     }
-
+    /// todo
     pub fn filename_pretty(&self) -> Cow<str> {
         to_str_os(self.filename())
     }
-
     /// Display Sample's filename from its raw buffer.
     ///
     /// Fallbacks to the sample's name if None
@@ -76,31 +72,36 @@ impl Sample {
             None => self.name(),
         }
     }
-
     /// Is the sample stereo?
     pub fn is_stereo(&self) -> bool {
-        matches!(self.channel, Channel::Stereo { .. })
+        self.channel.is_stereo()
     }
-
     /// Is the stereo sample data interleaved?
     pub fn is_interleaved(&self) -> bool {
-        self.channel == Channel::Stereo { interleaved: true }
+        self.channel.is_interleaved()
     }
-
+    /// Is the sample signed
     pub fn is_signed(&self) -> bool {
         self.depth.is_signed()
     }
-
+    /// How many bits are used to encode the sample
     pub fn bits(&self) -> u8 {
         self.depth.bits()
     }
-
-    // TODO
+    /// Is the sample 8 bit
     pub fn is_8_bit(&self) -> bool {
-        matches!(self.depth, Depth::U8 | Depth::I8)
+        self.depth.is_8_bit()
     }
+    /// Number of audio channels
     pub fn channels(&self) -> u16 {
         self.channel.channels()
+    }
+}
+
+/// We consider two samples that point to the same region to be equal
+impl PartialEq for Sample {
+    fn eq(&self, other: &Self) -> bool {
+        self.pointer == other.pointer
     }
 }
 
@@ -115,7 +116,7 @@ pub struct Loop {
     pub kind: LoopType,
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoopType {
     #[default]
     OFF,
@@ -133,20 +134,29 @@ pub enum Channel {
     },
 }
 
+/* The methods below doesn't take a reference to self as it is
+usually faster to copy 1 byte than referencing it with an 8 (or 4) byte pointer. */
 impl Channel {
-    #[inline]
-    pub fn channels(&self) -> u16 {
+    pub fn new(is_stereo: bool, interleaved: bool) -> Self {
+        match is_stereo {
+            true => Self::Stereo { interleaved },
+            false => Self::Mono,
+        }
+    }
+
+    pub fn channels(self) -> u16 {
         match self {
             Self::Mono => 1,
             Self::Stereo { .. } => 2,
         }
     }
 
-    pub fn new(is_stereo: bool, interleaved: bool) -> Self {
-        match is_stereo {
-            true => Self::Stereo { interleaved },
-            false => Self::Mono,
-        }
+    pub fn is_stereo(self) -> bool {
+        matches!(self, Channel::Stereo { .. })
+    }
+
+    pub fn is_interleaved(self) -> bool {
+        self == Channel::Stereo { interleaved: true }
     }
 }
 
@@ -165,26 +175,6 @@ pub enum Depth {
 }
 
 impl Depth {
-    #[inline]
-    pub fn bits(&self) -> u8 {
-        match self {
-            Self::I8 | Self::U8 => 8,
-            Self::I16 | Self::U16 => 16,
-        }
-    }
-    #[inline]
-    pub fn bytes(&self) -> u8 {
-        self.bits() / 8
-    }
-
-    #[inline]
-    pub fn is_signed(&self) -> bool {
-        match self {
-            Self::I8 | Self::I16 => true,
-            Self::U8 | Self::U16 => false,
-        }
-    }
-
     pub fn new(is_8_bit: bool, _8_signed: bool, _16_signed: bool) -> Self {
         match is_8_bit {
             true => match _8_signed {
@@ -197,14 +187,39 @@ impl Depth {
             },
         }
     }
+
+    pub fn bits(self) -> u8 {
+        match self {
+            Self::I8 | Self::U8 => 8,
+            Self::I16 | Self::U16 => 16,
+        }
+    }
+
+    pub fn bytes(self) -> u8 {
+        self.bits() / 8
+    }
+
+    pub fn is_8_bit(self) -> bool {
+        matches!(self, Depth::U8 | Depth::I8)
+    }
+
+    pub fn is_signed(self) -> bool {
+        match self {
+            Self::I8 | Self::I16 => true,
+            Self::U8 | Self::U16 => false,
+        }
+    }
 }
 
 // #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-// pub enum SampleKind {
+// pub enum PcmType {
 //     /// Samples are stored as PCM values
 //     #[default]
 //     PCM,
-
 //     /// Samples are stored as Delta Values,
 //     DELTA,
+//     /// Sample is compressed with Impulse Tracker v2.14
+//     IT214,
+//     /// Sample is compressed with Impulse Tracker v2.15
+//     IT215,
 // }

@@ -18,25 +18,21 @@ const NAME: &str = "Impulse Tracker";
 /* Magic values */
 const MAGIC_IMPM: [u8; 4] = *b"IMPM";
 const MAGIC_IMPS: [u8; 4] = *b"IMPS";
-const MAGIC_ZIRCONA: [u8; 7] = *b"ziRCONa";
+const MAGIC_ZIRCONA: [u8; 8] = *b"ziRCONia";
 const MAGIC_IT215: u16 = 0x0215;
 
 /* Sample flags */
-mod SampleFlags {
-    pub const BITS_16: u8 = 1 << 1;
-    pub const STEREO: u8 = 1 << 2;
-    pub const COMPRESSION: u8 = 1 << 3;
-    pub const LOOP: u8 = 1 << 4;
-    pub const SUSTAIN: u8 = 1 << 5;
-    pub const PINGPONG: u8 = 1 << 6;
-    pub const PINGPONG_SUSTAIN: u8 = 1 << 7;
-}
+const FLAG_BITS_16: u8 = 1 << 1;
+const FLAG_STEREO: u8 = 1 << 2;
+const FLAG_COMPRESSION: u8 = 1 << 3;
+const FLAG_LOOP: u8 = 1 << 4;
+const FLAG_SUSTAIN: u8 = 1 << 5;
+const FLAG_PINGPONG: u8 = 1 << 6;
+const FLAG_PINGPONG_SUSTAIN: u8 = 1 << 7;
 
-mod CvtFlags {
-    pub const SIGNED: u8 = 1; // IT 2.01 and below use unsigned samples
-                              // IT 2.02 and above use signed samples
-    pub const DELTA: u8 = 1 << 2; // off = PCM values, ON = Delta values
-}
+/* Cvt flags */
+const CVT_SIGNED: u8 = 1; // IT 2.01 and below use unsigned samples
+const CVT_DELTA: u8 = 1 << 2;// off = PCM values, ON = Delta values
 
 /// Impulse Tracker module
 pub struct IT {
@@ -90,12 +86,16 @@ impl Module for IT {
 
 const UNSUPPORTED: &str = "Impulse Tracker Module uses 'ziRCON' sample compression";
 const INVALID: &str = "Not a valid Impulse Tracker module";
-const DELTA_PCM: &str = "This Impulse Tracker sample is stored as delta values. Samples may sound quiet.";
+const DELTA_PCM: &str =
+    "This Impulse Tracker sample is stored as delta values. Samples may sound quiet.";
 
-fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
+fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
+    let restart_position = file.stream_position()?;
+
     if is_magic_non_consume(file, &MAGIC_ZIRCONA)? {
         return Err(Error::unsupported(UNSUPPORTED));
     };
+
     if !is_magic(file, &MAGIC_IMPM)? {
         return Err(Error::invalid(INVALID));
     }
@@ -116,10 +116,18 @@ fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
     for _ in 0..smp_num {
         smp_ptrs.push(file.read_u32_le()?);
     }
-    dbg!(smp_num);
-    dbg!(&smp_ptrs);
 
-    build_samples(file, smp_ptrs).map(|samples| samples.into())
+    let samples = build_samples(file, smp_ptrs).map(|samples| samples.into())?;
+
+    file.set_seek_pos(restart_position).unwrap();
+    let mut buf: Vec<u8> = Vec::with_capacity(file.size().unwrap_or_default() as usize);
+    file.read_to_end(&mut buf).unwrap();
+
+    Ok(IT {
+        inner: buf.into(),
+        samples,
+        version: compat_ver,
+    })
 }
 
 fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>, Error> {
@@ -131,7 +139,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         if !is_magic(file, &MAGIC_IMPS)? {
             return Err(Error::invalid("Not a valid Impulse Tracker sample"));
         }
-        
+
         // Check if the sample is empty so we don't waste resources.
         file.skip_bytes(44)?;
         let length = file.read_u32_le()?;
@@ -159,15 +167,15 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         file.skip_bytes(8)?; // susloopbegin, susloopend
 
         let pointer = file.read_u32_le()?;
-        let signed = cvt.contains(CvtFlags::SIGNED);
+        let signed = cvt.contains(CVT_SIGNED);
 
-        if cvt.contains(CvtFlags::DELTA) {
+        if cvt.contains(CVT_DELTA) {
             warn!("{}", DELTA_PCM);
         }
 
-        let compressed = flags.contains(SampleFlags::COMPRESSION);
-        let depth = Depth::new(!flags.contains(SampleFlags::BITS_16), signed, signed);
-        let channel = Channel::new(flags.contains(SampleFlags::STEREO), false);
+        let compressed = flags.contains(FLAG_COMPRESSION);
+        let depth = Depth::new(!flags.contains(FLAG_BITS_16), signed, signed);
+        let channel = Channel::new(flags.contains(FLAG_STEREO), false);
         let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
 
         match file.size() {
@@ -180,10 +188,10 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
         let index_raw = index_raw as u16;
         let loop_kind = match flags {
-            f if f.contains(SampleFlags::PINGPONG_SUSTAIN) => LoopType::PingPong,
-            f if f.contains(SampleFlags::PINGPONG) => LoopType::PingPong,
-            f if f.contains(SampleFlags::LOOP) => LoopType::Forward,
-            f if f.contains(SampleFlags::SUSTAIN) => LoopType::Backward,
+            f if f.contains(FLAG_PINGPONG_SUSTAIN) => LoopType::PingPong,
+            f if f.contains(FLAG_PINGPONG) => LoopType::PingPong,
+            f if f.contains(FLAG_LOOP) => LoopType::Forward,
+            f if f.contains(FLAG_SUSTAIN) => LoopType::Backward,
             _ => LoopType::OFF,
         };
 
@@ -227,19 +235,19 @@ pub fn a() {
     use std::io::{Read, Seek};
 
     rayon::ThreadPoolBuilder::new()
-        .num_threads(4)
+        .num_threads(2)
         .build_global()
         .unwrap();
-    let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
-    // let mut file = std::io::Cursor::new(std::fs::read("./gambit_-_ben_yosef__-_www.it").unwrap());
+    // let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
+    // let mut file = std::io::BufReader::new(File::open("./gambit_-_ben_yosef__-_www.it").unwrap());
 
-    let samples = parse_(&mut file).unwrap();
-    dbg!(samples.len());
-    for s in samples.iter(){
-        dbg!(s.filename_pretty());
-        dbg!(s.length);
-        dbg!(&s.looping);
-    }
+    // let tracker = parse_(&mut file).unwrap();
+    // dbg!(samples.len());
+    // for s in tracker.samples(){
+    //     dbg!(s.filename_pretty());
+    //     dbg!(s.length);
+    //     dbg!(&s.looping);
+    // }
 
     // file.rewind().unwrap();
     // let mut buf: Vec<u8> = Vec::new();
@@ -251,7 +259,7 @@ pub fn a() {
     //     version: 0x0214,
     // };
 
-    // let mut ripper = Ripper::default();
+    // let ripper = Ripper::default();
     // // ripper.change_format(ExportFormat::IFF.into());
-    // ripper.rip("./kobar/", &tracker).unwrap()
+    // ripper.rip("./test_export/", &tracker).unwrap()
 }
