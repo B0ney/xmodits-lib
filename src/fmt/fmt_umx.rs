@@ -5,7 +5,7 @@ use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     io::{ByteReader, ReadSeek},
-    magic::verify_magic,
+    magic::is_magic,
 };
 
 const MAGIC_UPKG: [u8; 4] = [0x9E, 0x2A, 0x83, 0xC1];
@@ -16,7 +16,7 @@ pub struct UMX(Private);
 
 
 fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
-    verify_magic(file, &MAGIC_UPKG)
+    is_magic(file, &MAGIC_UPKG)
         .map_err(|_| Error::invalid("Not a valid Unreal package"))?;
     
     let version = file.read_u32_le()?;

@@ -8,7 +8,7 @@ use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     io::{ByteReader, ReadSeek},
-    magic::verify_magic,
+    magic::is_magic,
 };
 
 const NAME: &str = "Scream Tracker";
@@ -68,7 +68,9 @@ impl Module for S3M {
 fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
     let title = file.read_bytes(28)?.into_boxed_slice();
 
-    verify_magic(file, &[0x1a, 0x10]).map_err(|_| Error::invalid(INVALID))?;
+    if !is_magic(file, &[0x1a, 0x10])? {
+        return Err(Error::invalid(INVALID));
+    }
 
     file.skip_bytes(2)?; // skip reserved
 
@@ -78,7 +80,9 @@ fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
 
     let signed = matches!(file.read_u16_le()?, 1);
 
-    verify_magic(file, &MAGIC_HEADER).map_err(|_| Error::invalid(INVALID))?;
+    if !is_magic(file, &MAGIC_HEADER)? {
+        return Err(Error::invalid(INVALID));
+    }
 
     file.set_seek_pos((0x0060 + ord_count) as u64)?;
     let mut ptrs: Vec<u32> = Vec::with_capacity(ins_count as usize);
@@ -124,8 +128,9 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         file.skip_bytes(12)?; // internal buffer used during playback
 
         let name = file.read_bytes(28)?.into_boxed_slice();
-
-        verify_magic(file, &MAGIC_SAMPLE).map_err(|_| Error::invalid(INVALID))?;
+        if is_magic(file, &MAGIC_SAMPLE)? {
+            return Err(Error::invalid(INVALID));
+        }
 
         let depth = Depth::new(!flags.contains(Flag::BITS as u8), signed, signed);
         let channel = Channel::new(flags.contains(Flag::STEREO as u8), false);
@@ -168,7 +173,7 @@ pub fn a() {
 
     use crate::interface::export::Ripper;
 
-    let mut file = std::fs::File::open("./dusk.s3m").unwrap();
+    let mut file = std::fs::File::open("./existing.s3m").unwrap();
     let samples = parse(&mut file).unwrap();
     for i in samples.iter() {
         // dbg!(i.is_stereo());
@@ -179,16 +184,16 @@ pub fn a() {
         dbg!(i.bits());
     }
 
-    // file.rewind().unwrap();
-    // let mut inner = Vec::new();
-    // file.read_to_end(&mut inner).unwrap();
+    file.rewind().unwrap();
+    let mut inner = Vec::new();
+    file.read_to_end(&mut inner).unwrap();
 
-    // let module = S3M {
-    //     inner: inner.into(),
-    //     samples: samples.into(),
-    // };
+    let module = S3M {
+        inner: inner.into(),
+        samples: samples.into(),
+    };
 
-    // let ripper = Ripper::default();
-    // // ripper.change_format(ExportFormat::IFF.into());
-    // ripper.rip("./s3m_stereo/", &module).unwrap()
+    let ripper = Ripper::default();
+    // ripper.change_format(ExportFormat::IFF.into());
+    ripper.rip("./existing/", &module).unwrap()
 }

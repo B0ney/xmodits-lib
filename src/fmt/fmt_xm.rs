@@ -6,11 +6,11 @@ use log::info;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
-use crate::parser::magic::bad_magic_non_consume;
+// use crate::parser::magic::bad_magic_non_consume;
 use crate::parser::{
     bitflag::BitFlag,
     io::{ByteReader, ReadSeek},
-    magic::verify_magic,
+    magic::{is_magic,is_magic_non_consume},
 };
 use crate::utils::deltadecode::{delta_decode_u16, delta_decode_u8};
 
@@ -79,15 +79,17 @@ pub fn delta_decode(smp: &Sample) -> impl Fn(Vec<u8>) -> Vec<u8> {
 }
 
 fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
-    bad_magic_non_consume(file, &MAGIC_MOD_PLUGIN_PACKED)
-        .map_err(|_| Error::unsupported("Extened Module uses 'MOD Plugin packed'"))?;
+    if is_magic_non_consume(file, &MAGIC_MOD_PLUGIN_PACKED)? {
+        return Err(Error::unsupported("Extened Module uses 'MOD Plugin packed'"));
+    }
 
-    verify_magic(file, &MAGIC_HEADER)
-        .map_err(|_| Error::invalid("Not a valid Extended Module"))?;
+    if !is_magic(file, &MAGIC_HEADER)? {
+        return Err(Error::invalid("Not a valid Extended Module"))
+    }
 
     let module_name = file.read_bytes(20)?;
 
-    verify_magic(file, &[MAGIC_NUMBER])
+    is_magic(file, &[MAGIC_NUMBER])
         .map_err(|_| Error::invalid("Not a valid Extended Module"))?;
     file.skip_bytes(20)?; // Name of the tracking software that made the module.
 

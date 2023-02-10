@@ -6,7 +6,7 @@ use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     io::{ByteReader, ReadSeek},
-    magic::{bad_magic_non_consume, verify_magic},
+    magic::{is_magic, is_magic_non_consume},
 };
 
 use log::{info, warn};
@@ -88,15 +88,20 @@ impl Module for IT {
     }
 }
 
-fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
-    bad_magic_non_consume(file, &MAGIC_ZIRCONA).map_err(|_| {
-        Error::unsupported("Impulse Tracker Module uses 'ziRCON' sample compression")
-    })?;
+const UNSUPPORTED: &str = "Impulse Tracker Module uses 'ziRCON' sample compression";
+const INVALID: &str = "Not a valid Impulse Tracker module";
+const DELTA_PCM: &str = "This Impulse Tracker sample is stored as delta values. Samples may sound quiet.";
 
-    verify_magic(file, &MAGIC_IMPM)
-        .map_err(|_| Error::invalid("Not a valid Impulse Tracker module"))?;
+fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
+    if is_magic_non_consume(file, &MAGIC_ZIRCONA)? {
+        return Err(Error::unsupported(UNSUPPORTED));
+    };
+    if !is_magic(file, &MAGIC_IMPM)? {
+        return Err(Error::invalid(INVALID));
+    }
 
     let title = file.read_bytes(26)?;
+    dbg!(String::from_utf8_lossy(&title));
     file.skip_bytes(2)?;
 
     let ord_num = file.read_u16_le()?;
@@ -105,13 +110,14 @@ fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
     file.skip_bytes(4)?;
 
     let compat_ver = file.read_u16_le()?;
-
     file.set_seek_pos((0x00c0 + ord_num + (ins_num * 4)) as u64)?;
 
     let mut smp_ptrs: Vec<u32> = Vec::with_capacity(smp_num as usize);
     for _ in 0..smp_num {
         smp_ptrs.push(file.read_u32_le()?);
     }
+    dbg!(smp_num);
+    dbg!(&smp_ptrs);
 
     build_samples(file, smp_ptrs).map(|samples| samples.into())
 }
@@ -122,9 +128,10 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
     for (index_raw, sample_header) in ptrs.into_iter().enumerate() {
         file.set_seek_pos(sample_header as u64)?;
 
-        verify_magic(file, &MAGIC_IMPS)
-            .map_err(|_| Error::invalid("Not a valid Impulse Tracker sample"))?;
-
+        if !is_magic(file, &MAGIC_IMPS)? {
+            return Err(Error::invalid("Not a valid Impulse Tracker sample"));
+        }
+        
         // Check if the sample is empty so we don't waste resources.
         file.skip_bytes(44)?;
         let length = file.read_u32_le()?;
@@ -133,7 +140,6 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
             info!("Skipping empty sample at index {}...", index_raw + 1);
             continue;
         }
-
         file.skip_bytes(-44 - 4)?;
 
         let filename = file.read_bytes(12)?.into_boxed_slice();
@@ -156,7 +162,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         let signed = cvt.contains(CvtFlags::SIGNED);
 
         if cvt.contains(CvtFlags::DELTA) {
-            warn!("This Impulse Tracker sample is stored as delta values. Samples may sound quiet.")
+            warn!("{}", DELTA_PCM);
         }
 
         let compressed = flags.contains(SampleFlags::COMPRESSION);
@@ -165,7 +171,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
 
         match file.size() {
-            Some(len) if (pointer + length) as u64 > len && !compressed => {
+            Some(size) if (pointer + length) as u64 > size => {
                 info!("Skipping invalid sample at index {}...", index_raw + 1);
                 continue;
             }
@@ -173,11 +179,9 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         };
 
         let index_raw = index_raw as u16;
-
         let loop_kind = match flags {
-            f if (SampleFlags::PINGPONG | SampleFlags::PINGPONG_SUSTAIN).contains(f) => {
-                LoopType::PingPong
-            }
+            f if f.contains(SampleFlags::PINGPONG_SUSTAIN) => LoopType::PingPong,
+            f if f.contains(SampleFlags::PINGPONG) => LoopType::PingPong,
             f if f.contains(SampleFlags::LOOP) => LoopType::Forward,
             f if f.contains(SampleFlags::SUSTAIN) => LoopType::Backward,
             _ => LoopType::OFF,
@@ -226,28 +230,28 @@ pub fn a() {
         .num_threads(4)
         .build_global()
         .unwrap();
-    let mut file = std::io::BufReader::new(File::open("./sj-kboar.it").unwrap());
+    let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
     // let mut file = std::io::Cursor::new(std::fs::read("./gambit_-_ben_yosef__-_www.it").unwrap());
 
     let samples = parse_(&mut file).unwrap();
-
-    for s in samples.iter().filter(|f| f.looping.kind != LoopType::OFF) {
+    dbg!(samples.len());
+    for s in samples.iter(){
         dbg!(s.filename_pretty());
         dbg!(s.length);
         dbg!(&s.looping);
     }
 
-    file.rewind().unwrap();
-    let mut buf: Vec<u8> = Vec::new();
-    file.read_to_end(&mut buf).unwrap();
+    // file.rewind().unwrap();
+    // let mut buf: Vec<u8> = Vec::new();
+    // file.read_to_end(&mut buf).unwrap();
 
-    let tracker = IT {
-        inner: buf.into(),
-        samples,
-        version: 0x0214,
-    };
+    // let tracker = IT {
+    //     inner: buf.into(),
+    //     samples,
+    //     version: 0x0214,
+    // };
 
-    let mut ripper = Ripper::default();
-    // ripper.change_format(ExportFormat::IFF.into());
-    ripper.rip("./kobar/", &tracker).unwrap()
+    // let mut ripper = Ripper::default();
+    // // ripper.change_format(ExportFormat::IFF.into());
+    // ripper.rip("./kobar/", &tracker).unwrap()
 }

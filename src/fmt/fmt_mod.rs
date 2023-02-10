@@ -6,7 +6,7 @@ use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     io::{ByteReader, ReadSeek},
-    magic::verify_magic,
+    magic::is_magic,
 };
 
 const MAGIC_PP20: [u8; 4] = *b"PP20";
