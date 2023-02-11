@@ -1,5 +1,7 @@
 use std::borrow::Cow;
+use log::{info, warn};
 
+use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -8,10 +10,6 @@ use crate::parser::{
     io::{ByteReader, ReadSeek},
     magic::{is_magic, is_magic_non_consume},
 };
-
-use log::{info, warn};
-
-use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 
 const NAME: &str = "Impulse Tracker";
 

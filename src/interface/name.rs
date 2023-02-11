@@ -1,3 +1,6 @@
+#[cfg(feature = "serde_support")]
+use serde::{Serialize, Deserialize};
+
 use crate::interface::sample::Sample;
 
 pub type DynSampleNamerTrait = Box<dyn SampleNamerTrait>;
@@ -32,6 +35,7 @@ impl<'a> Context<'a> {
 
 /// Struct to customise how samples are named
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct SampleNamer {
     /// Only name samples with an index
     pub index_only: bool,

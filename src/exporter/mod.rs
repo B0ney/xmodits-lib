@@ -5,16 +5,23 @@ pub mod fmt_its;
 pub mod fmt_raw;
 pub mod fmt_wav;
 
+/// Possible formats to encode the pcm data
 #[derive(Default, Clone, Copy)]
 pub enum ExportFormat {
     /// Aiff
     AIFF,
     /// Amiga 8svx, only supports signed 8 bit samples.
+    /// 
+    /// 16-bit samples will have their bit depth reduced.
     IFF,
-    /// Wav
+    /// WAV, only supports unsigned 8-bit and signed 16-bit samples.
+    /// 
+    /// Samples are processed to satisfy this.
     #[default]
     WAV,
     /// Raw PCM
+    /// 
+    /// This will lose information about the sample.
     RAW,
     /// Impulse Tracker Sample
     ITS,

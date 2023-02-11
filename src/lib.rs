@@ -1,10 +1,10 @@
-#[forbid(unsafe_code)]
-mod exporter;
+#![forbid(unsafe_code)]
+pub mod exporter;
 pub mod fmt;
 pub mod interface;
-mod macros;
 pub mod parser;
-mod utils;
+pub mod utils;
+pub mod common;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
