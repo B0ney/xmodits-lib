@@ -119,7 +119,7 @@ pub struct Loop {
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoopType {
     #[default]
-    OFF,
+    Off,
     Forward,
     Backward,
     PingPong,

@@ -1,6 +1,6 @@
 pub mod audio;
 pub mod errors;
-pub mod export;
+pub mod ripper;
 pub mod module;
 pub mod name;
 pub mod sample;

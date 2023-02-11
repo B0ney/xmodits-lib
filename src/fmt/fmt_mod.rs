@@ -101,7 +101,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         looping: Loop {
             start: loop_start as u32,
             stop: loop_end as u32,
-            kind: LoopType::OFF,
+            kind: LoopType::Off,
         },
     });
     todo!()

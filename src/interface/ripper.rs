@@ -1,5 +1,6 @@
 use log::{debug, error, info, warn, Level};
 use rayon::prelude::*;
+use std::io::{self, Write};
 use std::{fs, path::Path};
 
 use crate::exporter::ExportFormat;
@@ -42,8 +43,8 @@ impl Ripper {
         self.namer = namer;
     }
 
-    /// Rip samples concurrently
-    pub fn rip(&self, directory: impl AsRef<Path>, module: &dyn Module) -> Result<(), Error> {
+    /// Rip samples concurrently to a directory
+    pub fn rip_to_dir(&self, directory: impl AsRef<Path>, module: &dyn Module) -> Result<(), Error> {
         let directory = directory.as_ref();
 
         if !directory.is_dir() {
@@ -73,6 +74,19 @@ impl Ripper {
             _ => Error::partial_extraction(errors),
         }
     }
+
+    // extract a particular sample to a writer object.
+    // This should be used for extracting a sample to memory
+    pub fn rip_to_writer(
+        &self,
+        module: &dyn Module,
+        writer: &mut dyn Write,
+        index: usize,
+    ) -> Result<(), Error> {
+        let metadata = module.samples().get(index).ok_or_else(Error::bad_sample)?; // todo
+        let pcm = module.pcm(metadata)?;
+        self.format.write(metadata, pcm, writer)
+    }
 }
 
 pub fn build_context<'a>(module: &dyn Module, audio_format: &'a DynAudioTrait) -> Context<'a> {
@@ -96,19 +110,27 @@ pub fn filter_empty_samples(smp: &[Sample]) -> impl ParallelIterator<Item = &Sam
 
 #[test]
 fn a() {
-    let fnh: DynSampleNamerTrait = Box::new(SampleNamer::default().to_func());
+    // let fnh = ;
     // let format = ExportFormat::IFF.get_impl();
     // let format2 = ExportFormat::RAW.get_impl();
     // let a =
 
     // let mut def = Ripper::new(Box::new(aa), );
     let mut def = Ripper::default();
+    def.change_format(ExportFormat::IFF.into());
+    def.change_namer(
+        SampleNamer {
+            prefer_filename: false,
+            ..Default::default()
+        }
+        .into(),
+    );
     // def.rip(directory, module).unwrap();
 
     let xm = crate::fmt::fmt_xm::XM::load(vec![0]).unwrap();
     let s3m = Box::new(crate::fmt::fmt_s3m::S3M::load(vec![0]).unwrap());
 
-    def.rip("directory", &xm).unwrap();
+    def.rip_to_dir("directory", &xm).unwrap();
     dbg!(def.format.extension());
 
     /*

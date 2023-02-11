@@ -190,7 +190,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
             f if f.contains(FLAG_PINGPONG) => LoopType::PingPong,
             f if f.contains(FLAG_LOOP) => LoopType::Forward,
             f if f.contains(FLAG_SUSTAIN) => LoopType::Backward,
-            _ => LoopType::OFF,
+            _ => LoopType::Off,
         };
 
         samples.push(Sample {
@@ -228,7 +228,7 @@ fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Erro
 pub fn a() {
     // env_logger::init();
     use crate::exporter::ExportFormat;
-    use crate::interface::export::Ripper;
+    use crate::interface::ripper::Ripper;
     use std::fs::File;
     use std::io::{Read, Seek};
 

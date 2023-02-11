@@ -127,7 +127,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         let flags = file.read_u8()?;
         let loop_kind = match flags.contains(FLAG_LOOP) {
             true => LoopType::Forward,
-            false => LoopType::OFF,
+            false => LoopType::Off,
         };
 
         let rate = file.read_u32_le()? & 0xffff;
@@ -177,7 +177,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
 pub fn a() {
     use std::io::{Read, Seek};
 
-    use crate::interface::export::Ripper;
+    use crate::interface::ripper::Ripper;
 
     let mut file = std::fs::File::open("./dusk.s3m").unwrap();
     let tracker = parse(&mut file).unwrap();
@@ -201,5 +201,5 @@ pub fn a() {
 
     let ripper = Ripper::default();
     // ripper.change_format(ExportFormat::IFF.into());
-    ripper.rip("./dusk/", &tracker).unwrap()
+    ripper.rip_to_dir("./dusk/", &tracker).unwrap()
 }
