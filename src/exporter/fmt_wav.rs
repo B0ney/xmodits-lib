@@ -17,12 +17,7 @@ impl AudioTrait for Wav {
     }
 
     #[allow(clippy::unnecessary_cast)]
-    fn write(
-        &self,
-        metadata: &Sample,
-        pcm: Cow<[u8]>,
-        writer: &mut dyn Write,
-    ) -> Result<(), Error> {
+    fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
         const HEADER_SIZE: u32 = 44;
         const RIFF: [u8; 4] = [0x52, 0x49, 0x46, 0x46]; // RIFF
         const WAVE: [u8; 4] = [0x57, 0x41, 0x56, 0x45]; // WAVE
@@ -34,9 +29,9 @@ impl AudioTrait for Wav {
 
         // To avoid nasty bugs in future, explicitly cast the types.
         let size = HEADER_SIZE - 8 + pcm.len() as u32; // TODO: double check for stereo samples
-        let channels = metadata.channels() as u16;
-        let bits = metadata.bits() as u16;
-        let rate = metadata.rate as u32;
+        let channels = smp.channels() as u16;
+        let bits = smp.bits() as u16;
+        let rate = smp.rate as u32;
         let block_align = channels * (bits / 8);
 
         writer.write_all(&RIFF)?;
@@ -55,7 +50,7 @@ impl AudioTrait for Wav {
 
         // Only signed 16 bit & unsigned 8 bit samples are supported.
         // If not, flip the sign.
-        let pcm = match metadata.depth {
+        let pcm = match smp.depth {
             Depth::U8 | Depth::I16 => pcm,
             Depth::I8 => flip_sign_8_bit(pcm.into_owned()).into(),
             Depth::U16 => flip_sign_16_bit(pcm.into_owned()).into(),
@@ -63,8 +58,8 @@ impl AudioTrait for Wav {
 
         let mut write_pcm = |buf: &[u8]| writer.write_all(buf);
 
-        match metadata.channel {
-            Channel::Stereo { interleaved: false } => match metadata.is_8_bit() {
+        match smp.channel {
+            Channel::Stereo { interleaved: false } => match smp.is_8_bit() {
                 true => write_pcm(&interleave_8_bit(&pcm)),
                 false => write_pcm(cast_slice(&interleave_16_bit(pcm.into_owned()))),
             },

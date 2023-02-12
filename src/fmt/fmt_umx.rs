@@ -1,4 +1,3 @@
-
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -14,11 +13,9 @@ struct Private;
 
 pub struct UMX(Private);
 
-
 fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
-    is_magic(file, &MAGIC_UPKG)
-        .map_err(|_| Error::invalid("Not a valid Unreal package"))?;
-    
+    is_magic(file, &MAGIC_UPKG).map_err(|_| Error::invalid("Not a valid Unreal package"))?;
+
     let version = file.read_u32_le()?;
     if version < 61 {
         return Err(Error::unsupported("UMX versions under 61 are unsupported"));
@@ -30,7 +27,6 @@ fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
 
     todo!()
 }
-
 
 fn read_compact_index(buf: &[u8], mut offset: usize) -> Option<(i32, usize)> {
     let mut output: i32 = 0;
@@ -68,4 +64,28 @@ fn read_compact_index(buf: &[u8], mut offset: usize) -> Option<(i32, usize)> {
     }
 
     Some((output, size))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::fmt::fmt_umx::read_compact_index;
+
+    // Test read compact index works
+    #[test]
+    fn test_compact_index() {
+        let tests: Vec<(i32, &[u8])> = vec![
+            (1, &[0x01]),
+            (500, &[0x74, 0x07]),
+            (1000, &[0x68, 0x0f]),
+            (10, &[0x0a]),
+            (100, &[0x64, 0x01]),
+            (10_000_000, &[0x40, 0xDA, 0xC4, 0x09]),
+            (1_000_000_000, &[0x40, 0xA8, 0xD6, 0xB9, 0x07]),
+        ];
+
+        for (number, compact) in tests {
+            let (expanded, _) = read_compact_index(compact, 0).expect("Compact index");
+            assert_eq!(expanded, number);
+        }
+    }
 }

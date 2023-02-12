@@ -10,6 +10,6 @@ pub trait AudioTrait: Send + Sync {
     fn extension(&self) -> &str;
 
     /// Write pcm data to writer
-    fn write(&self, metadata: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write)
+    fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write)
         -> Result<(), Error>;
 }

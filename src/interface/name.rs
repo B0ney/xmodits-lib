@@ -34,7 +34,7 @@ impl<'a> Context<'a> {
 }
 
 /// Struct to customise how samples are named
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash)]
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct SampleNamer {
     /// Only name samples with an index

@@ -1,7 +1,9 @@
 [package]
 name = "xmodits-lib"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
+description = "XMODITS core library"
+repository = "https://github.com/B0ney/xmodits-lib"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,14 +12,17 @@ thiserror = "1.0.38"
 bytemuck = "1.13.0"
 rayon = "1.6.1"
 fastrand = "1.8.0"
-log = "0.4.17"
 smol_str = "0.1.24"
-serde = { version = "1.0.152", features = ["derive"] , optional = true}
+
+log = { version = "0.4.17", optional = false } # todo
+serde = { version = "1.0.152", features = ["derive"] , optional = true }
+ffmpeg-next = { version = "5.1.1", optional = true }
 
 [dev-ddependencies]
 env_logger = "0.10.0"
 
 [features]
-log = []
+# logging = ["log"]
 thread = []
 serde_support = ["serde"]
+ffmpeg = ["ffmpeg-next"]

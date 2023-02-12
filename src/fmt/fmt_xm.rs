@@ -89,8 +89,10 @@ fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
 
     let module_name = file.read_bytes(20)?;
 
-    is_magic(file, &[MAGIC_NUMBER])
-        .map_err(|_| Error::invalid("Not a valid Extended Module"))?;
+    if !is_magic(file, &[MAGIC_NUMBER])? {
+        return Err(Error::invalid("Not a valid Extended Module"))
+    }
+    
     file.skip_bytes(20)?; // Name of the tracking software that made the module.
 
     if file.read_u16_le()? < MINIMUM_VERSION {

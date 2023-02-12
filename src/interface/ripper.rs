@@ -117,7 +117,6 @@ fn a() {
 
     // let mut def = Ripper::new(Box::new(aa), );
     let mut def = Ripper::default();
-    def.change_format(ExportFormat::IFF.into());
     def.change_namer(
         SampleNamer {
             prefer_filename: false,

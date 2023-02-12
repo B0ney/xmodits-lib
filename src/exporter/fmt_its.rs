@@ -11,21 +11,16 @@ impl AudioTrait for Its {
     fn extension(&self) -> &str {
         "its"
     }
-    
+
     #[allow(clippy::unnecessary_cast)]
-    fn write(
-        &self,
-        metadata: &Sample,
-        pcm: Cow<[u8]>,
-        writer: &mut dyn Write,
-    ) -> Result<(), Error> {
+    fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
         const HEADER: [u8; 4] = *b"IMPS";
         const SAMPLE_PTR: [u8; 4] = 0x50_u32.to_le_bytes();
         const PLACE_HOLDER: [u8; 4] = [0, 0, 0, 0];
 
         let flags: u8 = 0; // TODO
-        let length = metadata.length as u32; // TODO: check if lengh is in bytes or samples
-        let c5speed = metadata.rate as u32;
+        let length = smp.length as u32; // TODO: check if lengh is in bytes or samples
+        let c5speed = smp.rate as u32;
 
         writer.write_all(&HEADER)?;
         writer.write_all(&[0u8; 12])?; // filename
