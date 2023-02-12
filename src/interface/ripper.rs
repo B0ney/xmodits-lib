@@ -127,10 +127,10 @@ fn a() {
     );
     // def.rip(directory, module).unwrap();
 
-    let xm = crate::fmt::fmt_xm::XM::load(vec![0]).unwrap();
-    let s3m = Box::new(crate::fmt::fmt_s3m::S3M::load(vec![0]).unwrap());
+    // let xm = crate::fmt::fmt_xm::XM::load(vec![0]).unwrap();
+    // let s3m = Box::new(crate::fmt::fmt_s3m::S3M::load(vec![0]).unwrap());
 
-    def.rip_to_dir("directory", &xm).unwrap();
+    // def.rip_to_dir("directory", &xm).unwrap();
     dbg!(def.format.extension());
 
     /*

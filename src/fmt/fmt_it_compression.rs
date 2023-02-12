@@ -3,12 +3,22 @@ use crate::parser::bytes::le_u16 as _le_u16;
 use bytemuck::cast_slice;
 use log::warn;
 
+fn eof_err(len: usize, offset: usize) -> Error {
+    let error = format!(
+        "Unexpected EOF for compressed Impulse Tracker sample ({len} bytes) for given offset {offset}"
+    );
+    log::error!("{}", error);
+    Error::Extraction(error)
+}
+
 fn le_u16(buf: &[u8], offset: usize) -> Result<u16, Error> {
-    _le_u16(buf, offset).ok_or_else(Error::bad_sample)
+    _le_u16(buf, offset).ok_or_else(|| eof_err(buf.len(), offset))
 }
 
 fn get_byte(buf: &[u8], offset: usize) -> Result<u8, Error> {
-    buf.get(offset).ok_or_else(Error::bad_sample).copied()
+    buf.get(offset)
+        .ok_or_else(|| eof_err(buf.len(), offset))
+        .copied()
 }
 
 #[rustfmt::skip] 
@@ -257,4 +267,47 @@ pub fn decompress_16_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8
     }
 
     Ok(dest_buf)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::interface::Error;
+    use super::BitReader;
+
+    #[test]
+    fn readbit() -> Result<(), Error> {
+        let buf: Vec<u8> = vec![
+            0x1,
+            0x0, // block size header (LE) of 1 byte
+            0b1111_1110,
+            0b1111_1111, // group 1
+            0b1010_1110, // group 2
+            0b1100_1100,
+            0b1100_1111, // group 3
+            0b0011_1010,
+            0b1010_1010,
+            0b1100_1100,
+            0b1100_1100,
+            0b1010_1010,
+            0b1010_1010,
+            0b1100_1100,
+        ];
+        let mut b = BitReader::new(&buf);
+        b.read_next_block()?;
+        // b.read_bits_u16(0)?;
+
+        // test group 1
+        assert_eq!(b.read_bits_u16(8)?, 0b_1111_1110);
+        assert_eq!(b.read_bits_u16(8)?, 0b_1111_1111);
+
+        // test group 2
+        assert_eq!(b.read_bits_u16(4)?, 0b_0000_1110);
+        assert_eq!(b.read_bits_u16(4)?, 0b_0000_1010);
+
+        // test group 3
+        assert_eq!(b.read_bits_u16(16)?, 0b_1100_1111_1100_1100);
+        assert_eq!(b.read_bits_u16(9)?, 0b_0_0011_1010);
+
+        Ok(())
+    }
 }

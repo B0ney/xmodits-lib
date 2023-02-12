@@ -11,7 +11,8 @@ impl AudioTrait for Its {
     fn extension(&self) -> &str {
         "its"
     }
-
+    
+    #[allow(clippy::unnecessary_cast)]
     fn write(
         &self,
         metadata: &Sample,

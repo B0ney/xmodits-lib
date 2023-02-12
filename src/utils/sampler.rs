@@ -104,16 +104,46 @@ pub fn interleave_8_bit(pcm: &[u8]) -> Vec<u8> {
 #[inline]
 pub fn interleave_16_bit(mut pcm: Vec<u8>) -> Vec<u16> {
     align_u16(&mut pcm);
-    _interleave_u16(cast_slice(&pcm))
+    _interleave_16_bit(cast_slice(&pcm))
 }
 
 #[inline]
-fn _interleave_u16(pcm: &[u16]) -> Vec<u16> {
+fn _interleave_16_bit(pcm: &[u16]) -> Vec<u16> {
     interleave(pcm).collect()
 }
 
-#[test]
-fn al() {
-    let mut a = vec![0];
-    align_u16(&mut a);
+#[cfg(test)]
+mod tests {
+    use crate::utils::sampler::align_u16;
+
+    use super::_interleave_16_bit;
+    use super::interleave_8_bit;
+
+    #[test]
+    fn interleave_test_8_bit() {
+        let pcm: [u8; 10] = [1u8, 1, 1, 1, 1, 0, 0, 0, 0, 0];
+        let expected: [u8; 10] = [1u8, 0, 1, 0, 1, 0, 1, 0, 1, 0];
+        assert_eq!(interleave_8_bit(&pcm), expected);
+    }
+
+    #[test]
+    fn interleave_test_16_bit() {
+        let pcm: [u16; 10] = [1, 1, 1, 1, 1, 0, 0, 0, 0, 0];
+        let expected: [u16; 10] = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0];
+        assert_eq!(_interleave_16_bit(&pcm), expected);
+    }
+
+    #[test]
+    fn align_check() {
+        let is_even = |usize| usize % 2 == 0;
+
+        let mut pcm: Vec<u8> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+        assert!(!is_even(pcm.len()), "pcm should be odd numbered");
+
+        align_u16(&mut pcm);
+        assert!(
+            is_even(pcm.len()),
+            "pcm should be even numbered for panic free casting"
+        );
+    }
 }
