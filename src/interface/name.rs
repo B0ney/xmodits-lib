@@ -1,10 +1,11 @@
 #[cfg(feature = "serde_support")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::interface::sample::Sample;
 
 pub type DynSampleNamerTrait = Box<dyn SampleNamerTrait>;
 
+/// A supertrait
 pub trait SampleNamerTrait: Fn(&Sample, &Context, usize) -> String + Send + Sync {}
 
 impl<T: Fn(&Sample, &Context, usize) -> String + Send + Sync> SampleNamerTrait for T {}
@@ -80,6 +81,9 @@ impl From<SampleNamer> for Box<dyn SampleNamerTrait> {
 }
 
 impl SampleNamer {
+    /// Construct a functor implementing the SampleNamerTrait
+    ///
+    /// The function consumes `self`, but SampleNamer implements `Copy`
     pub fn to_func(self) -> impl SampleNamerTrait {
         move |smp: &Sample, ctx: &Context, index: usize| -> String {
             let index_component = {
@@ -140,6 +144,6 @@ fn digits(n: usize) -> u8 {
         n if n < 10 => 1,
         n if n < 100 => 2,
         n if n < 1_000 => 3,
-        _ => unimplemented!(),
+        _ => unimplemented!("A module with 1000 samples???"),
     }
 }

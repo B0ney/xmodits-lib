@@ -5,8 +5,7 @@ use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
-    io::{ByteReader, ReadSeek},
-    magic::is_magic,
+    io::{is_magic, ByteReader, ReadSeek},
 };
 
 const MAGIC_PP20: [u8; 4] = *b"PP20";

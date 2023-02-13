@@ -3,8 +3,7 @@ use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
-    io::{ByteReader, ReadSeek},
-    magic::is_magic,
+    io::{is_magic, ByteReader, ReadSeek},
 };
 
 const MAGIC_UPKG: [u8; 4] = [0x9E, 0x2A, 0x83, 0xC1];

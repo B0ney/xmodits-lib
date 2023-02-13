@@ -1,13 +1,13 @@
+use crate::interface::audio::AudioTrait;
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
-use crate::interface::audio::AudioTrait;
+#[cfg(feature = "ffmpeg")]
+pub mod ffmpeg;
 pub mod fmt_aiff;
 pub mod fmt_iff;
 pub mod fmt_its;
 pub mod fmt_raw;
 pub mod fmt_wav;
-#[cfg(feature = "ffmpeg")]
-pub mod ffmpeg;
 
 /// Possible formats to store the pcm
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]

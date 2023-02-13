@@ -13,24 +13,26 @@ use crate::interface::{Error, Module, Sample};
 /// Requires a sample namer and an audio format
 pub struct Ripper {
     /// Function object to name samples
-    namer: Box<dyn SampleNamerTrait>,
+    /// See [SampleNamerTrait]
+    namer_func: Box<dyn SampleNamerTrait>,
 
     /// Process raw PCM to the implemented format  
+    /// see [AudioTrait]
     format: Box<dyn AudioTrait>,
 }
 
 impl Default for Ripper {
     fn default() -> Self {
         Self {
-            namer: SampleNamer::default().into(),
+            namer_func: SampleNamer::default().into(),
             format: ExportFormat::WAV.into(),
         }
     }
 }
 
 impl Ripper {
-    pub fn new(namer: DynSampleNamerTrait, format: DynAudioTrait) -> Self {
-        Self { namer, format }
+    pub fn new(namer_func: DynSampleNamerTrait, format: DynAudioTrait) -> Self {
+        Self { namer_func, format }
     }
 
     /// Change the sample format
@@ -40,11 +42,15 @@ impl Ripper {
 
     /// Change how samples are named
     pub fn change_namer(&mut self, namer: DynSampleNamerTrait) {
-        self.namer = namer;
+        self.namer_func = namer;
     }
 
     /// Rip samples concurrently to a directory
-    pub fn rip_to_dir(&self, directory: impl AsRef<Path>, module: &dyn Module) -> Result<(), Error> {
+    pub fn rip_to_dir(
+        &self,
+        directory: impl AsRef<Path>,
+        module: &dyn Module,
+    ) -> Result<(), Error> {
         let directory = directory.as_ref();
 
         if !directory.is_dir() {
@@ -52,10 +58,10 @@ impl Ripper {
             return Error::io_error("Path provided is a directory");
         }
 
-        let info = build_context(module, &self.format);
+        let context = build_context(module, &self.format);
 
         let extract_samples = |(index, smp): (usize, &Sample)| -> Result<(), Error> {
-            let path = directory.join((self.namer)(smp, &info, index));
+            let path = directory.join((self.namer_func)(smp, &context, index));
             let mut file = fs::File::create(path)?;
             self.format.write(smp, module.pcm(smp)?, &mut file)
         };

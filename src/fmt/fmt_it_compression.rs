@@ -271,8 +271,8 @@ pub fn decompress_16_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8
 
 #[cfg(test)]
 mod tests {
-    use crate::interface::Error;
     use super::BitReader;
+    use crate::interface::Error;
 
     #[test]
     fn readbit() -> Result<(), Error> {

@@ -1,5 +1,5 @@
-use std::borrow::Cow;
 use log::{info, warn};
+use std::borrow::Cow;
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 use crate::interface::module::{GenericTracker, Module};
@@ -7,8 +7,7 @@ use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
-    io::{ByteReader, ReadSeek},
-    magic::{is_magic, is_magic_non_consume},
+    io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
 };
 
 const NAME: &str = "Impulse Tracker";
@@ -16,7 +15,7 @@ const NAME: &str = "Impulse Tracker";
 /* Magic values */
 const MAGIC_IMPM: [u8; 4] = *b"IMPM";
 const MAGIC_IMPS: [u8; 4] = *b"IMPS";
-const MAGIC_ZIRCONA: [u8; 8] = *b"ziRCONia";
+const MAGIC_ZIRCONIA: [u8; 8] = *b"ziRCONia";
 const MAGIC_IT215: u16 = 0x0215;
 
 /* Sample flags */
@@ -30,7 +29,7 @@ const FLAG_PINGPONG_SUSTAIN: u8 = 1 << 7;
 
 /* Cvt flags */
 const CVT_SIGNED: u8 = 1; // IT 2.01 and below use unsigned samples
-const CVT_DELTA: u8 = 1 << 2;// off = PCM values, ON = Delta values
+const CVT_DELTA: u8 = 1 << 2; // off = PCM values, ON = Delta values
 
 /// Impulse Tracker module
 pub struct IT {
@@ -90,7 +89,7 @@ const DELTA_PCM: &str =
 fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
     let restart_position = file.stream_position()?;
 
-    if is_magic_non_consume(file, &MAGIC_ZIRCONA)? {
+    if is_magic_non_consume(file, &MAGIC_ZIRCONIA)? {
         return Err(Error::unsupported(UNSUPPORTED));
     };
 
@@ -236,8 +235,8 @@ pub fn a() {
         .num_threads(2)
         .build_global()
         .unwrap();
-    // let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
-    // let mut file = std::io::BufReader::new(File::open("./gambit_-_ben_yosef__-_www.it").unwrap());
+    let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
+    let mut file = std::io::BufReader::new(File::open("./gambit_-_ben_yosef__-_www.it").unwrap());
 
     // let tracker = parse_(&mut file).unwrap();
     // dbg!(samples.len());

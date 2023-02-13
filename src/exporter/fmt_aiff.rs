@@ -12,12 +12,7 @@ impl AudioTrait for Aiff {
         "aiff"
     }
 
-    fn write(
-        &self,
-        metadata: &Sample,
-        pcm: Cow<[u8]>,
-        writer: &mut dyn Write,
-    ) -> Result<(), Error> {
+    fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
         todo!()
     }
 }

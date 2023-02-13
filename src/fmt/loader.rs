@@ -1,6 +1,6 @@
 use smol_str::SmolStr;
 
-/// 
+///
 pub struct ModuleInfo {
     /// Name of tracker module
     name: SmolStr,
@@ -13,7 +13,6 @@ pub struct ModuleInfo {
 // impl ModuleInfo {
 //     pub fn new(name: &str,)
 // }
-
 
 #[test]
 fn a() {

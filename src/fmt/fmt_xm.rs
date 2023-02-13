@@ -9,8 +9,7 @@ use crate::interface::Error;
 // use crate::parser::magic::bad_magic_non_consume;
 use crate::parser::{
     bitflag::BitFlag,
-    io::{ByteReader, ReadSeek},
-    magic::{is_magic,is_magic_non_consume},
+    io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
 };
 use crate::utils::deltadecode::{delta_decode_u16, delta_decode_u8};
 
@@ -71,7 +70,7 @@ impl Module for XM {
 #[inline]
 pub fn delta_decode(smp: &Sample) -> impl Fn(Vec<u8>) -> Vec<u8> {
     info!("Delta decoding sample {}", smp.index_raw());
-    
+
     match smp.is_8_bit() {
         true => delta_decode_u8,
         false => delta_decode_u16,
@@ -80,19 +79,21 @@ pub fn delta_decode(smp: &Sample) -> impl Fn(Vec<u8>) -> Vec<u8> {
 
 fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
     if is_magic_non_consume(file, &MAGIC_MOD_PLUGIN_PACKED)? {
-        return Err(Error::unsupported("Extened Module uses 'MOD Plugin packed'"));
+        return Err(Error::unsupported(
+            "Extened Module uses 'MOD Plugin packed'",
+        ));
     }
 
     if !is_magic(file, &MAGIC_HEADER)? {
-        return Err(Error::invalid("Not a valid Extended Module"))
+        return Err(Error::invalid("Not a valid Extended Module"));
     }
 
     let module_name = file.read_bytes(20)?;
 
     if !is_magic(file, &[MAGIC_NUMBER])? {
-        return Err(Error::invalid("Not a valid Extended Module"))
+        return Err(Error::invalid("Not a valid Extended Module"));
     }
-    
+
     file.skip_bytes(20)?; // Name of the tracking software that made the module.
 
     if file.read_u16_le()? < MINIMUM_VERSION {
@@ -106,9 +107,7 @@ fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
     let insnum = file.read_u16_le()?;
 
     if patnum > 256 {
-        return Err(Error::invalid(
-            "Extended Module has more than 256 patterns",
-        ));
+        return Err(Error::invalid("Extended Module has more than 256 patterns"));
     }
     if insnum > 128 {
         return Err(Error::invalid(
