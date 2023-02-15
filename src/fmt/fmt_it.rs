@@ -1,10 +1,12 @@
 use log::{info, warn};
 use std::borrow::Cow;
+use std::io::Write;
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
+use crate::parser::io::non_consume;
 use crate::parser::{
     bitflag::BitFlag,
     io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
@@ -13,7 +15,7 @@ use crate::parser::{
 const NAME: &str = "Impulse Tracker";
 
 /* Magic values */
-const MAGIC_IMPM: [u8; 4] = *b"IMPM";
+pub const MAGIC_IMPM: [u8; 4] = *b"IMPM";
 const MAGIC_IMPS: [u8; 4] = *b"IMPS";
 const MAGIC_ZIRCONIA: [u8; 8] = *b"ziRCONia";
 const MAGIC_IT215: u16 = 0x0215;
@@ -76,9 +78,6 @@ impl Module for IT {
         &self.samples
     }
 
-    fn total_samples(&self) -> usize {
-        todo!()
-    }
 }
 
 const UNSUPPORTED: &str = "Impulse Tracker Module uses 'ziRCON' sample compression";
@@ -224,7 +223,7 @@ fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Erro
 }
 
 #[test]
-pub fn a() {
+pub fn a_() {
     // env_logger::init();
     use crate::exporter::ExportFormat;
     use crate::interface::ripper::Ripper;
@@ -235,10 +234,10 @@ pub fn a() {
         .num_threads(2)
         .build_global()
         .unwrap();
-    let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
-    let mut file = std::io::BufReader::new(File::open("./gambit_-_ben_yosef__-_www.it").unwrap());
+    // let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
+    let mut file = std::io::BufReader::new(File::open("./slayerdsm.it").unwrap());
 
-    // let tracker = parse_(&mut file).unwrap();
+    let tracker = parse_(&mut file).unwrap();
     // dbg!(samples.len());
     // for s in tracker.samples(){
     //     dbg!(s.filename_pretty());
@@ -246,9 +245,9 @@ pub fn a() {
     //     dbg!(&s.looping);
     // }
 
-    // file.rewind().unwrap();
-    // let mut buf: Vec<u8> = Vec::new();
-    // file.read_to_end(&mut buf).unwrap();
+    file.rewind().unwrap();
+    let mut buf: Vec<u8> = Vec::new();
+    file.read_to_end(&mut buf).unwrap();
 
     // let tracker = IT {
     //     inner: buf.into(),
@@ -256,7 +255,7 @@ pub fn a() {
     //     version: 0x0214,
     // };
 
-    // let ripper = Ripper::default();
-    // // ripper.change_format(ExportFormat::IFF.into());
-    // ripper.rip("./test_export/", &tracker).unwrap()
+    let ripper = Ripper::default();
+    // ripper.change_format(ExportFormat::IFF.into());
+    ripper.rip_to_dir("./test_export/", &tracker).unwrap()
 }

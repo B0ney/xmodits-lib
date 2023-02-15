@@ -112,7 +112,7 @@ where
 {
     let rewind_pos = reader.seek_position()?;
     let result = output(reader);
-    reader.skip_bytes(-(rewind_pos as i64))?;
+    reader.set_seek_pos(rewind_pos)?;
     result
 }
 
@@ -122,4 +122,23 @@ pub fn is_magic(reader: &mut impl ByteReader, magic: &[u8]) -> io::Result<bool> 
 
 pub fn is_magic_non_consume(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<bool> {
     non_consume(reader, |reader| is_magic(reader, magc))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+
+    use crate::parser::io::is_magic_non_consume;
+
+    use super::ByteReader;
+
+    #[test]
+    fn no_consume() {
+        let mut buf = Cursor::new([0u8;32]);
+        assert_eq!(buf.seek_position().unwrap(), 0);
+
+        let _ = is_magic_non_consume(&mut buf, &[0,0,0,0]).unwrap();
+        
+        assert_eq!(buf.seek_position().unwrap(), 0);
+    }
 }

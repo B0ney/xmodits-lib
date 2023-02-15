@@ -6,7 +6,7 @@ use crate::parser::{
     io::{is_magic, ByteReader, ReadSeek},
 };
 
-const MAGIC_UPKG: [u8; 4] = [0x9E, 0x2A, 0x83, 0xC1];
+pub const MAGIC_UPKG: [u8; 4] = [0x9E, 0x2A, 0x83, 0xC1];
 
 struct Private;
 

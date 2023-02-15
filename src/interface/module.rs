@@ -119,7 +119,9 @@ pub trait Module: Send + Sync {
     fn samples(&self) -> &[Sample];
 
     /// How many samples are stored
-    fn total_samples(&self) -> usize;
+    fn total_samples(&self) -> usize {
+        self.samples().len()
+    }
 
     // fn total_samples_actual(&self) -> usize {
     //

@@ -12,7 +12,7 @@ use crate::parser::{
 
 const NAME: &str = "Scream Tracker";
 
-const MAGIC_HEADER: [u8; 4] = *b"SCRM";
+pub const MAGIC_SCRM: [u8; 4] = *b"SCRM";
 const MAGIC_SAMPLE: [u8; 4] = *b"SCRS";
 const INVALID: &str = "Not a valid Scream Tracker module";
 
@@ -76,7 +76,7 @@ fn parse(file: &mut impl ReadSeek) -> Result<S3M, Error> {
 
     let signed = matches!(file.read_u16_le()?, 1);
 
-    if !is_magic(file, &MAGIC_HEADER)? {
+    if !is_magic(file, &MAGIC_SCRM)? {
         return Err(Error::invalid(INVALID));
     }
 

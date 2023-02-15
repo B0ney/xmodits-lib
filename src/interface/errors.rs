@@ -16,6 +16,9 @@ pub enum Error {
 
     #[error("{0}")]
     InvalidModule(String),
+    
+    #[error("The module doesn't contain any samples")]
+    EmptyModule,
 
     #[error("The sample could not be extracted to the desired format: {0}")]
     AudioFormat(String),

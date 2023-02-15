@@ -1,4 +1,3 @@
-use core::panic;
 use std::borrow::Cow;
 
 use log::info;
@@ -15,7 +14,7 @@ use crate::utils::deltadecode::{delta_decode_u16, delta_decode_u8};
 
 const NAME: &str = "Extended Module";
 
-const MAGIC_HEADER: [u8; 17] = *b"Extended Module: ";
+pub const MAGIC_EXTENDED_MODULE: [u8; 17] = *b"Extended Module: ";
 const MAGIC_MOD_PLUGIN_PACKED: [u8; 20] = *b"MOD Plugin packed   ";
 const MAGIC_NUMBER: u8 = 0x1A;
 const MINIMUM_VERSION: u16 = 0x0104;
@@ -84,7 +83,7 @@ fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
         ));
     }
 
-    if !is_magic(file, &MAGIC_HEADER)? {
+    if !is_magic(file, &MAGIC_EXTENDED_MODULE)? {
         return Err(Error::invalid("Not a valid Extended Module"));
     }
 

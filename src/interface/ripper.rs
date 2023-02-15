@@ -51,6 +51,10 @@ impl Ripper {
         directory: impl AsRef<Path>,
         module: &dyn Module,
     ) -> Result<(), Error> {
+        if module.total_samples() == 0 {
+            return Err(Error::EmptyModule);
+        }
+
         let directory = directory.as_ref();
 
         if !directory.is_dir() {
