@@ -13,7 +13,7 @@ bytemuck = "1.13.0"
 rayon = "1.6.1"
 fastrand = "1.8.0"
 smol_str = "0.1.24"
-
+extended = "0.1.0"
 log = { version = "0.4.17", optional = false } # todo
 serde = { version = "1.0.152", features = ["derive"] , optional = true }
 ffmpeg-next = { version = "5.1.1", optional = true }

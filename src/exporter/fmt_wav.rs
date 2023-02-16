@@ -28,25 +28,28 @@ impl AudioTrait for Wav {
         // const SMPL: [u8; 4] = [0x73, 0x6D, 0x70, 0x6C]; // smpl
 
         // To avoid nasty bugs in future, explicitly cast the types.
-        let size = HEADER_SIZE - 8 + pcm.len() as u32; // TODO: double check for stereo samples
-        let channels = smp.channels() as u16;
-        let bits = smp.bits() as u16;
-        let rate = smp.rate as u32;
-        let block_align = channels * (bits / 8);
+        let pcm_len: [u8; 4] = (pcm.len() as u32).to_le_bytes();
+        let size: [u8; 4] = (HEADER_SIZE - 8 + pcm.len() as u32).to_le_bytes(); // TODO: double check for stereo samples
+        let channels: [u8; 2] = (smp.channels() as u16).to_le_bytes();
+        let bits: [u8; 2] = (smp.bits() as u16).to_le_bytes();
+        let rate: [u8; 4] = (smp.rate as u32).to_le_bytes();
+        let block_align: u16 = smp.channels() as u16 * smp.depth.bytes() as u16;
+        let bytes_sec: [u8; 4] = (smp.rate * block_align as u32).to_le_bytes();
+        let mut write = |buf: &[u8]| writer.write_all(buf);
 
-        writer.write_all(&RIFF)?;
-        writer.write_all(&size.to_le_bytes())?; // wav file size
-        writer.write_all(&WAVE)?;
-        writer.write_all(&FMT_)?;
-        writer.write_all(&WAV_SCS)?;
-        writer.write_all(&WAV_TYPE)?;
-        writer.write_all(&channels.to_le_bytes())?; // channels
-        writer.write_all(&rate.to_le_bytes())?; // sample frequency
-        writer.write_all(&(rate * block_align as u32).to_le_bytes())?; // bytes per second
-        writer.write_all(&block_align.to_le_bytes())?; // block align
-        writer.write_all(&bits.to_le_bytes())?; // bits per sample
-        writer.write_all(&DATA)?;
-        writer.write_all(&(pcm.len() as u32).to_le_bytes())?; // size of chunk
+        write(&RIFF)?;
+        write(&size)?; // wav file size
+        write(&WAVE)?;
+        write(&FMT_)?;
+        write(&WAV_SCS)?;
+        write(&WAV_TYPE)?;
+        write(&channels)?; // channels
+        write(&rate)?; // sample frequency
+        write(&bytes_sec)?; // bytes per second
+        write(&block_align.to_le_bytes())?; // block align
+        write(&bits)?; // bits per sample
+        write(&DATA)?;
+        write(&pcm_len)?; // size of chunk
 
         // Only signed 16 bit & unsigned 8 bit samples are supported.
         // If not, flip the sign.
@@ -56,14 +59,12 @@ impl AudioTrait for Wav {
             Depth::U16 => flip_sign_16_bit(pcm.into_owned()).into(),
         };
 
-        let mut write_pcm = |buf: &[u8]| writer.write_all(buf);
-
         match smp.channel {
             Channel::Stereo { interleaved: false } => match smp.is_8_bit() {
-                true => write_pcm(&interleave_8_bit(&pcm)),
-                false => write_pcm(cast_slice(&interleave_16_bit(pcm.into_owned()))),
+                true => write(&interleave_8_bit(&pcm)),
+                false => write(cast_slice(&interleave_16_bit(pcm.into_owned()))),
             },
-            _ => write_pcm(&pcm),
+            _ => write(&pcm),
         }?;
 
         // write smpl chunk

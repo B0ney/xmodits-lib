@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use log::info;
 
+use crate::exporter::ExportFormat;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -180,14 +181,14 @@ pub fn a() {
 
     let mut file = std::fs::File::open("./dusk.s3m").unwrap();
     let tracker = parse(&mut file).unwrap();
-    for i in tracker.samples() {
-        // dbg!(i.is_stereo());
-        dbg!(i.filename_pretty());
-        dbg!(i.name_pretty());
-        dbg!(i.bits());
-        dbg!(&i.looping);
-        dbg!(i.bits());
-    }
+    // for i in tracker.samples() {
+    //     // dbg!(i.is_stereo());
+    //     dbg!(i.filename_pretty());
+    //     dbg!(i.name_pretty());
+    //     dbg!(i.bits());
+    //     dbg!(&i.looping);
+    //     dbg!(i.bits());
+    // }
 
     // file.rewind().unwrap();
     // let mut inner = Vec::new();
@@ -198,7 +199,7 @@ pub fn a() {
     //     samples: samples.into(),
     // };
 
-    let ripper = Ripper::default();
-    // ripper.change_format(ExportFormat::IFF.into());
+    let mut ripper = Ripper::default();
+    ripper.change_format(ExportFormat::AIFF.into());
     ripper.rip_to_dir("./dusk/", &tracker).unwrap()
 }

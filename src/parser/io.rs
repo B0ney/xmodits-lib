@@ -126,19 +126,22 @@ pub fn is_magic_non_consume(reader: &mut impl ByteReader, magc: &[u8]) -> io::Re
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
-
-    use crate::parser::io::is_magic_non_consume;
-
     use super::ByteReader;
+    use crate::parser::io::is_magic_non_consume;
+    use std::io::Cursor;
 
     #[test]
     fn no_consume() {
-        let mut buf = Cursor::new([0u8;32]);
+        let mut buf = Cursor::new([0u8; 32]);
+
+        assert_eq!(buf.seek_position().unwrap(), 0);
+        let _ = is_magic_non_consume(&mut buf, &[0, 0, 0, 0]).unwrap();
         assert_eq!(buf.seek_position().unwrap(), 0);
 
-        let _ = is_magic_non_consume(&mut buf, &[0,0,0,0]).unwrap();
-        
-        assert_eq!(buf.seek_position().unwrap(), 0);
+        buf.set_seek_pos(27).unwrap();
+
+        assert_eq!(buf.seek_position().unwrap(), 27);
+        let _ = is_magic_non_consume(&mut buf, &[0, 0, 0, 0]).unwrap();
+        assert_eq!(buf.seek_position().unwrap(), 27);
     }
 }
