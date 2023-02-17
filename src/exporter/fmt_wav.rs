@@ -19,35 +19,35 @@ impl AudioTrait for Wav {
     #[allow(clippy::unnecessary_cast)]
     fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
         const HEADER_SIZE: u32 = 44;
-        const RIFF: [u8; 4] = [0x52, 0x49, 0x46, 0x46]; // RIFF
-        const WAVE: [u8; 4] = [0x57, 0x41, 0x56, 0x45]; // WAVE
-        const FMT_: [u8; 4] = [0x66, 0x6D, 0x74, 0x20]; // "riff "
-        const DATA: [u8; 4] = [0x64, 0x61, 0x74, 0x61]; // data
+        const RIFF: [u8; 4] = *b"RIFF";
+        const WAVE: [u8; 4] = *b"WAVE";
+        const FMT_: [u8; 4] = *b"fmt ";
+        const DATA: [u8; 4] = *b"data";
+        // const SMPL: [u8; 4] = *b"smpl";
         const WAV_SCS: [u8; 4] = 16_u32.to_le_bytes();
         const WAV_TYPE: [u8; 2] = 1_u16.to_le_bytes();
-        // const SMPL: [u8; 4] = [0x73, 0x6D, 0x70, 0x6C]; // smpl
 
         // To avoid nasty bugs in future, explicitly cast the types.
         let pcm_len: [u8; 4] = (pcm.len() as u32).to_le_bytes();
         let size: [u8; 4] = (HEADER_SIZE - 8 + pcm.len() as u32).to_le_bytes(); // TODO: double check for stereo samples
         let channels: [u8; 2] = (smp.channels() as u16).to_le_bytes();
-        let bits: [u8; 2] = (smp.bits() as u16).to_le_bytes();
-        let rate: [u8; 4] = (smp.rate as u32).to_le_bytes();
+        let sample_size: [u8; 2] = (smp.bits() as u16).to_le_bytes();
+        let sample_frequency: [u8; 4] = (smp.rate as u32).to_le_bytes();
         let block_align: u16 = smp.channels() as u16 * smp.depth.bytes() as u16;
         let bytes_sec: [u8; 4] = (smp.rate * block_align as u32).to_le_bytes();
         let mut write = |buf: &[u8]| writer.write_all(buf);
 
         write(&RIFF)?;
-        write(&size)?; // wav file size
+        write(&size)?;
         write(&WAVE)?;
         write(&FMT_)?;
         write(&WAV_SCS)?;
         write(&WAV_TYPE)?;
-        write(&channels)?; // channels
-        write(&rate)?; // sample frequency
-        write(&bytes_sec)?; // bytes per second
+        write(&channels)?;
+        write(&sample_frequency)?;
+        write(&bytes_sec)?;
         write(&block_align.to_le_bytes())?; // block align
-        write(&bits)?; // bits per sample
+        write(&sample_size)?; // bits per sample
         write(&DATA)?;
         write(&pcm_len)?; // size of chunk
 

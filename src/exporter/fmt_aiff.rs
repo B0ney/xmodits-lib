@@ -54,7 +54,6 @@ impl AudioTrait for Aiff {
         write(&sample_frames)?;
         write(&sample_size)?;
         write(&sample_rate)?;
-        // write()
 
         // // Marker chunk (loop information)
         // write(&MARK)?;
