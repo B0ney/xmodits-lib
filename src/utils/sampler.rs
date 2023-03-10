@@ -11,7 +11,6 @@ use rayon::prelude::*;
 /// This will prevent panics when casting
 #[inline]
 pub fn align_u16(pcm_16_bit: &mut Vec<u8>) {
-    #[cold]
     #[inline(never)]
     fn inner(p: &mut Vec<u8>) {
         warn!("Unaligned 16-bit pcm detected!");

@@ -10,8 +10,6 @@ repository = "https://github.com/B0ney/xmodits-lib"
 [dependencies]
 thiserror = "1.0.38"
 bytemuck = "1.13.0"
-
-fastrand = "1.8.0"
 extended = "0.1.0"
 
 log = { version = "0.4.17", optional = false } # todo
