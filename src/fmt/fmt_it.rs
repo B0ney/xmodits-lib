@@ -10,6 +10,7 @@ use crate::parser::io::non_consume;
 use crate::parser::{
     bitflag::BitFlag,
     io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
+    read_str::read_strr,
 };
 
 const NAME: &str = "Impulse Tracker";
@@ -77,7 +78,6 @@ impl Module for IT {
     fn samples(&self) -> &[Sample] {
         &self.samples
     }
-
 }
 
 const UNSUPPORTED: &str = "Impulse Tracker Module uses 'ziRCON' sample compression";
@@ -146,13 +146,13 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         }
         file.skip_bytes(-44 - 4)?;
 
-        let filename = file.read_bytes(12)?.into_boxed_slice();
+        let filename = read_strr(&file.read_bytes(12)?)?;
         file.skip_bytes(2)?; // zero, gvl
 
         let flags = file.read_u8()?;
         file.skip_bytes(1)?; // vol
 
-        let name = file.read_bytes(26)?.into_boxed_slice();
+        let name = read_strr(&file.read_bytes(26)?)?;
         let cvt = file.read_u8()?;
         file.skip_bytes(1)?; // dfp
         file.skip_bytes(4)?; // sample length since it's not empty
@@ -235,15 +235,15 @@ pub fn a_() {
         .build_global()
         .unwrap();
     // let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
-    let mut file = std::io::BufReader::new(File::open("./slayerdsm.it").unwrap());
+    let mut file = std::io::BufReader::new(File::open("./utmenu.it").unwrap());
 
     let tracker = parse_(&mut file).unwrap();
     // dbg!(samples.len());
-    // for s in tracker.samples(){
-    //     dbg!(s.filename_pretty());
-    //     dbg!(s.length);
-    //     dbg!(&s.looping);
-    // }
+    for s in tracker.samples() {
+        dbg!(s.name());
+        dbg!(s.length);
+        dbg!(&s.looping);
+    }
 
     file.rewind().unwrap();
     let mut buf: Vec<u8> = Vec::new();
@@ -255,7 +255,7 @@ pub fn a_() {
     //     version: 0x0214,
     // };
 
-    let ripper = Ripper::default();
+    // let ripper = Ripper::default();
     // ripper.change_format(ExportFormat::IFF.into());
-    ripper.rip_to_dir("./test_export/", &tracker).unwrap()
+    // ripper.rip_to_dir("./test_export/", &tracker).unwrap()
 }

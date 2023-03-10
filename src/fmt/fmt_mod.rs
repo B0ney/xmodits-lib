@@ -6,6 +6,7 @@ use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     io::{is_magic, ByteReader, ReadSeek},
+    read_str::read_strr,
 };
 
 const MAGIC_PP20: [u8; 4] = *b"PP20";
@@ -71,7 +72,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
     let mut samples: Vec<Sample> = Vec::new();
 
     let pointer = file.stream_position()? as u32;
-    let name = file.read_bytes(22)?.into_boxed_slice();
+    let name = read_strr(&file.read_bytes(22)?)?;
     let length = file.read_u16_be()? * 2;
     let finetune = file.read_u8()?;
     let rate = FINETUNE[(finetune as usize) & 0x0F];

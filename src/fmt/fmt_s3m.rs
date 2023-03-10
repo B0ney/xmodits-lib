@@ -9,6 +9,7 @@ use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     io::{is_magic, ByteReader, ReadSeek},
+    read_str::read_strr,
 };
 
 const NAME: &str = "Scream Tracker";
@@ -110,8 +111,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
             info!("Skipping non-pcm instrument at index {}", index_raw + 1);
             continue;
         }
-        let filename = file.read_bytes(12)?.into_boxed_slice();
-
+        let filename = read_strr(&file.read_bytes(12)?)?;
         let pointer = file.read_u24_le()?; //
         let length = file.read_u32_le()? & 0xffff; // ignore upper 16 bits
 
@@ -133,7 +133,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         let rate = file.read_u32_le()? & 0xffff;
         file.skip_bytes(12)?; // internal buffer used during playback
 
-        let name = file.read_bytes(28)?.into_boxed_slice();
+        let name = read_strr(&file.read_bytes(28)?)?;
         if !is_magic(file, &MAGIC_SAMPLE)? {
             return Err(Error::invalid(INVALID));
         }
@@ -181,14 +181,14 @@ pub fn a() {
 
     let mut file = std::fs::File::open("./dusk.s3m").unwrap();
     let tracker = parse(&mut file).unwrap();
-    // for i in tracker.samples() {
-    //     // dbg!(i.is_stereo());
-    //     dbg!(i.filename_pretty());
-    //     dbg!(i.name_pretty());
-    //     dbg!(i.bits());
-    //     dbg!(&i.looping);
-    //     dbg!(i.bits());
-    // }
+    for i in tracker.samples() {
+        // dbg!(i.is_stereo());
+        dbg!(i.filename_pretty());
+        dbg!(i.name_pretty());
+        dbg!(i.bits());
+        dbg!(&i.looping);
+        dbg!(i.bits());
+    }
 
     // file.rewind().unwrap();
     // let mut inner = Vec::new();

@@ -6,10 +6,10 @@ use crate::parser::to_str_os;
 #[derive(Default, Debug)]
 pub struct Sample {
     /// Raw sample filename. Not all formats support this.
-    pub filename: Option<Box<[u8]>>,
+    pub filename: Option<Box<str>>,
 
     /// Raw sample name
-    pub name: Box<[u8]>,
+    pub name: Box<str>,
 
     /// Sample length in BYTES
     pub length: u32,
@@ -50,25 +50,25 @@ impl Sample {
         self.index_raw as usize + 1
     }
     /// Display Sample's name from its raw buffer
-    pub fn name(&self) -> Cow<str> {
-        String::from_utf8_lossy(&self.name)
+    pub fn name(&self) -> &str {
+        &self.name
     }
     /// Prettify Sample's name
     /// We need to make sure that the name is os_friendly and doesn't have any trailing whitespace.
     /// This is different from the sample namer during export
     pub fn name_pretty(&self) -> Cow<str> {
-        to_str_os(self.name())
+        to_str_os(self.name().into())
     }
     /// todo
     pub fn filename_pretty(&self) -> Cow<str> {
-        to_str_os(self.filename())
+        to_str_os(self.filename().into())
     }
     /// Display Sample's filename from its raw buffer.
     ///
     /// Fallbacks to the sample's name if None
-    pub fn filename(&self) -> Cow<str> {
+    pub fn filename(&self) -> &str {
         match self.filename.as_ref() {
-            Some(buf) => String::from_utf8_lossy(buf),
+            Some(buf) => &buf,
             None => self.name(),
         }
     }
