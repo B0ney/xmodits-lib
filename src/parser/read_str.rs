@@ -19,35 +19,29 @@ fn read_str(buf: &[u8], len: usize) -> Cow<'_, str> {
     String::from_utf8_lossy(&buf[..len])
 }
 
+/// Returns an owned string slice
 pub fn read_strr(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
-    let Some(a) = strr(buf, buf.len()) else {
-        return Err(io_error("Does not contain valid data"));
-    };
+    // let Some(a) =  else {
+    //     return Err(io_error("Does not contain valid data"));
+    // };
 
-    Ok(a)
+    Ok(String::from_utf8_lossy(trim_null(buf)).into())
 }
 
 fn io_error(e: &str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, e)
 }
 
-/// Returns an owned string slice
-pub fn strr(buf: &[u8], capacity: usize) -> Option<Box<str>> {
-    if capacity > buf.len() {
-        return None;
-    }
-    let mut ptr: usize = 0;
-    let mut slice: &[u8] = &[];
+/// trim trailing nulls from u8 slice
+pub fn trim_null(buf: &[u8]) -> &[u8] {
+    const NULL: u8 = 0;
 
-    while ptr < capacity {
-        if buf[ptr] == 0 {
-            break;
-        }
-        slice = &buf[..=ptr];
-        ptr += 1;
-    }
+    let end: usize = match buf.iter().position(|byte| byte == &NULL){
+        Some(null_index) => null_index,
+        None => buf.len()
+    };
 
-    Some(String::from_utf8_lossy(slice).into())
+    &buf[..end]
 }
 
 const FORBIDDEN_CHARS: &[char] = &[
@@ -88,6 +82,7 @@ pub fn to_str_os(str: Cow<str>) -> Cow<str> {
 #[test]
 fn a() {
     let str: [u8; 10] = [1, 5, 6, 6, 5, 9, 7, 6, 5, 5];
+    let str:_ = *b"hi \0\0";
     // dbg!(&[1,2,3,4,5,6][..2]);
-    dbg!(strr(&str, str.len()));
+    dbg!(trim_null(&str));
 }
