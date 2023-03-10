@@ -199,7 +199,7 @@ pub fn a() {
     //     samples: samples.into(),
     // };
 
-    let mut ripper = Ripper::default();
-    ripper.change_format(ExportFormat::AIFF.into());
-    ripper.rip_to_dir("./dusk/", &tracker).unwrap()
+    // let mut ripper = Ripper::default();
+    // ripper.change_format(ExportFormat::AIFF.into());
+    // ripper.rip_to_dir("./dusk/", &tracker).unwrap()
 }

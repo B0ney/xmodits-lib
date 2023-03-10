@@ -68,7 +68,7 @@ impl Sample {
     /// Fallbacks to the sample's name if None
     pub fn filename(&self) -> &str {
         match self.filename.as_ref() {
-            Some(buf) => &buf,
+            Some(filename) => filename,
             None => self.name(),
         }
     }

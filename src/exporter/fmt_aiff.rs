@@ -1,7 +1,7 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
-use crate::interface::sample::{Depth, Sample, Channel};
+use crate::interface::sample::{Channel, Depth, Sample};
 use crate::interface::Error;
 use crate::utils::sampler::{
     flip_sign_16_bit, flip_sign_8_bit, interleave_16_bit, interleave_8_bit,
@@ -10,7 +10,7 @@ use bytemuck::cast_slice;
 use extended::Extended;
 
 /// Audio IFF
-/// 
+///
 /// https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/AIFF/Docs/AIFF-1.3.pdf
 #[derive(Clone, Copy)]
 pub struct Aiff;
@@ -32,28 +32,28 @@ impl AudioTrait for Aiff {
         const BLOCK_SIZE: [u8; 4] = 0_u32.to_be_bytes();
         const CHUNK_SIZE_COMMON: [u8; 4] = 18_i32.to_be_bytes();
 
-        let channels: [u8; 2] = (smp.channels() as u16).to_be_bytes();
-        let sample_size: [u8; 2] = (smp.bits() as u16).to_be_bytes();
-        let sample_frames: [u8; 4] = (smp.length as u32 / smp.channels() as u32).to_be_bytes();
-        let sample_rate: [u8; 10] = Extended::from(smp.rate).to_be_bytes();
-        let chunk_size: [u8; 4] = (pcm.len() as u32 + 4 + 4).to_be_bytes(); // pcm len, offset, block size
-        
-        let aiff_chunk_size: [u8; 4] = (4 + 26 + 16 + pcm.len() as u32).to_be_bytes(); // This will change if we include the instrument
+        let channels: u16 = smp.channels() as u16;
+        let sample_size: u16 = smp.bits() as u16;
+        let sample_rate: Extended = Extended::from(smp.rate);
+        let sample_frames: u32 = smp.length as u32 / channels as u32;
+
+        let chunk_size: u32 = pcm.len() as u32 + 4 + 4; // pcm len, offset, block size
+        let aiff_chunk_size: u32 = 4 + 26 + 16 + pcm.len() as u32; // This will change if we include the instrument
 
         let mut write = |data: &[u8]| writer.write_all(data);
 
         // AIFF
         write(&FORM)?;
-        write(&aiff_chunk_size)?;
+        write(&aiff_chunk_size.to_be_bytes())?;
         write(&AIFF)?;
-        
+
         // common Chunk, 26 bytes
         write(&COMM)?;
-        write(&CHUNK_SIZE_COMMON)?; // chunk size
-        write(&channels)?; // num channels (u16)
-        write(&sample_frames)?;
-        write(&sample_size)?;
-        write(&sample_rate)?;
+        write(&CHUNK_SIZE_COMMON)?;
+        write(&channels.to_be_bytes())?;
+        write(&sample_frames.to_be_bytes())?;
+        write(&sample_size.to_be_bytes())?;
+        write(&sample_rate.to_be_bytes())?;
 
         // // Marker chunk (loop information)
         // write(&MARK)?;
@@ -64,14 +64,13 @@ impl AudioTrait for Aiff {
         // write(todo!())?; // marker name
         // write(todo!())?; // id
         // write(todo!())?; // position (end?)
-        // write(todo!())?; // marker name        
+        // write(todo!())?; // marker name
 
         // sound data chunk, 16 bytes
         write(&SSND)?;
-        write(&chunk_size)?;
-        write(&OFFSET)?; // offset
-        write(&BLOCK_SIZE)?; // block size
-        // Write sound data
+        write(&chunk_size.to_be_bytes())?;
+        write(&OFFSET)?;
+        write(&BLOCK_SIZE)?;
         
         // The docs say the samples use 2's compliment
         // the written samples will be slightly different
@@ -85,9 +84,9 @@ impl AudioTrait for Aiff {
         match smp.channel {
             Channel::Stereo { interleaved: false } => match smp.depth {
                 Depth::I8 | Depth::U8 => write(&interleave_8_bit(&pcm)),
-                Depth::I16 | Depth::U16 => write(cast_slice(&interleave_16_bit(pcm.into_owned())))
+                Depth::I16 | Depth::U16 => write(cast_slice(&interleave_16_bit(pcm.into_owned()))),
             },
-            _ => write(&pcm)
+            _ => write(&pcm),
         }?;
 
         Ok(())

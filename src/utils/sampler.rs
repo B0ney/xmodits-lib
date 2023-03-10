@@ -75,33 +75,34 @@ fn _reduce_bit_depth_u16_to_u8(pcm_16_bit: &[u16]) -> Vec<u8> {
 }
 
 /// Interleave data.
-/// 
+///
 /// LLLLLRRRRR -> LRLRLRLRLR
 #[inline]
 fn interleave<T: Copy>(buf: &[T]) -> impl Iterator<Item = T> + '_ {
     // assert!(buf.len() % 2 == 0, "Data must have an even number of samples to be interleaved");
     use std::iter;
-    
+
     let half = buf.len() / 2;
     let left = &buf[..half];
     let right = &buf[half..];
 
     left.iter()
         .zip(right)
-        .flat_map(|(l, r)| iter::once(*l).chain(iter::once(*r)))
+        .flat_map(|(l, r)| iter::once(l).chain(iter::once(r)))
+        .copied()
 }
 
-/// De-interleave data
-/// 
+/// Deinterleave data
+///
 /// LRLRLRLRLR -> LLLLLRRRRR
 #[inline]
-fn de_interleave<T: Copy>(buf: &[T]) -> impl Iterator<Item = T> + '_ {
+fn deinterleave<T: Copy>(buf: &[T]) -> impl Iterator<Item = T> + '_ {
     // assert!(buf.len() % 2 == 0, "Interleaved data must have an even number of samples");
-    
+
     buf.iter()
         .step_by(2)
-        .map(|l| *l)
-        .chain(buf.iter().skip(1).step_by(2).map(|r| *r))
+        .chain(buf.iter().skip(1).step_by(2))
+        .copied()
 }
 
 /// Interleave 8 bit pcm
@@ -131,7 +132,7 @@ mod tests {
     use crate::utils::sampler::align_u16;
 
     use super::_interleave_16_bit;
-    use super::de_interleave;
+    use super::deinterleave;
     use super::interleave_8_bit;
 
     #[test]
@@ -164,15 +165,15 @@ mod tests {
 
     #[test]
     fn de_interleave_test() {
-        let interleaved: [u8; 10] = [1,0,1,0,1,0,1,0,1,0];
-        let expected: [u8; 10] = [1,1,1,1,1,0,0,0,0,0];
-        assert_eq!(de_interleave(&interleaved).collect::<Vec<u8>>(), expected);
+        let interleaved: [u8; 10] = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0];
+        let expected: [u8; 10] = [1, 1, 1, 1, 1, 0, 0, 0, 0, 0];
+        assert_eq!(deinterleave(&interleaved).collect::<Vec<u8>>(), expected);
     }
 
     #[test]
     fn de_interleave_odd_samples() {
-        let interleaved: [u8; 9] = [1,0,1,0,1,0,1,0,1];
-        let expected: [u8; 9] = [1,1,1,1,1,0,0,0,0];
-        assert_eq!(de_interleave(&interleaved).collect::<Vec<u8>>(), expected);
+        let interleaved: [u8; 9] = [1, 0, 1, 0, 1, 0, 1, 0, 1];
+        let expected: [u8; 9] = [1, 1, 1, 1, 1, 0, 0, 0, 0];
+        assert_eq!(deinterleave(&interleaved).collect::<Vec<u8>>(), expected);
     }
 }

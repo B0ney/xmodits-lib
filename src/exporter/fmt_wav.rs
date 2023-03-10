@@ -28,28 +28,31 @@ impl AudioTrait for Wav {
         const WAV_TYPE: [u8; 2] = 1_u16.to_le_bytes();
 
         // To avoid nasty bugs in future, explicitly cast the types.
-        let pcm_len: [u8; 4] = (pcm.len() as u32).to_le_bytes();
-        let size: [u8; 4] = (HEADER_SIZE - 8 + pcm.len() as u32).to_le_bytes(); // TODO: double check for stereo samples
-        let channels: [u8; 2] = (smp.channels() as u16).to_le_bytes();
-        let sample_size: [u8; 2] = (smp.bits() as u16).to_le_bytes();
-        let sample_frequency: [u8; 4] = (smp.rate as u32).to_le_bytes();
-        let block_align: u16 = smp.channels() as u16 * smp.depth.bytes() as u16;
-        let bytes_sec: [u8; 4] = (smp.rate * block_align as u32).to_le_bytes();
+        let size: u32 = HEADER_SIZE - 8 + pcm.len() as u32;
+
+        let pcm_len: u32 = pcm.len() as u32;
+        let frequency: u32 = smp.rate as u32;
+        let sample_size: u16 = smp.bits() as u16;
+        let channels: u16 = smp.channels() as u16;
+
+        let block_align: u16 = channels * smp.depth.bytes() as u16;
+        let bytes_sec: u32 = smp.rate * block_align as u32;
+
         let mut write = |buf: &[u8]| writer.write_all(buf);
 
         write(&RIFF)?;
-        write(&size)?;
+        write(&size.to_le_bytes())?;
         write(&WAVE)?;
         write(&FMT_)?;
         write(&WAV_SCS)?;
         write(&WAV_TYPE)?;
-        write(&channels)?;
-        write(&sample_frequency)?;
-        write(&bytes_sec)?;
-        write(&block_align.to_le_bytes())?; // block align
-        write(&sample_size)?; // bits per sample
+        write(&channels.to_le_bytes())?;
+        write(&frequency.to_le_bytes())?;
+        write(&bytes_sec.to_le_bytes())?;
+        write(&block_align.to_le_bytes())?;
+        write(&sample_size.to_le_bytes())?;
         write(&DATA)?;
-        write(&pcm_len)?; // size of chunk
+        write(&pcm_len.to_le_bytes())?; // size of chunk
 
         // Only signed 16 bit & unsigned 8 bit samples are supported.
         // If not, flip the sign.

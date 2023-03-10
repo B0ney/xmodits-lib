@@ -1,5 +1,12 @@
 use std::{borrow::Cow, str::from_utf8};
 
+const FORBIDDEN_CHARS: &[char] = &[
+    '/', // Linux/Unix
+    '*', '\\', '!', '<', '>', ':', '"', '|', '?', // Windows
+    '+', '=', '[', ']', ';', ',',  //
+    '\0', // for now
+];
+
 use crate::interface::Error;
 
 pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
@@ -11,14 +18,6 @@ pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
     buf
 }
 
-pub fn read_string(buf: &[u8], len: usize) -> String {
-    read_str(buf, len).into_owned()
-}
-
-fn read_str(buf: &[u8], len: usize) -> Cow<'_, str> {
-    String::from_utf8_lossy(&buf[..len])
-}
-
 /// Returns an owned string slice
 pub fn read_strr(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
     // let Some(a) =  else {
@@ -28,28 +27,17 @@ pub fn read_strr(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
     Ok(String::from_utf8_lossy(trim_null(buf)).into())
 }
 
-fn io_error(e: &str) -> std::io::Error {
-    std::io::Error::new(std::io::ErrorKind::Other, e)
-}
-
 /// trim trailing nulls from u8 slice
 pub fn trim_null(buf: &[u8]) -> &[u8] {
     const NULL: u8 = 0;
 
-    let end: usize = match buf.iter().position(|byte| byte == &NULL){
+    let end: usize = match buf.iter().position(|byte| byte == &NULL) {
         Some(null_index) => null_index,
-        None => buf.len()
+        None => buf.len(),
     };
 
     &buf[..end]
 }
-
-const FORBIDDEN_CHARS: &[char] = &[
-    '/', // Linux/Unix
-    '*', '\\', '!', '<', '>', ':', '"', '|', '?', // Windows
-    '+', '=', '[', ']', ';', ',',  //
-    '\0', // for now
-];
 
 /// Removes any os-incompatible chars from a cow string
 ///
@@ -82,7 +70,7 @@ pub fn to_str_os(str: Cow<str>) -> Cow<str> {
 #[test]
 fn a() {
     let str: [u8; 10] = [1, 5, 6, 6, 5, 9, 7, 6, 5, 5];
-    let str:_ = *b"hi \0\0";
+    let str: _ = *b"hi \0\0";
     // dbg!(&[1,2,3,4,5,6][..2]);
     dbg!(trim_null(&str));
 }
