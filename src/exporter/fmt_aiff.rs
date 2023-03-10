@@ -71,7 +71,7 @@ impl AudioTrait for Aiff {
         write(&chunk_size.to_be_bytes())?;
         write(&OFFSET)?;
         write(&BLOCK_SIZE)?;
-        
+
         // The docs say the samples use 2's compliment
         // the written samples will be slightly different
         let pcm = match smp.depth {

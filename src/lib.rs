@@ -5,4 +5,5 @@ pub mod fmt;
 pub mod interface;
 pub mod parser;
 pub mod utils;
-
+#[macro_use]
+pub mod macros;

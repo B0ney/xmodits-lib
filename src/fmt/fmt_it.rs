@@ -230,10 +230,10 @@ pub fn a_() {
     use std::fs::File;
     use std::io::{Read, Seek};
 
-    rayon::ThreadPoolBuilder::new()
-        .num_threads(2)
-        .build_global()
-        .unwrap();
+    // rayon::ThreadPoolBuilder::new()
+    //     .num_threads(2)
+    //     .build_global()
+    //     .unwrap();
     // let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
     let mut file = std::io::BufReader::new(File::open("./utmenu.it").unwrap());
 

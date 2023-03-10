@@ -16,7 +16,7 @@ pub enum Error {
 
     #[error("{0}")]
     InvalidModule(String),
-    
+
     #[error("The module doesn't contain any samples")]
     EmptyModule,
 

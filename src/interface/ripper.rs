@@ -1,4 +1,5 @@
 use log::{debug, error, info, warn, Level};
+#[cfg(feature = "thread")]
 use rayon::prelude::*;
 use std::io::{self, Write};
 use std::{fs, path::Path};
@@ -7,6 +8,7 @@ use crate::exporter::ExportFormat;
 use crate::interface::audio::{AudioTrait, DynAudioTrait};
 use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
 use crate::interface::{Error, Module, Sample};
+use crate::maybe_par_iter;
 
 /// Struct to rip samples from a module
 ///
@@ -70,9 +72,7 @@ impl Ripper {
             self.format.write(smp, module.pcm(smp)?, &mut file)
         };
 
-        let errors: Vec<Error> = module
-            .samples()
-            .par_iter()
+        let errors: Vec<Error> = maybe_par_iter!(module.samples())
             .enumerate()
             .map(extract_samples)
             .filter_map(|f| f.err())
@@ -114,9 +114,9 @@ pub fn build_context<'a>(module: &dyn Module, audio_format: &'a DynAudioTrait) -
 
 /// Might be used...
 /// TODO: indexes may not be synchronised
-pub fn filter_empty_samples(smp: &[Sample]) -> impl ParallelIterator<Item = &Sample> {
-    smp.par_iter().filter(|smp| smp.length != 0)
-}
+// pub fn filter_empty_samples(smp: &[Sample]) -> impl ParallelIterator<Item = &Sample> {
+//     smp.par_iter().filter(|smp| smp.length != 0)
+// }
 
 #[test]
 fn a() {

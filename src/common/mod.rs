@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 /// Turns a path to a module e.g test_module.it
-/// 
+///
 /// into a filename like: test_module_it
 pub fn create_folder_name(path: impl AsRef<Path>) -> Option<PathBuf> {
     let dir_name = path
@@ -13,8 +13,6 @@ pub fn create_folder_name(path: impl AsRef<Path>) -> Option<PathBuf> {
         .replace('.', "_");
     Some(PathBuf::new().join(dir_name))
 }
-
-
 
 #[cfg(test)]
 mod tests {

@@ -1,6 +1,9 @@
 /// ! Helper functions
 use bytemuck::{cast_slice, cast_slice_mut};
 use log::warn;
+
+use crate::maybe_par_iter_mut;
+#[cfg(feature = "thread")]
 use rayon::prelude::*;
 
 /// Ensures the pcm has an even number of elements
@@ -29,8 +32,7 @@ pub fn flip_sign_8_bit(mut pcm_8_bit: Vec<u8>) -> Vec<u8> {
 
 #[inline]
 fn _flip_sign_8_bit_ref_mut(pcm_8_bit: &mut [u8]) {
-    pcm_8_bit
-        .par_iter_mut()
+    maybe_par_iter_mut!(pcm_8_bit)
         .for_each(|b| *b = b.wrapping_sub(i8::MAX as u8 + 1));
 }
 
@@ -43,8 +45,7 @@ pub fn flip_sign_16_bit(mut pcm: Vec<u8>) -> Vec<u8> {
 
 #[inline]
 fn _flip_sign_16_bit_ref_mut(pcm_16_bit: &mut [u16]) {
-    pcm_16_bit
-        .par_iter_mut()
+    maybe_par_iter_mut!(pcm_16_bit)
         .for_each(|b| *b = b.wrapping_sub(i16::MAX as u16 + 1));
 }
 
@@ -60,18 +61,23 @@ pub fn reduce_bit_depth_16_to_8(mut pcm_16_bit: Vec<u8>) -> Vec<u8> {
 fn _reduce_bit_depth_u16_to_u8(pcm_16_bit: &[u16]) -> Vec<u8> {
     const SCALE: u16 = u16::MAX / u8::MAX as u16;
 
-    // Pre-allocate buffer for resampled pcm
-    let mut resampled: Vec<u8> = Vec::with_capacity(pcm_16_bit.len());
+    let quantize = |sample: &u16| (*sample as f32 / SCALE as f32).round() as u8;
 
-    // TODO: Add random noise to mitigate quantization error AND without the nasty clicks
-    // Divide sample by 257 to quantize u16 to u8
-    // Cast result to u8
-    pcm_16_bit
-        .par_iter()
-        .map(|sample| (*sample as f32 / SCALE as f32).round() as u8)
-        .collect_into_vec(&mut resampled);
+    #[cfg(not(feature = "thread"))]
+    {
+        pcm_16_bit.iter().map(quantize).collect()
+    }
 
-    resampled
+    #[cfg(feature = "thread")]
+    {
+        // Pre-allocate buffer for resampled pcm
+        let mut resampled: Vec<u8> = Vec::with_capacity(pcm_16_bit.len());
+        pcm_16_bit
+            .par_iter()
+            .map(quantize)
+            .collect_into_vec(&mut resampled);
+        resampled
+    }
 }
 
 /// Interleave data.
