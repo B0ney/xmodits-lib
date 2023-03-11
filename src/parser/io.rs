@@ -63,6 +63,10 @@ impl<T: ReadSeek> ReadSeek for BufReader<T> {
     fn to_boxed_slice(self) -> io::Result<Box<[u8]>> {
         self.into_inner().to_boxed_slice()
     }
+
+    fn read_from_range(self, range: Range<usize>) -> Box<[u8]> {
+        self.into_inner().read_from_range(range)   
+    }
 }
 
 pub trait ByteReader {
@@ -145,13 +149,13 @@ impl<T: ReadSeek> ByteReader for T {
     }
 }
 
-pub fn non_consume<R, F, T>(reader: &mut R, mut output: F) -> io::Result<T>
+pub fn non_consume<R, F, T>(reader: &mut R, operation: F) -> io::Result<T>
 where
     R: ByteReader,
-    F: FnMut(&mut R) -> io::Result<T>,
+    F: FnOnce(&mut R) -> io::Result<T>,
 {
     let rewind_pos = reader.seek_position()?;
-    let result = output(reader);
+    let result = operation(reader);
     reader.set_seek_pos(rewind_pos)?;
     result
 }

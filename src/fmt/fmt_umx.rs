@@ -1,12 +1,8 @@
-use std::borrow::Cow;
-
-use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
-use crate::parser::read_str::read_strr;
+use crate::interface::Module;
 use crate::parser::{
-    bitflag::BitFlag,
-    io::{is_magic, ByteReader, ReadSeek},
+    io::{is_magic, non_consume, ByteReader, ReadSeek},
+    read_str::read_strr,
 };
 
 pub const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
@@ -16,7 +12,7 @@ struct Private;
 /// "Abandon all hope ye who try to parse this file format." - Tim Sweeney, Unreal Packages
 pub struct UMX(Private);
 
-fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
+fn parse(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     if !is_magic(file, &MAGIC_UPKG)? {
         return Err(Error::invalid("Not a valid Unreal package"));
     }
@@ -37,12 +33,13 @@ fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
     file.set_seek_pos(name_offset as u64)?;
 
     let mut contains_music: bool = false;
+    let get_name_entry = match version {
+        v if v < 64 => name_table_below_64,
+        _ => name_table_above_64,
+    };
 
     for _ in 0..name_count {
-        let name = match version {
-            v if v < 64 => name_table_below_64(file)?,
-            _ => name_table_above_64(file)?,
-        };
+        let name = get_name_entry(file)?;
         dbg!(&name);
 
         if name.as_ref() == "Music" {
@@ -86,6 +83,8 @@ fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
     // experiment
     let bytes = file.read_bytes(64)?;
     dbg!(String::from_utf8_lossy(&bytes));
+
+    let bytes = non_consume(file, |file| file.read_bytes(64))?;
 
     Err(Error::invalid("Yet to be implemented"))
 }
@@ -172,6 +171,6 @@ mod tests {
     #[test]
     fn table() {
         let mut a = File::open("./Mech8.umx").unwrap();
-        dbg!(parse(&mut a));
+        parse(&mut a);
     }
 }
