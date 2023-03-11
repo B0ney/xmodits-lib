@@ -116,6 +116,7 @@ fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
     let samples = build_samples(file, smp_ptrs).map(|samples| samples.into())?;
 
     file.set_seek_pos(restart_position).unwrap();
+
     let mut buf: Vec<u8> = Vec::with_capacity(file.size().unwrap_or_default() as usize);
     file.read_to_end(&mut buf).unwrap();
 
@@ -235,7 +236,7 @@ pub fn a_() {
     //     .build_global()
     //     .unwrap();
     // let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
-    let mut file = std::io::BufReader::new(File::open("./utmenu.it").unwrap());
+    let mut file = std::io::Cursor::new(std::fs::read("./utmenu.it").unwrap());
 
     let tracker = parse_(&mut file).unwrap();
     // dbg!(samples.len());
@@ -248,6 +249,9 @@ pub fn a_() {
     file.rewind().unwrap();
     let mut buf: Vec<u8> = Vec::new();
     file.read_to_end(&mut buf).unwrap();
+    let dd = 0..1;
+
+    file.read_from_range(7..8);
 
     // let tracker = IT {
     //     inner: buf.into(),

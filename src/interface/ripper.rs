@@ -60,8 +60,8 @@ impl Ripper {
         let directory = directory.as_ref();
 
         if !directory.is_dir() {
-            error!("Path is a directory");
-            return Error::io_error("Path provided is a directory");
+            error!("Path is not a directory");
+            return Error::io_error("Path is not a directory");
         }
 
         let context = build_context(module, &self.format);

@@ -1,12 +1,42 @@
-use std::io::{self, BufReader, Cursor, Read, Seek, SeekFrom};
+use std::{
+    io::{self, BufReader, Cursor, Read, Seek, SeekFrom},
+    ops::Range,
+};
 
 pub trait ReadSeek: Read + Seek {
     fn size(&self) -> Option<u64>;
+    fn to_boxed_slice(self) -> io::Result<Box<[u8]>>;
+
+    fn read_from_range(mut self, Range { start, end }: Range<usize>) -> Box<[u8]>
+    where
+        Self: Sized,
+    {
+        self.seek(SeekFrom::Start(start as u64)).unwrap();
+        let mut buf: Vec<u8> = vec![0u8; end - start];
+        self.read_exact(&mut buf).unwrap();
+        buf.into()
+    }
 }
 
-impl<T: AsRef<[u8]>> ReadSeek for Cursor<T> {
+impl<T> ReadSeek for Cursor<T>
+where
+    T: AsRef<[u8]>,
+    Vec<u8>: From<T>,
+{
     fn size(&self) -> Option<u64> {
         Some(self.get_ref().as_ref().len() as u64)
+    }
+
+    fn to_boxed_slice(self) -> io::Result<Box<[u8]>> {
+        let a: Vec<u8> = self.into_inner().into();
+        Ok(a.into())
+    }
+
+    fn read_from_range(self, Range { start, end }: Range<usize>) -> Box<[u8]> {
+        let mut a: Vec<u8> = self.into_inner().into();
+        a.drain(..start);
+        a.drain(end..);
+        a.into()
     }
 }
 
@@ -17,11 +47,21 @@ impl ReadSeek for std::fs::File {
             _ => None,
         }
     }
+
+    fn to_boxed_slice(mut self) -> io::Result<Box<[u8]>> {
+        let mut buf: Vec<u8> = Vec::new();
+        self.read_to_end(&mut buf)?;
+        Ok(buf.into())
+    }
 }
 
 impl<T: ReadSeek> ReadSeek for BufReader<T> {
     fn size(&self) -> Option<u64> {
         self.get_ref().size()
+    }
+
+    fn to_boxed_slice(self) -> io::Result<Box<[u8]>> {
+        self.into_inner().to_boxed_slice()
     }
 }
 
@@ -127,8 +167,8 @@ pub fn is_magic_non_consume(reader: &mut impl ByteReader, magc: &[u8]) -> io::Re
 #[cfg(test)]
 mod tests {
     use super::ByteReader;
-    use crate::parser::io::is_magic_non_consume;
-    use std::io::Cursor;
+    use crate::parser::io::{is_magic_non_consume, ReadSeek};
+    use std::{borrow::Cow, io::Cursor};
 
     #[test]
     fn no_consume() {
@@ -143,5 +183,10 @@ mod tests {
         assert_eq!(buf.seek_position().unwrap(), 27);
         let _ = is_magic_non_consume(&mut buf, &[0, 0, 0, 0]).unwrap();
         assert_eq!(buf.seek_position().unwrap(), 27);
+
+        let G = Cow::Borrowed(&[9u8, 8, 7]);
+        let mut a = Cursor::new(&[2, 3, 4u8] as &[u8]);
+
+        let a = a.to_boxed_slice().unwrap();
     }
 }
