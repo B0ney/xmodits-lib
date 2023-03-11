@@ -50,7 +50,7 @@ impl Module for S3M {
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(Cow::Borrowed(self.inner.get_slice(smp)?))
+        Ok(self.inner.get_slice(smp)?.into())
     }
 
     fn samples(&self) -> &[Sample] {

@@ -50,6 +50,7 @@ impl ReadSeek for std::fs::File {
 
     fn to_boxed_slice(mut self) -> io::Result<Box<[u8]>> {
         let mut buf: Vec<u8> = Vec::new();
+        self.rewind()?;
         self.read_to_end(&mut buf)?;
         Ok(buf.into())
     }

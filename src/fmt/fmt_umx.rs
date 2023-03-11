@@ -1,3 +1,4 @@
+use crate::fmt::loader::identify_module;
 use crate::interface::Error;
 use crate::interface::Module;
 use crate::parser::{
@@ -80,11 +81,11 @@ fn parse(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     let _ = read_compact_index(file)?; // obj size field
     let size = read_compact_index(file)? as usize;
 
-    // experiment
-    let bytes = file.read_bytes(64)?;
-    dbg!(String::from_utf8_lossy(&bytes));
+    identify_module(file)?;
+    // let bytes = file.read_bytes(64)?;
+    // dbg!(String::from_utf8_lossy(&bytes));
 
-    let bytes = non_consume(file, |file| file.read_bytes(64))?;
+    // let bytes = non_consume(file, |file| file.read_bytes(64))?;
 
     Err(Error::invalid("Yet to be implemented"))
 }
@@ -170,7 +171,7 @@ mod tests {
     }
     #[test]
     fn table() {
-        let mut a = File::open("./Mech8.umx").unwrap();
+        let mut a = File::open("./Mayhem.umx").unwrap();
         parse(&mut a);
     }
 }
