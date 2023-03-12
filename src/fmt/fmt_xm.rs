@@ -1,10 +1,12 @@
 use std::borrow::Cow;
 
+use bytemuck::offset_of;
 use log::info;
 
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
+use crate::parser::read_str::read_strr;
 // use crate::parser::magic::bad_magic_non_consume;
 use crate::parser::{
     bitflag::BitFlag,
@@ -60,10 +62,6 @@ impl Module for XM {
     fn samples(&self) -> &[Sample] {
         &self.samples
     }
-
-    fn total_samples(&self) -> usize {
-        todo!()
-    }
 }
 
 #[inline]
@@ -76,7 +74,7 @@ pub fn delta_decode(smp: &Sample) -> impl Fn(Vec<u8>) -> Vec<u8> {
     }
 }
 
-fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
+fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
     if is_magic_non_consume(file, &MAGIC_MOD_PLUGIN_PACKED)? {
         return Err(Error::unsupported(
             "Extened Module uses 'MOD Plugin packed'",
@@ -87,7 +85,7 @@ fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
         return Err(Error::invalid("Not a valid Extended Module"));
     }
 
-    let module_name = file.read_bytes(20)?;
+    let module_name = dbg!(read_strr(&file.read_bytes(20)?)?);
 
     if !is_magic(file, &[MAGIC_NUMBER])? {
         return Err(Error::invalid("Not a valid Extended Module"));
@@ -114,32 +112,144 @@ fn parse_(file: &mut impl ReadSeek) -> Result<Box<[Sample]>, Error> {
         ));
     }
 
+    skip_header_patterns(file, patnum, header_size)?;
+    let samples = build(file, insnum)?;
+    dbg!(samples.iter().filter(|f| f.length != 0).count());
+    // for i in samples.iter() {
+    //     dbg!(i.name());
+    // }
+    file.set_seek_pos(0).unwrap();
+
+    let mut buf: Vec<u8> = Vec::with_capacity(file.size().unwrap_or_default() as usize);
+    file.read_to_end(&mut buf).unwrap();
+
+    Ok(XM {
+        inner: buf.into(),
+        samples
+    })
+
     // skip_header_patterns(file, patnum, header_size)?;
-    Ok(Vec::new().into())
+    // Ok(Vec::new().into())
     // todo!()
 }
 
+// skip patterns and we'll go straight to the instruments
 fn skip_header_patterns(
     file: &mut impl ReadSeek,
     patterns: u16,
     header_size: u32,
 ) -> Result<(), Error> {
-    todo!()
-}
+    file.set_seek_pos(60 + header_size as u64)?;
 
-fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
-    todo!()
+    for _ in 0..patterns {
+        file.skip_bytes(7)?; // pattern length, packing type, number of rows in pattern
+
+        let data_size = file.read_u16_le()? as i64;
+        file.skip_bytes(data_size)?;
+    }
+
+    Ok(())
+}
+const XM_SMP_SIZE: u64 = 40;
+const XM_INS_SIZE: u32 = 263;
+
+fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error> {
+    let mut samples: Vec<Sample> = Vec::new();
+
+    for _ in 0..ins_num {
+        let offset = file.seek_position()?;
+
+        let mut header_size = file.read_u32_le()?;
+        file.skip_bytes(22)?;
+        file.skip_bytes(1)?; // instrument type
+
+        let sample_number = file.read_u16_le()?;
+        if header_size == 0 || header_size > XM_INS_SIZE {
+            header_size = XM_INS_SIZE;
+        }
+
+        file.set_seek_pos(header_size as u64 + offset)?; // skip to sample headers
+
+        let first_sample_header = file.seek_position()?;
+        let total_sample_size = XM_SMP_SIZE * ins_num as u64;
+        let mut cumulative_sample_size: u64 = 0;
+
+        for _ in 0..sample_number {
+            let length = file.read_u32_le()?;
+            // todo add check for overflowing samles
+            let pointer = (first_sample_header + total_sample_size + cumulative_sample_size) as u32;
+
+            // match file.size() {
+            //     Some(d) if (pointer + length) as u64 > d=> {
+            //         cumulative_sample_size += length as u64;
+            //         break;
+            //     }
+            //     _ => (),
+            // };
+
+            let loop_start = file.read_u32_le()?;
+            let loop_length = file.read_u32_le()?;
+            let loop_end = loop_start + loop_length;
+            file.skip_bytes(1)?; // volume
+
+            let finetune = file.read_u8()? as i8;
+            let flag = file.read_u8()?;
+            file.skip_bytes(1)?; // panning,
+
+            let notenum = file.read_u8()? as i8;
+            file.skip_bytes(1)?; // reserved
+
+            let name = dbg!(read_strr(&file.read_bytes(22)?)?);
+
+            let period: f32 = 7680.0 - ((48.0 + notenum as f32) * 64.0) - (finetune as f32 / 2.0);
+            let rate: u32 = (8363.0 * 2.0_f32.powf((4608.0 - period) / 768.0)) as u32;
+
+            let depth = Depth::new(!flag.contains(FLAG_BITS), true, true);
+
+            if length != 0 {
+                samples.push(Sample {
+                    filename: None,
+                    name,
+                    length,
+                    rate,
+                    pointer,
+                    depth,
+                    channel: Channel::Mono,
+                    index_raw: samples.len() as u16,
+                    compressed: false,
+                    looping: Loop {
+                        start: loop_start,
+                        stop: loop_end,
+                        kind: LoopType::Off, // TODO
+                    },
+                });
+            }
+
+            cumulative_sample_size += length as u64;
+            // dbg!(file.seek_position()?);
+        }
+        file.skip_bytes(cumulative_sample_size as i64)?;
+
+        // break;
+    }
+    // todo!()
+    Ok(samples.into())
 }
 
 #[cfg(test)]
 mod test {
     use std::fs::File;
 
+    use crate::interface::ripper::Ripper;
+
     use super::parse_;
 
     #[test]
     fn validate() {
         let mut file = File::open("./external.xm").unwrap();
-        parse_(&mut file).unwrap();
+        let ripper = Ripper::default();
+        
+        let module = parse_(&mut file).unwrap();
+        ripper.rip_to_dir("./xm/", &module).unwrap();
     }
 }
