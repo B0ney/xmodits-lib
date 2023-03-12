@@ -150,6 +150,7 @@ impl<T: ReadSeek> ByteReader for T {
     }
 }
 
+/// For When you need to do an IO operation without affecting the cursor
 pub fn non_consume<R, F, T>(reader: &mut R, operation: F) -> io::Result<T>
 where
     R: ByteReader,

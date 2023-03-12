@@ -1,5 +1,6 @@
 [package]
 name = "xmodits-lib"
+authors = ["B0ney <https://github.com/B0ney>"]
 version = "0.3.0"
 edition = "2021"
 description = "XMODITS core library"

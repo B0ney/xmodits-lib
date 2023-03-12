@@ -81,7 +81,7 @@ fn parse(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     let _ = read_compact_index(file)?; // obj size field
     let size = read_compact_index(file)? as usize;
 
-    identify_module(file)?;
+    dbg!(identify_module(file)?);
     // let bytes = file.read_bytes(64)?;
     // dbg!(String::from_utf8_lossy(&bytes));
 

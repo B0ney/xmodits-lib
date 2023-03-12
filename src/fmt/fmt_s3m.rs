@@ -76,7 +76,7 @@ fn parse(file: &mut impl ReadSeek) -> Result<S3M, Error> {
     let ins_count = file.read_u16_le()?;
     file.skip_bytes(6)?; // pattern ptr, flags, tracker version
 
-    let signed = matches!(file.read_u16_le()?, 1);
+    let signed = file.read_u16_le()? == 1;
 
     if !is_magic(file, &MAGIC_SCRM)? {
         return Err(Error::invalid(INVALID));

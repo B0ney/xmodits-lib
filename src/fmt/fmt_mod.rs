@@ -62,7 +62,7 @@ impl Module for MOD {
 }
 
 fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
-    let name = file.read_bytes(20)?;
+    let name = read_strr(&file.read_bytes(20)?);
 
     build_samples(file, todo!())
 }

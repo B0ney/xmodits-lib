@@ -6,6 +6,7 @@ pub mod fmt_umx;
 pub mod fmt_xm;
 pub mod loader;
 
+#[derive(Debug, Copy, Clone)]
 pub enum Format {
     IT,
     XM,
