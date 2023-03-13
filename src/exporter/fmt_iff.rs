@@ -21,8 +21,6 @@ impl AudioTrait for Iff {
         const NAME: [u8; 4] = *b"NAME";
         const BODY: [u8; 4] = *b"BODY";
 
-        
-
         // Only signed 8-bit samples are supported
         // Do any necessary processing to satisfy this.
         match smp.depth {

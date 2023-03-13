@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::{interface::Sample, parser::io::io_error};
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("{0}")]
@@ -24,7 +26,7 @@ pub enum Error {
     AudioFormat(String),
 
     #[error("The sample metadata points to an invalid offset. The module might be corrupted or there's a bug in the program.")]
-    BadSample,
+    BadSample { name: Box<str>, raw_index: u16 },
 }
 
 impl From<Error> for Result<(), Error> {
@@ -51,10 +53,7 @@ impl Error {
 
     /// Custom IO Error
     pub fn io_error(error: &str) -> Result<(), Self> {
-        Err(Self::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            error,
-        )))
+        Err(Self::Io(io_error(error)))
     }
 
     /// The module is invalid
@@ -67,7 +66,14 @@ impl Error {
     }
 
     /// The sample metadata is invalid
-    pub fn bad_sample() -> Self {
-        Self::BadSample
+    pub fn bad_sample(
+        Sample {
+            index_raw, name, ..
+        }: &Sample,
+    ) -> Self {
+        Self::BadSample {
+            raw_index: *index_raw,
+            name: name.clone(),
+        }
     }
 }

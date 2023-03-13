@@ -93,9 +93,10 @@ impl Ripper {
         writer: &mut dyn Write,
         index: usize,
     ) -> Result<(), Error> {
-        let metadata = module.samples().get(index).ok_or_else(Error::bad_sample)?; // todo
-        let pcm = module.pcm(metadata)?;
-        self.format.write(metadata, pcm, writer)
+        todo!()
+        // let metadata = module.samples().get(index).ok_or_else(|| todo!())?; // todo
+        // let pcm = module.pcm(metadata)?;
+        // self.format.write(metadata, pcm, writer)
     }
 }
 

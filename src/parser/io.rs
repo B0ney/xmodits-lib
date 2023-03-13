@@ -66,7 +66,7 @@ impl<T: ReadSeek> ReadSeek for BufReader<T> {
     }
 
     fn read_from_range(self, range: Range<usize>) -> Box<[u8]> {
-        self.into_inner().read_from_range(range)   
+        self.into_inner().read_from_range(range)
     }
 }
 
@@ -168,6 +168,10 @@ pub fn is_magic(reader: &mut impl ByteReader, magic: &[u8]) -> io::Result<bool> 
 
 pub fn is_magic_non_consume(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<bool> {
     non_consume(reader, |reader| is_magic(reader, magc))
+}
+
+pub fn io_error(error: &str) -> std::io::Error {
+    std::io::Error::new(std::io::ErrorKind::Other, error)
 }
 
 #[cfg(test)]

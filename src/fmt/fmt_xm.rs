@@ -4,7 +4,7 @@ use bytemuck::offset_of;
 use log::info;
 
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample, self};
+use crate::interface::sample::{self, Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::read_str::read_strr;
 // use crate::parser::magic::bad_magic_non_consume;
@@ -125,12 +125,8 @@ fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
 
     Ok(XM {
         inner: buf.into(),
-        samples
+        samples,
     })
-
-    // skip_header_patterns(file, patnum, header_size)?;
-    // Ok(Vec::new().into())
-    // todo!()
 }
 
 // skip patterns and we'll go straight to the instruments
@@ -219,7 +215,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
             let pointer = file.seek_position()? as u32;
             smp.pointer = pointer;
             file.skip_bytes(smp.length as i64)?;
-        };
+        }
 
         samples.append(&mut staging_samples);
     }
@@ -231,16 +227,20 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
 mod test {
     use std::fs::File;
 
-    use crate::interface::ripper::Ripper;
+    use crate::interface::{ripper::Ripper, Module};
 
     use super::parse_;
 
     #[test]
     fn validate() {
-        let mut file = File::open("./sweetdre (1).xm").unwrap();
+        let mut file = File::open("./FEATSOFV.xm").unwrap();
         let ripper = Ripper::default();
-        
-        let module = parse_(&mut file).unwrap();
-        ripper.rip_to_dir("./xm/", &module).unwrap();
+
+        let module: Box<dyn Module> = Box::new(parse_(&mut file).unwrap());
+        for i in module.samples() {
+            dbg!(i);
+        }
+        // (module as dyn Module).samples()
+        // ripper.rip_to_dir("./xm/", &module).unwrap();
     }
 }

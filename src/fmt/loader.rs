@@ -22,7 +22,7 @@ pub fn identify_module(file: &mut impl ReadSeek) -> io::Result<Format> {
     non_consume(file, |file| {
         let mut bytes: [u8; 64] = [0; 64];
         file.read(&mut bytes)?;
-        
+
         match bytes {
             buf if magic_header(&MAGIC_IMPM, &buf) => Ok(Format::IT),
             buf if magic_header(&MAGIC_UPKG, &buf) => Ok(Format::UMX),

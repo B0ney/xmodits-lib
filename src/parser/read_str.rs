@@ -9,6 +9,8 @@ const FORBIDDEN_CHARS: &[char] = &[
 
 use crate::interface::Error;
 
+use crate::parser::io::io_error;
+
 pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
     buf.iter_mut().for_each(|x| {
         if *x == b'\r' {
@@ -20,11 +22,35 @@ pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
 
 /// Returns an owned string slice
 pub fn read_strr(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
-    // let Some(a) =  else {
-    //     return Err(io_error("Does not contain valid data"));
-    // };
+    let buf = trim_null(buf);
 
-    Ok(String::from_utf8_lossy(trim_null(buf)).into())
+    // If true, then it's highly likely that there's a bug in the parsing
+    if is_garbage(buf, 5) {
+        return Err(io_error("String does not contain valid data"));
+    };
+
+    Ok(String::from_utf8_lossy(buf).into())
+}
+
+/// If the slice contains too many non-printable-ascii values, it is most likely garbage.
+fn is_garbage(buf: &[u8], threashold: usize) -> bool {
+    // This produces smaller assembly than the commented code.
+    let mut total_garbage: usize = 0;
+
+    for i in buf {
+        if !is_printable_ascii(i) {
+            total_garbage += 1;
+        }
+        if total_garbage > threashold {
+            return true;
+        }
+    }
+    return false;
+    // buf.iter().filter(|f| !is_printable_ascii(f)).count() > threashold
+}
+
+fn is_printable_ascii(byte: &u8) -> bool {
+    *byte >= b' ' && *byte < b'~'
 }
 
 /// trim trailing nulls from u8 slice

@@ -32,14 +32,16 @@ impl GenericTracker {
 
     #[inline]
     pub fn get_slice(&self, smp: &Sample) -> Result<&[u8], Error> {
-        self.buf.get(smp.ptr_range()).ok_or_else(Error::bad_sample)
+        self.buf
+            .get(smp.ptr_range())
+            .ok_or_else(|| Error::bad_sample(smp))
     }
 
     #[inline]
     pub fn get_slice_trailing(&self, smp: &Sample) -> Result<&[u8], Error> {
         self.buf
             .get(smp.pointer as usize..)
-            .ok_or_else(Error::bad_sample)
+            .ok_or_else(|| Error::bad_sample(smp))
     }
 
     #[inline]
