@@ -151,13 +151,16 @@ const XM_INS_SIZE: u32 = 263;
 
 fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error> {
     let mut samples: Vec<Sample> = Vec::new();
+    let mut staging_samples: Vec<Sample> = Vec::new();
 
     for _ in 0..ins_num {
-        let mut staging_samples: Vec<Sample> = Vec::new();
         let offset = file.seek_position()?;
 
         let mut header_size = file.read_u32_le()?;
-        file.skip_bytes(22)?;
+        let filename = match read_strr(&file.read_bytes(22)?)? {
+            f if f.is_empty() => None,
+            f => Some(f)
+        };
         file.skip_bytes(1)?; // instrument type
 
         let sample_number = file.read_u16_le()?;
@@ -184,7 +187,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
             let notenum = file.read_u8()? as i8;
             file.skip_bytes(1)?; // reserved
 
-            let name = dbg!(read_strr(&file.read_bytes(22)?)?);
+            let name = read_strr(&file.read_bytes(22)?)?;
 
             let period: f32 = 7680.0 - ((48.0 + notenum as f32) * 64.0) - (finetune as f32 / 2.0);
             let rate: u32 = (8363.0 * 2.0_f32.powf((4608.0 - period) / 768.0)) as u32;
@@ -193,7 +196,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
 
             if length != 0 {
                 staging_samples.push(Sample {
-                    filename: None,
+                    filename: filename.clone(),
                     name,
                     length,
                     rate,
@@ -238,7 +241,7 @@ mod test {
 
         let module: Box<dyn Module> = Box::new(parse_(&mut file).unwrap());
         for i in module.samples() {
-            dbg!(i);
+            dbg!(&i.filename_pretty());
         }
         // (module as dyn Module).samples()
         // ripper.rip_to_dir("./xm/", &module).unwrap();

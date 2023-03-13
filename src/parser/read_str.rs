@@ -22,10 +22,11 @@ pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
 
 /// Returns an owned string slice
 pub fn read_strr(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
+    const THRESHOLD: usize = 5;
     let buf = trim_null(buf);
 
     // If true, then it's highly likely that there's a bug in the parsing
-    if is_garbage(buf, 5) {
+    if is_garbage(buf, THRESHOLD) {
         return Err(io_error("String does not contain valid data"));
     };
 
@@ -33,7 +34,7 @@ pub fn read_strr(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
 }
 
 /// If the slice contains too many non-printable-ascii values, it is most likely garbage.
-fn is_garbage(buf: &[u8], threashold: usize) -> bool {
+fn is_garbage(buf: &[u8], threshold: usize) -> bool {
     // This produces smaller assembly than the commented code.
     let mut total_garbage: usize = 0;
 
@@ -41,7 +42,7 @@ fn is_garbage(buf: &[u8], threashold: usize) -> bool {
         if !is_printable_ascii(i) {
             total_garbage += 1;
         }
-        if total_garbage > threashold {
+        if total_garbage > threshold {
             return true;
         }
     }
