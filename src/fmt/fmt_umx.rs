@@ -1,19 +1,16 @@
-use std::io::BufReader;
-use std::io::Read;
-use std::io::Seek;
-
 use crate::fmt::loader::identify_module;
+use crate::interface::ripper::Ripper;
 use crate::interface::Error;
 use crate::interface::Module;
-use crate::interface::ripper::Ripper;
 use crate::parser::io::Container;
 use crate::parser::{
     io::{is_magic, non_consume, ByteReader, ReadSeek},
     read_str::read_strr,
 };
 
-use super::Format;
+use super::fmt_it;
 use super::fmt_xm;
+use super::Format;
 
 pub const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
 
@@ -89,45 +86,23 @@ fn parse(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
 
     let _ = read_compact_index(file)?; // obj size field
     let size = read_compact_index(file)? as usize;
-    // non_consume(file, |file| dbg!(read_strr(&file.read_bytes(17)?)))?;
-    // BufReader::new(file)
-    // let mut b = BufReader::new(file);
 
-    // the problem is that the implementations are free to set seek positions to offsets, which is bad for container formats
     let size = file.size();
-    let mut ff = Container::new(file).with_size(size);
+    // store the reader into a Container struct so that seeking 
+    let mut module = Container::new(file).with_size(size);
 
-    let a = fmt_xm::parse_(&mut ff).unwrap();
-            // let module: Box<dyn Module> = Box::new(a);
-        for i in a.samples() {
-            dbg!(&i.filename_pretty());
-        }
-        // (module as dyn Module).samples()
-        let ripper = Ripper::default();
-            ripper.rip_to_dir("./mayhem/", &a).unwrap();
-    
+    let module: Box<dyn Module> = match identify_module(&mut module)? {
+        Format::IT => Box::new(fmt_it::parse_(&mut module)?),
+        Format::XM => Box::new(fmt_xm::parse_(&mut module)?),
+        a => todo!(),
+    };
 
-    // match identify_module(file)? {
-    //     Format::XM => {
-            
-    //     f => {dbg!(f);},
-    // };
-    // let bytes = file.read_bytes(64)?;
-    // dbg!(String::from_utf8_lossy(&bytes));
-
-    // let bytes = non_consume(file, |file| file.read_bytes(64))?;
+    for i in module.samples() {
+        dbg!(i);
+    }
 
     Err(Error::invalid("Yet to be implemented"))
 }
-
-// struct Container<R: Read + Seek> {
-//     cursor: i64,
-//     inner: R,
-// } 
-
-// impl <R:ReadSeek>ReadSeek for Container<R> {
-
-// }
 
 fn name_table_above_64(file: &mut impl ReadSeek) -> Result<Box<str>, Error> {
     let length: usize = file.read_u8()? as usize;
@@ -184,7 +159,7 @@ fn read_compact_index(file: &mut impl ReadSeek) -> Result<i32, Error> {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::Cursor};
+    use std::{fs::File, io::{Cursor, BufReader}};
 
     use crate::fmt::fmt_umx::read_compact_index;
 
@@ -210,7 +185,7 @@ mod tests {
     }
     #[test]
     fn table() {
-        let mut a = File::open("./Mayhem.umx").unwrap();
+        let mut a = BufReader::new(File::open("./Seeker.umx").unwrap());
         parse(&mut a);
     }
 }

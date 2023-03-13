@@ -242,14 +242,17 @@ mod test {
 
     #[test]
     fn validate() {
-        let mut bytes = vec![0u8;64];
-        let mut file = std::fs::read("./FEATSOFV.xm").unwrap();
-        bytes.append(&mut file);
-        let mut file = Container::new(Cursor::new(bytes));
-        file.skip_bytes(64).unwrap();
+        let mut file = vec![0u8;64];
+        let mut a = std::fs::read("./sweetdre (1).xm").unwrap();
+        file.append(&mut a);
+        let mut a = Cursor::new(file);
+        a.skip_bytes(64).unwrap();
+        let mut a = Container::new(a);
+        
+
         let ripper = Ripper::default();
 
-        let module: Box<dyn Module> = Box::new(parse_(&mut file).unwrap());
+        let module: Box<dyn Module> = Box::new(parse_(&mut a).unwrap());
         for i in module.samples() {
             dbg!(&i.filename_pretty());
         }

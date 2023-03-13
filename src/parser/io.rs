@@ -163,7 +163,7 @@ where
 }
 
 pub fn is_magic(reader: &mut impl ByteReader, magic: &[u8]) -> io::Result<bool> {
-    Ok(dbg!(reader.read_bytes(magic.len())?) == magic)
+    Ok(reader.read_bytes(magic.len())? == magic)
 }
 
 pub fn is_magic_non_consume(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<bool> {
@@ -177,13 +177,12 @@ pub fn io_error(error: &str) -> std::io::Error {
 /// Good for when we need to deal with container formats
 pub struct Container<R: io::Read + Seek> {
     size: Option<u64>,
-    // limit: u64,
-    inner_cursor_position: u64,
+    offset: u64,
     cursor: i64,
     inner: R,
-} 
+}
 
-impl <R: io::Read + Seek>ReadSeek for Container<R> {
+impl<R: io::Read + Seek> ReadSeek for Container<R> {
     fn size(&self) -> Option<u64> {
         self.size
     }
@@ -193,69 +192,110 @@ impl <R: io::Read + Seek>ReadSeek for Container<R> {
     }
 }
 
-impl <R: Read + Seek>Container<R> {
+impl<R: Read + Seek> Container<R> {
     pub fn new(mut inner: R) -> Self {
-        Self { size: None, cursor: 0,  inner_cursor_position: inner.stream_position().unwrap(), inner,}
+        Self {
+            size: None,
+            cursor: 0,
+            offset: inner.stream_position().expect("stream position"),
+            inner,
+        }
     }
 
     pub fn with_size(mut self, size: Option<u64>) -> Self {
         self.size = match size {
-            Some(s) => Some(s - self.inner.stream_position().unwrap()),
+            Some(s) => Some(s - self.inner.stream_position().expect("stream position")),
             None => None,
         };
         self
-    } 
-
+    }
 }
 
-impl <R: Read + Seek>io::Read for Container<R> {
+
+impl<R: Read + Seek> io::Read for Container<R> {
+    // todo: add eof limit
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        // match self.size {
+        //     Some(f) if self.cursor > f as i64 => {
+        //         return Err(std::io::Error::new(
+        //             std::io::ErrorKind::UnexpectedEof,
+        //             "End of File",
+        //         ));
+        //     }
+        //     _ => (),
+        // };
         let bytes_read = self.inner.read(buf)?;
         self.cursor += bytes_read as i64;
         Ok(bytes_read)
     }
 }
 
-impl <R: Read + Seek>Seek for Container<R> {
+impl<R: Read + Seek> Seek for Container<R> {
     fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
-        match pos {
-            SeekFrom::Start(f) => { 
-                self.inner.seek(SeekFrom::Start(self.inner_cursor_position))?;
-                let result = self.inner.seek(SeekFrom::Current(f as i64))?;
-                // self.cursor = result as i64;
-                Ok(result)
-
-            },
+        let result = match pos {
+            SeekFrom::Start(n) => {
+                self.inner.seek(SeekFrom::Start(self.offset))?;
+                self.inner.seek(SeekFrom::Current(n as i64))
+            }
             SeekFrom::End(_) => todo!(),
-            SeekFrom::Current(c) => {
-                let result = self.inner.seek(SeekFrom::Current(c))?;
-                // self.cursor += c;
-                Ok(result)
-            },
-        }
+            SeekFrom::Current(n) => {
+                if self.inner.stream_position()? as i64 + n < self.offset as i64 {
+                    return Err(io_error("no"));
+                };
+                match self.inner.stream_position()? as i64 + n {
+                    // prevent seeking back behind the offset
+                    f if f < self.offset as i64 => {
+                        return Err(io_error("no"));
+                    }
+                    // prevent seeking beyond specified size
+                    f if matches!(self.size, Some(g) if f > g as i64) => {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::UnexpectedEof,
+                            "End of File",
+                        ));
+                    }
+                    _ => (),
+                }
+
+                self.inner.seek(SeekFrom::Current(n))
+            }
+        };
+        self.cursor = (self.inner.stream_position()? - self.offset) as i64;
+        Ok(result?)
+    }
+    fn stream_position(&mut self) -> io::Result<u64> {
+        Ok(self.cursor as u64)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::ByteReader;
-    use crate::parser::io::{is_magic_non_consume, ReadSeek, Container};
-    use std::{borrow::Cow, io::{Cursor, Seek}};
+    use crate::parser::io::{is_magic_non_consume, Container, ReadSeek};
+    use std::{
+        borrow::Cow,
+        io::{Cursor, Seek},
+    };
     #[test]
     fn a() {
-        let mut a = Cursor::new(vec![1u8,2,3,4,5,6,7]);
-        a.read_u32_le();
-        let mut buf = Container::new(a);
+        let mut a = Cursor::new(b"\0\0\0\0Extended Module: Chicken flavour" as &[u8]);
+        a.skip_bytes(4).unwrap();
+
+        let mut buf = Container::new(a).with_size(Some(17));
+        dbg!(is_magic_non_consume(&mut buf, b"Extended Module: ").unwrap());
+        dbg!(is_magic_non_consume(&mut buf, b"Extended Module: ").unwrap());
+        dbg!(is_magic_non_consume(&mut buf, b"Extended Module: ").unwrap());
+        dbg!(buf.seek(std::io::SeekFrom::Current(17)));
+
         for _ in 0..3 {
             dbg!(buf.read_byte().unwrap());
         }
         dbg!(&buf.read_bytes(3));
         buf.rewind().unwrap();
-        
+
         // for _ in 0..3 {
         //     dbg!(buf.read_byte().unwrap());
         // }
-
     }
     #[test]
     fn no_consume() {

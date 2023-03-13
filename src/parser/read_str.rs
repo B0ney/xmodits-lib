@@ -22,7 +22,7 @@ pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
 
 /// Returns an owned string slice
 pub fn read_strr(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
-    const THRESHOLD: usize = 5;
+    const THRESHOLD: usize = 15;
     let buf = trim_null(buf);
 
     // If true, then it's highly likely that there's a bug in the parsing

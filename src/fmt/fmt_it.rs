@@ -85,9 +85,7 @@ const INVALID: &str = "Not a valid Impulse Tracker module";
 const DELTA_PCM: &str =
     "This Impulse Tracker sample is stored as delta values. Samples may sound quiet.";
 
-fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
-    let restart_position = file.stream_position()?;
-
+pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
     if is_magic_non_consume(file, &MAGIC_ZIRCONIA)? {
         return Err(Error::unsupported(UNSUPPORTED));
     };
@@ -115,7 +113,7 @@ fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
 
     let samples = build_samples(file, smp_ptrs).map(|samples| samples.into())?;
 
-    file.set_seek_pos(restart_position).unwrap();
+    file.rewind()?;
 
     let mut buf: Vec<u8> = Vec::with_capacity(file.size().unwrap_or_default() as usize);
     file.read_to_end(&mut buf).unwrap();
