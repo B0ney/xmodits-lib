@@ -74,7 +74,7 @@ pub fn delta_decode(smp: &Sample) -> impl Fn(Vec<u8>) -> Vec<u8> {
     }
 }
 
-fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
+pub fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
     if is_magic_non_consume(file, &MAGIC_MOD_PLUGIN_PACKED)? {
         return Err(Error::unsupported(
             "Extened Module uses 'MOD Plugin packed'",
@@ -114,12 +114,13 @@ fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
 
     skip_header_patterns(file, patnum, header_size)?;
     let samples = build(file, insnum)?;
+    dbg!("lsj");
     dbg!(samples.iter().filter(|f| f.length != 0).count());
     // for i in samples.iter() {
     //     dbg!(i.name());
     // }
-    file.set_seek_pos(0).unwrap();
-
+    file.rewind().unwrap();
+    
     let mut buf: Vec<u8> = Vec::with_capacity(file.size().unwrap_or_default() as usize);
     file.read_to_end(&mut buf).unwrap();
 
@@ -138,10 +139,14 @@ fn skip_header_patterns(
     file.set_seek_pos(60 + header_size as u64)?;
 
     for _ in 0..patterns {
-        file.skip_bytes(7)?; // pattern length, packing type, number of rows in pattern
+        let header_size = file.read_u32_le()?;
+        file.skip_bytes(3)?; // pattern length, packing type, number of rows in pattern
 
         let data_size = file.read_u16_le()? as i64;
         file.skip_bytes(data_size)?;
+        // if data_size > 9 {
+        //     file.skip_bytes(header_size as i64 -9)?;
+        // }
     }
 
     Ok(())
@@ -157,13 +162,14 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
         let offset = file.seek_position()?;
 
         let mut header_size = file.read_u32_le()?;
-        let filename = match read_strr(&file.read_bytes(22)?)? {
+        let filename = match dbg!(read_strr(&file.read_bytes(22)?)?) {
             f if f.is_empty() => None,
             f => Some(f)
         };
         file.skip_bytes(1)?; // instrument type
 
         let sample_number = file.read_u16_le()?;
+        dbg!(sample_number);
         if header_size == 0 || header_size > XM_INS_SIZE {
             header_size = XM_INS_SIZE;
         }
@@ -228,15 +234,19 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
 
 #[cfg(test)]
 mod test {
-    use std::fs::File;
+    use std::{fs::File, io::Cursor};
 
-    use crate::interface::{ripper::Ripper, Module};
+    use crate::{interface::{ripper::Ripper, Module}, parser::io::{Container, ByteReader}};
 
     use super::parse_;
 
     #[test]
     fn validate() {
-        let mut file = File::open("./FEATSOFV.xm").unwrap();
+        let mut bytes = vec![0u8;64];
+        let mut file = std::fs::read("./FEATSOFV.xm").unwrap();
+        bytes.append(&mut file);
+        let mut file = Container::new(Cursor::new(bytes));
+        file.skip_bytes(64).unwrap();
         let ripper = Ripper::default();
 
         let module: Box<dyn Module> = Box::new(parse_(&mut file).unwrap());

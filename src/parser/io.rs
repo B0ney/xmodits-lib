@@ -163,7 +163,7 @@ where
 }
 
 pub fn is_magic(reader: &mut impl ByteReader, magic: &[u8]) -> io::Result<bool> {
-    Ok(reader.read_bytes(magic.len())? == magic)
+    Ok(dbg!(reader.read_bytes(magic.len())?) == magic)
 }
 
 pub fn is_magic_non_consume(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<bool> {
@@ -174,15 +174,92 @@ pub fn io_error(error: &str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, error)
 }
 
+/// Good for when we need to deal with container formats
+pub struct Container<R: io::Read + Seek> {
+    size: Option<u64>,
+    // limit: u64,
+    inner_cursor_position: u64,
+    cursor: i64,
+    inner: R,
+} 
+
+impl <R: io::Read + Seek>ReadSeek for Container<R> {
+    fn size(&self) -> Option<u64> {
+        self.size
+    }
+
+    fn to_boxed_slice(self) -> io::Result<Box<[u8]>> {
+        todo!()
+    }
+}
+
+impl <R: Read + Seek>Container<R> {
+    pub fn new(mut inner: R) -> Self {
+        Self { size: None, cursor: 0,  inner_cursor_position: inner.stream_position().unwrap(), inner,}
+    }
+
+    pub fn with_size(mut self, size: Option<u64>) -> Self {
+        self.size = match size {
+            Some(s) => Some(s - self.inner.stream_position().unwrap()),
+            None => None,
+        };
+        self
+    } 
+
+}
+
+impl <R: Read + Seek>io::Read for Container<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let bytes_read = self.inner.read(buf)?;
+        self.cursor += bytes_read as i64;
+        Ok(bytes_read)
+    }
+}
+
+impl <R: Read + Seek>Seek for Container<R> {
+    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
+        match pos {
+            SeekFrom::Start(f) => { 
+                self.inner.seek(SeekFrom::Start(self.inner_cursor_position))?;
+                let result = self.inner.seek(SeekFrom::Current(f as i64))?;
+                // self.cursor = result as i64;
+                Ok(result)
+
+            },
+            SeekFrom::End(_) => todo!(),
+            SeekFrom::Current(c) => {
+                let result = self.inner.seek(SeekFrom::Current(c))?;
+                // self.cursor += c;
+                Ok(result)
+            },
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::ByteReader;
-    use crate::parser::io::{is_magic_non_consume, ReadSeek};
-    use std::{borrow::Cow, io::Cursor};
+    use crate::parser::io::{is_magic_non_consume, ReadSeek, Container};
+    use std::{borrow::Cow, io::{Cursor, Seek}};
+    #[test]
+    fn a() {
+        let mut a = Cursor::new(vec![1u8,2,3,4,5,6,7]);
+        a.read_u32_le();
+        let mut buf = Container::new(a);
+        for _ in 0..3 {
+            dbg!(buf.read_byte().unwrap());
+        }
+        dbg!(&buf.read_bytes(3));
+        buf.rewind().unwrap();
+        
+        // for _ in 0..3 {
+        //     dbg!(buf.read_byte().unwrap());
+        // }
 
+    }
     #[test]
     fn no_consume() {
-        let mut buf = Cursor::new([0u8; 32]);
+        let mut buf = Container::new(Cursor::new([0u8; 32]));
 
         assert_eq!(buf.seek_position().unwrap(), 0);
         let _ = is_magic_non_consume(&mut buf, &[0, 0, 0, 0]).unwrap();

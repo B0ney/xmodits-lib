@@ -1,10 +1,19 @@
+use std::io::BufReader;
+use std::io::Read;
+use std::io::Seek;
+
 use crate::fmt::loader::identify_module;
 use crate::interface::Error;
 use crate::interface::Module;
+use crate::interface::ripper::Ripper;
+use crate::parser::io::Container;
 use crate::parser::{
     io::{is_magic, non_consume, ByteReader, ReadSeek},
     read_str::read_strr,
 };
+
+use super::Format;
+use super::fmt_xm;
 
 pub const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
 
@@ -80,8 +89,29 @@ fn parse(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
 
     let _ = read_compact_index(file)?; // obj size field
     let size = read_compact_index(file)? as usize;
+    // non_consume(file, |file| dbg!(read_strr(&file.read_bytes(17)?)))?;
+    // BufReader::new(file)
+    // let mut b = BufReader::new(file);
 
-    dbg!(identify_module(file)?);
+    // the problem is that the implementations are free to set seek positions to offsets, which is bad for container formats
+    let size = file.size();
+    let mut ff = Container::new(file).with_size(size);
+
+    let a = fmt_xm::parse_(&mut ff).unwrap();
+            // let module: Box<dyn Module> = Box::new(a);
+        for i in a.samples() {
+            dbg!(&i.filename_pretty());
+        }
+        // (module as dyn Module).samples()
+        let ripper = Ripper::default();
+            ripper.rip_to_dir("./mayhem/", &a).unwrap();
+    
+
+    // match identify_module(file)? {
+    //     Format::XM => {
+            
+    //     f => {dbg!(f);},
+    // };
     // let bytes = file.read_bytes(64)?;
     // dbg!(String::from_utf8_lossy(&bytes));
 
@@ -89,6 +119,15 @@ fn parse(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
 
     Err(Error::invalid("Yet to be implemented"))
 }
+
+// struct Container<R: Read + Seek> {
+//     cursor: i64,
+//     inner: R,
+// } 
+
+// impl <R:ReadSeek>ReadSeek for Container<R> {
+
+// }
 
 fn name_table_above_64(file: &mut impl ReadSeek) -> Result<Box<str>, Error> {
     let length: usize = file.read_u8()? as usize;
