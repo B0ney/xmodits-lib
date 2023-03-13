@@ -4,7 +4,7 @@ use bytemuck::offset_of;
 use log::info;
 
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
+use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample, self};
 use crate::interface::Error;
 use crate::parser::read_str::read_strr;
 // use crate::parser::magic::bad_magic_non_consume;
@@ -157,6 +157,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
     let mut samples: Vec<Sample> = Vec::new();
 
     for _ in 0..ins_num {
+        let mut staging_samples: Vec<Sample> = Vec::new();
         let offset = file.seek_position()?;
 
         let mut header_size = file.read_u32_le()?;
@@ -170,26 +171,14 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
 
         file.set_seek_pos(header_size as u64 + offset)?; // skip to sample headers
 
-        let first_sample_header = file.seek_position()?;
-        let total_sample_size = XM_SMP_SIZE * ins_num as u64;
-        let mut cumulative_sample_size: u64 = 0;
-
         for _ in 0..sample_number {
             let length = file.read_u32_le()?;
-            // todo add check for overflowing samles
-            let pointer = (first_sample_header + total_sample_size + cumulative_sample_size) as u32;
-
-            // match file.size() {
-            //     Some(d) if (pointer + length) as u64 > d=> {
-            //         cumulative_sample_size += length as u64;
-            //         break;
-            //     }
-            //     _ => (),
-            // };
-
             let loop_start = file.read_u32_le()?;
             let loop_length = file.read_u32_le()?;
-            let loop_end = loop_start + loop_length;
+
+            // let loop_end = loop_start + loop_length;
+
+            let loop_end = 0;
             file.skip_bytes(1)?; // volume
 
             let finetune = file.read_u8()? as i8;
@@ -207,12 +196,12 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
             let depth = Depth::new(!flag.contains(FLAG_BITS), true, true);
 
             if length != 0 {
-                samples.push(Sample {
+                staging_samples.push(Sample {
                     filename: None,
                     name,
                     length,
                     rate,
-                    pointer,
+                    pointer: 0,
                     depth,
                     channel: Channel::Mono,
                     index_raw: samples.len() as u16,
@@ -224,15 +213,17 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
                     },
                 });
             }
-
-            cumulative_sample_size += length as u64;
-            // dbg!(file.seek_position()?);
         }
-        file.skip_bytes(cumulative_sample_size as i64)?;
 
-        // break;
+        for smp in staging_samples.iter_mut() {
+            let pointer = file.seek_position()? as u32;
+            smp.pointer = pointer;
+            file.skip_bytes(smp.length as i64)?;
+        };
+
+        samples.append(&mut staging_samples);
     }
-    // todo!()
+
     Ok(samples.into())
 }
 
@@ -246,7 +237,7 @@ mod test {
 
     #[test]
     fn validate() {
-        let mut file = File::open("./external.xm").unwrap();
+        let mut file = File::open("./sweetdre (1).xm").unwrap();
         let ripper = Ripper::default();
         
         let module = parse_(&mut file).unwrap();
