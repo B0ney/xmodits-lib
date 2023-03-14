@@ -33,7 +33,7 @@ mod tests {
     }
     #[test]
     pub fn test8() {
-        let mut file = BufReader::new(File::open("./Void.umx").unwrap());
+        let mut file = BufReader::new(File::open("./sweetdre.xm").unwrap());
         let module = load_module(&mut file).unwrap();
         let ripper = Ripper::new(
             SampleNamer {
@@ -48,6 +48,6 @@ mod tests {
         }
         // ripper.change_format(ExportFormat::AIFF.into());
 
-        ripper.rip_to_dir("./void", module.as_ref()).unwrap();
+        // ripper.rip_to_dir("./void", module.as_ref()).unwrap();
     }
 }

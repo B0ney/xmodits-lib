@@ -22,15 +22,22 @@ pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
 
 /// Returns an owned string slice
 pub fn read_strr(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
-    const THRESHOLD: usize = 15;
+    const THRESHOLD: usize = 50;
+    let threshold = errors(buf.len(), THRESHOLD);
+
     let buf = trim_null(buf);
 
     // If true, then it's highly likely that there's a bug in the parsing
-    if is_garbage(buf, THRESHOLD) {
-        return Err(io_error("String does not contain valid data"));
+    if is_garbage(buf, threshold) {
+        return Err(io_error("String does not contain valid data:"));
     };
 
     Ok(String::from_utf8_lossy(buf).into())
+}
+
+/// approximate the amount of errors before we consider it garbage
+const fn errors(items: usize, percent: usize) -> usize {
+    (items * percent) / 100
 }
 
 /// If the slice contains too many non-printable-ascii values, it is most likely garbage.

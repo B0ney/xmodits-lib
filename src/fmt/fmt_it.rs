@@ -38,6 +38,7 @@ const CVT_DELTA: u8 = 1 << 2; // off = PCM values, ON = Delta values
 pub struct IT {
     inner: GenericTracker,
     samples: Box<[Sample]>,
+    title: Box<str>,
     version: u16,
 }
 
@@ -49,7 +50,7 @@ impl IT {
 
 impl Module for IT {
     fn name(&self) -> &str {
-        todo!()
+        &self.title
     }
 
     fn format(&self) -> &str {
@@ -94,8 +95,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
         return Err(Error::invalid(INVALID));
     }
 
-    let title = file.read_bytes(26)?;
-    dbg!(String::from_utf8_lossy(&title));
+    let title = read_strr(&file.read_bytes(26)?)?;
     file.skip_bytes(2)?;
 
     let ord_num = file.read_u16_le()?;
@@ -118,6 +118,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
     file.read_to_end(&mut buf).unwrap();
 
     Ok(IT {
+        title,
         inner: buf.into(),
         samples,
         version: compat_ver,
@@ -246,9 +247,7 @@ pub fn a_() {
     file.rewind().unwrap();
     let mut buf: Vec<u8> = Vec::new();
     file.read_to_end(&mut buf).unwrap();
-    let dd = 0..1;
 
-    file.read_from_range(7..8);
 
     // let tracker = IT {
     //     inner: buf.into(),

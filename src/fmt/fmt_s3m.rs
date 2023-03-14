@@ -26,12 +26,14 @@ const FLAG_BITS: u8 = 1 << 2;
 pub struct S3M {
     inner: GenericTracker,
     samples: Box<[Sample]>,
+    name: Box<str>
 }
 
 impl Module for S3M {
     fn name(&self) -> &str {
         // &String::from_utf8_lossy(self.0.name_raw().as_ref())
-        todo!()
+        // todo!()
+        &self.name
     }
 
     fn format(&self) -> &str {
@@ -63,7 +65,7 @@ impl Module for S3M {
 }
 
 pub fn parse_(file: &mut impl ReadSeek) -> Result<S3M, Error> {
-    let title = file.read_bytes(28)?.into_boxed_slice();
+    let title = read_strr(&file.read_bytes(28)?)?;
 
     if !is_magic(file, &[0x1a, 0x10])? {
         return Err(Error::invalid(INVALID));
@@ -95,6 +97,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<S3M, Error> {
     file.read_to_end(&mut buf).unwrap();
 
     Ok(S3M {
+        name: title,
         inner: buf.into(),
         samples,
     })
@@ -180,6 +183,7 @@ pub fn a() {
 
     let mut file = std::fs::File::open("./dusk.s3m").unwrap();
     let tracker = parse_(&mut file).unwrap();
+    dbg!(&tracker.name());
     for i in tracker.samples() {
         // dbg!(i.is_stereo());
         dbg!(i.filename_pretty());

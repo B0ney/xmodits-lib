@@ -113,11 +113,7 @@ pub fn build_context<'a>(module: &dyn Module, audio_format: &'a DynAudioTrait) -
     )
 }
 
-/// Might be used...
-/// TODO: indexes may not be synchronised
-// pub fn filter_empty_samples(smp: &[Sample]) -> impl ParallelIterator<Item = &Sample> {
-//     smp.par_iter().filter(|smp| smp.length != 0)
-// }
+
 
 #[test]
 fn a() {
