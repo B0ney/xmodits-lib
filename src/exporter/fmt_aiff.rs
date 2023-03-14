@@ -20,6 +20,7 @@ impl AudioTrait for Aiff {
         "aiff"
     }
 
+    // TODO: this doesn't output the correct value
     #[allow(clippy::unnecessary_cast)]
     fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
         const FORM: [u8; 4] = *b"FORM";
@@ -75,7 +76,7 @@ impl AudioTrait for Aiff {
         // The docs say the samples use 2's compliment
         // the written samples will be slightly different
         let pcm = match smp.depth {
-            Depth::I16 | Depth::I8 => pcm,
+            Depth::I16 | Depth::I8 => pcm, // todo! make into 
             Depth::U8 => flip_sign_8_bit(pcm.into_owned()).into(),
             Depth::U16 => flip_sign_16_bit(pcm.into_owned()).into(),
         };

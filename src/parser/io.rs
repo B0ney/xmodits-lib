@@ -178,7 +178,7 @@ pub fn io_error(error: &str) -> std::io::Error {
 pub struct Container<R: io::Read + Seek> {
     size: Option<u64>,
     offset: u64,
-    cursor: i64,
+    // cursor: i64,
     inner: R,
 }
 
@@ -196,7 +196,7 @@ impl<R: Read + Seek> Container<R> {
     pub fn new(mut inner: R) -> Self {
         Self {
             size: None,
-            cursor: 0,
+            // cursor: 0,
             offset: inner.stream_position().expect("stream position"),
             inner,
         }
@@ -225,7 +225,7 @@ impl<R: Read + Seek> io::Read for Container<R> {
         //     _ => (),
         // };
         let bytes_read = self.inner.read(buf)?;
-        self.cursor += bytes_read as i64;
+        // self.cursor += bytes_read as i64;
         Ok(bytes_read)
     }
 }
@@ -257,11 +257,12 @@ impl<R: Read + Seek> Seek for Container<R> {
                 self.inner.seek(SeekFrom::Current(n))
             }
         };
-        self.cursor = (self.inner.stream_position()? - self.offset) as i64;
+        // self.cursor = (self.inner.stream_position()? - self.offset) as i64;
         Ok(result?)
     }
     fn stream_position(&mut self) -> io::Result<u64> {
-        Ok(self.cursor as u64)
+        // Ok(self.cursor as u64)
+        Ok(self.inner.stream_position()? - self.offset)
     }
 }
 
