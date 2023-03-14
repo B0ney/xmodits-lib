@@ -111,10 +111,9 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
         smp_ptrs.push(file.read_u32_le()?);
     }
 
-    let samples = build_samples(file, smp_ptrs).map(|samples| samples.into())?;
+    let samples= build_samples(file, smp_ptrs)?.into();
 
     file.rewind()?;
-
     let mut buf: Vec<u8> = Vec::with_capacity(file.size().unwrap_or_default() as usize);
     file.read_to_end(&mut buf).unwrap();
 

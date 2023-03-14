@@ -239,21 +239,18 @@ impl<R: Read + Seek> Seek for Container<R> {
             }
             SeekFrom::End(_) => todo!(),
             SeekFrom::Current(n) => {
-                if self.inner.stream_position()? as i64 + n < self.offset as i64 {
-                    return Err(io_error("no"));
-                };
                 match self.inner.stream_position()? as i64 + n {
                     // prevent seeking back behind the offset
                     f if f < self.offset as i64 => {
                         return Err(io_error("no"));
                     }
                     // prevent seeking beyond specified size
-                    f if matches!(self.size, Some(g) if f > g as i64) => {
-                        return Err(std::io::Error::new(
-                            std::io::ErrorKind::UnexpectedEof,
-                            "End of File",
-                        ));
-                    }
+                    // f if matches!(self.size, Some(g) if f > g as i64) => {
+                    //     return Err(std::io::Error::new(
+                    //         std::io::ErrorKind::UnexpectedEof,
+                    //         "End of File",
+                    //     ));
+                    // }
                     _ => (),
                 }
 

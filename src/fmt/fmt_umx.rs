@@ -8,9 +8,12 @@ use crate::parser::{
     read_str::read_strr,
 };
 
-use super::fmt_it;
-use super::fmt_xm;
 use super::Format;
+use super::fmt_it;
+use super::fmt_mod;
+use super::fmt_s3m;
+use super::fmt_xm;
+use super::loader::umx_load_module;
 
 pub const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
 
@@ -19,7 +22,7 @@ struct Private;
 /// "Abandon all hope ye who try to parse this file format." - Tim Sweeney, Unreal Packages
 pub struct UMX(Private);
 
-fn parse(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     if !is_magic(file, &MAGIC_UPKG)? {
         return Err(Error::invalid("Not a valid Unreal package"));
     }
@@ -47,8 +50,6 @@ fn parse(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
 
     for _ in 0..name_count {
         let name = get_name_entry(file)?;
-        dbg!(&name);
-
         if name.as_ref() == "Music" {
             contains_music = true;
             break;
@@ -88,20 +89,23 @@ fn parse(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     let size = read_compact_index(file)? as usize;
 
     let size = file.size();
-    // store the reader into a Container struct so that seeking 
-    let mut module = Container::new(file).with_size(size);
+    // store the reader into a Container struct so that seeking
 
-    let module: Box<dyn Module> = match identify_module(&mut module)? {
-        Format::IT => Box::new(fmt_it::parse_(&mut module)?),
-        Format::XM => Box::new(fmt_xm::parse_(&mut module)?),
-        a => todo!(),
+    let mut file = Container::new(file).with_size(size);
+    let file = &mut file;
+    // done to prevent overflow compile error
+    let module: Box<dyn Module> = match identify_module(file)? {
+        Format::IT => Box::new(fmt_it::parse_(file)?),
+        Format::XM => Box::new(fmt_xm::parse_(file)?),
+        Format::S3M => Box::new(fmt_s3m::parse_(file)?),
+        Format::MOD => Box::new(fmt_mod::parse_(file)?),
+        Format::UMX => unreachable!(),
+        // Format::UMX => match is_umx {
+        //     true => unreachable!("UMX must not contain another UMX container"),
+        //     false => 
+        // }
     };
-
-    for i in module.samples() {
-        dbg!(i);
-    }
-
-    Err(Error::invalid("Yet to be implemented"))
+    Ok(module)
 }
 
 fn name_table_above_64(file: &mut impl ReadSeek) -> Result<Box<str>, Error> {
@@ -159,11 +163,14 @@ fn read_compact_index(file: &mut impl ReadSeek) -> Result<i32, Error> {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::{Cursor, BufReader}};
+    use std::{
+        fs::File,
+        io::{BufReader, Cursor},
+    };
 
     use crate::fmt::fmt_umx::read_compact_index;
 
-    use super::parse;
+    use super::parse_;
 
     // Test read compact index works
     #[test]
@@ -185,7 +192,7 @@ mod tests {
     }
     #[test]
     fn table() {
-        let mut a = BufReader::new(File::open("./Seeker.umx").unwrap());
-        parse(&mut a);
+        let mut a = BufReader::new(File::open("./Mayhem.umx").unwrap());
+        parse_(&mut a);
     }
 }

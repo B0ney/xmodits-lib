@@ -162,14 +162,14 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
         let offset = file.seek_position()?;
 
         let mut header_size = file.read_u32_le()?;
-        let filename = match dbg!(read_strr(&file.read_bytes(22)?)?) {
+        let filename = match read_strr(&file.read_bytes(22)?)? {
             f if f.is_empty() => None,
             f => Some(f)
         };
         file.skip_bytes(1)?; // instrument type
 
         let sample_number = file.read_u16_le()?;
-        dbg!(sample_number);
+        // dbg!(sample_number);
         if header_size == 0 || header_size > XM_INS_SIZE {
             header_size = XM_INS_SIZE;
         }

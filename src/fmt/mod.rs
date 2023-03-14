@@ -13,5 +13,4 @@ pub enum Format {
     S3M,
     MOD,
     UMX,
-    MPTM,
 }

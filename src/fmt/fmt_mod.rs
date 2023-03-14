@@ -61,10 +61,11 @@ impl Module for MOD {
     }
 }
 
-fn parse(file: &mut impl ReadSeek) -> Result<Vec<Sample>, Error> {
+pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
     let name = read_strr(&file.read_bytes(20)?);
 
-    build_samples(file, todo!())
+    let samples = build_samples(file, todo!())?;
+    todo!()
 }
 
 // TODO: https://github.com/Konstanty/libmodplug/blob/master/src/load_mod.cpp

@@ -62,8 +62,7 @@ impl Module for S3M {
     }
 }
 
-fn parse(file: &mut impl ReadSeek) -> Result<S3M, Error> {
-    let restart_position = file.stream_position()?;
+pub fn parse_(file: &mut impl ReadSeek) -> Result<S3M, Error> {
     let title = file.read_bytes(28)?.into_boxed_slice();
 
     if !is_magic(file, &[0x1a, 0x10])? {
@@ -88,16 +87,16 @@ fn parse(file: &mut impl ReadSeek) -> Result<S3M, Error> {
     for _ in 0..ins_count {
         ptrs.push((file.read_u16_le()? as u32) << 4);
     }
-    dbg!(signed);
-    let samples = build(file, ptrs, signed)?;
 
-    file.set_seek_pos(restart_position).unwrap();
+    let samples = build(file, ptrs, signed)?.into();
+
+    file.rewind()?;
     let mut buf: Vec<u8> = Vec::with_capacity(file.size().unwrap_or_default() as usize);
     file.read_to_end(&mut buf).unwrap();
 
     Ok(S3M {
         inner: buf.into(),
-        samples: samples.into(),
+        samples,
     })
 }
 
@@ -180,7 +179,7 @@ pub fn a() {
     use crate::interface::ripper::Ripper;
 
     let mut file = std::fs::File::open("./dusk.s3m").unwrap();
-    let tracker = parse(&mut file).unwrap();
+    let tracker = parse_(&mut file).unwrap();
     for i in tracker.samples() {
         // dbg!(i.is_stereo());
         dbg!(i.filename_pretty());

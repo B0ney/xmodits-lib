@@ -3,11 +3,15 @@
 /build/
 
 *.wav
-*.umx
+*.aiff
+*.its
 *.raw
+
+*.umx
 *.it
 *.s3m
 *.xm
+*.mod
 
 !/app/gui/res/**/*.wav
 
