@@ -122,15 +122,11 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
     }
 
     let samples = build(file, insnum)?;
-
-    file.rewind().unwrap();
-
-    let mut buf: Vec<u8> = Vec::with_capacity(file.size().unwrap_or_default() as usize);
-    file.read_to_end(&mut buf).unwrap();
+    let inner = file.load_to_memory()?.into();
 
     Ok(XM {
         title,
-        inner: buf.into(),
+        inner,
         samples,
     })
 }

@@ -40,8 +40,8 @@ pub fn identify_module(data: &mut impl ReadSeek) -> Result<Format, Error> {
         buf if IT::matches_format(buf) => Ok(Format::IT),
         buf if XM::matches_format(buf) => Ok(Format::XM),
         buf if S3M::matches_format(buf) => Ok(Format::S3M),
-        buf if MOD::matches_format(buf) => Ok(Format::MOD),
         buf if UMX::matches_format(buf) => Ok(Format::UMX),
+        buf if MOD::matches_format(buf) => Ok(Format::MOD),
         _ => Err(Error::NoFormatFound),
     }
 }

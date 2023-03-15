@@ -101,7 +101,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
     let smp_num = file.read_u16_le()?;
     file.skip_bytes(4)?;
 
-    let compat_ver = file.read_u16_le()?;
+    let version = file.read_u16_le()?;
     file.set_seek_pos((0x00c0 + ord_num + (ins_num * 4)) as u64)?;
 
     let mut smp_ptrs: Vec<u32> = Vec::with_capacity(smp_num as usize);
@@ -110,16 +110,13 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
     }
 
     let samples = build_samples(file, smp_ptrs)?.into();
-
-    file.rewind()?;
-    let mut buf: Vec<u8> = Vec::with_capacity(file.size().unwrap_or_default() as usize);
-    file.read_to_end(&mut buf).unwrap();
+    let inner = file.load_to_memory()?.into();
 
     Ok(IT {
         title,
-        inner: buf.into(),
+        inner,
         samples,
-        version: compat_ver,
+        version,
     })
 }
 

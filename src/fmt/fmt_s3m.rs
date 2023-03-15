@@ -88,14 +88,11 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<S3M, Error> {
     }
 
     let samples = build(file, ptrs, signed)?.into();
-
-    file.rewind()?;
-    let mut buf: Vec<u8> = Vec::with_capacity(file.size().unwrap_or_default() as usize);
-    file.read_to_end(&mut buf).unwrap();
+    let inner = file.load_to_memory()?.into();
 
     Ok(S3M {
         name: title,
-        inner: buf.into(),
+        inner,
         samples,
     })
 }

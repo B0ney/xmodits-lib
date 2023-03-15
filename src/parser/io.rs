@@ -64,6 +64,7 @@ pub trait ByteReader {
     fn set_seek_pos(&mut self, offset: u64) -> io::Result<()>;
     fn seek_position(&mut self) -> io::Result<u64>;
     fn read_bytes(&mut self, bytes: usize) -> io::Result<Vec<u8>>;
+    fn load_to_memory(&mut self) -> io::Result<Vec<u8>>;
 }
 
 impl<T: ReadSeek> ByteReader for T {
@@ -105,6 +106,16 @@ impl<T: ReadSeek> ByteReader for T {
 
     fn size(&self) -> Option<u64> {
         T::size(self)
+    }
+
+    fn load_to_memory(&mut self) -> io::Result<Vec<u8>> {
+        non_consume(self, |f| {
+            f.rewind()?;
+            let size = f.size().unwrap_or_default();
+            let mut buf = Vec::with_capacity(size as usize);
+            f.read_to_end(&mut buf)?;
+            Ok(buf)
+        })
     }
 }
 
