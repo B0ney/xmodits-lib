@@ -174,7 +174,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
         match file.size() {
             Some(size) if (pointer + length) as u64 > size => {
-                info!("Skipping invalid sample at index: {}...", index_raw + 1);
+                info!("Skipping invalid sample at raw index: {}...", index_raw + 1);
                 continue;
             }
             _ => (),

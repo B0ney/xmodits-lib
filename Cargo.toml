@@ -25,7 +25,5 @@ log = "0.4.14"
 [features]
 default = ["log"]
 
-# log = ["log"]
-thread = ["rayon"]
 serde_support = ["serde"]
 ffmpeg = ["ffmpeg-next"]

@@ -8,6 +8,10 @@ pub mod utils;
 #[macro_use]
 pub mod macros;
 
+pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
+pub use crate::interface::audio::AudioTrait;
+pub use crate::fmt::loader::{Format, identify_module};
+
 pub mod traits {
     pub use crate::interface::name::SampleNamerTrait;
     pub use crate::interface::Module;
