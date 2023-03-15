@@ -26,7 +26,10 @@ pub enum Error {
     AudioFormat(String),
 
     #[error("The sample metadata points to an invalid offset. The module might be corrupted or there's a bug in the program.")]
-    BadSample { name: Box<str>, raw_index: u16 },
+    BadSample { raw_index: u16 },
+
+    #[error("Could not find a valid format")]
+    NoFormatFound,
 }
 
 impl From<Error> for Result<(), Error> {
@@ -66,14 +69,9 @@ impl Error {
     }
 
     /// The sample metadata is invalid
-    pub fn bad_sample(
-        Sample {
-            index_raw, name, ..
-        }: &Sample,
-    ) -> Self {
+    pub fn bad_sample(smp: &Sample) -> Self {
         Self::BadSample {
-            raw_index: *index_raw,
-            name: name.clone(),
+            raw_index: smp.index_raw,
         }
     }
 }

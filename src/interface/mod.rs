@@ -1,10 +1,10 @@
 pub mod audio;
+pub mod cacher;
 pub mod errors;
 pub mod module;
 pub mod name;
 pub mod ripper;
 pub mod sample;
-pub mod cacher;
 pub use errors::Error;
 pub use module::Module;
 pub use sample::Sample;

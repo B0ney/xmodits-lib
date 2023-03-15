@@ -16,7 +16,7 @@ pub fn create_folder_name(path: impl AsRef<Path>) -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::BufReader};
+    use std::{fs::File, io::{BufReader, Cursor}};
 
     use crate::{
         exporter::ExportFormat,
@@ -33,8 +33,12 @@ mod tests {
     }
     #[test]
     pub fn test8() {
-        let mut file = BufReader::new(File::open("./sweetdre.xm").unwrap());
+        // let mut file = BufReader::new(File::open("./sweetdre.xm").unwrap());
+        let mut file = Cursor::new(std::fs::read("./sweetdre.xm").unwrap());
+
         let module = load_module(&mut file).unwrap();
+        dbg!(module.name());
+        
         let ripper = Ripper::new(
             SampleNamer {
                 index_only: true,
@@ -44,7 +48,7 @@ mod tests {
             ExportFormat::AIFF.into(),
         );
         for i in module.samples() {
-            dbg!(i);
+            dbg!(i.filename_pretty());
         }
         // ripper.change_format(ExportFormat::AIFF.into());
 

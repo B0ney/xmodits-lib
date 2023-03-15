@@ -8,6 +8,7 @@ use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
+    bytes::magic_header,
     io::{is_magic, ByteReader, ReadSeek},
     read_str::read_strr,
 };
@@ -26,7 +27,7 @@ const FLAG_BITS: u8 = 1 << 2;
 pub struct S3M {
     inner: GenericTracker,
     samples: Box<[Sample]>,
-    name: Box<str>
+    name: Box<str>,
 }
 
 impl Module for S3M {
@@ -40,17 +41,6 @@ impl Module for S3M {
         NAME
     }
 
-    fn validate(buf: &[u8]) -> Result<(), Error>
-    where
-        Self: Sized,
-    {
-        todo!()
-    }
-
-    fn load_unchecked(buf: Vec<u8>) -> Result<Self, (Error, Vec<u8>)> {
-        todo!()
-    }
-
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
         Ok(self.inner.get_slice(smp)?.into())
     }
@@ -61,6 +51,17 @@ impl Module for S3M {
 
     fn total_samples(&self) -> usize {
         self.samples().len()
+    }
+
+    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+        Ok(Box::new(parse_(data)?))
+    }
+
+    fn matches_format(buf: &[u8]) -> bool {
+        match buf.get(0x2c..) {
+            Some(slice) => magic_header(&MAGIC_SCRM, slice),
+            None => false,
+        }
     }
 }
 

@@ -21,6 +21,8 @@ pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
 }
 
 /// Returns an owned string slice
+/// 
+/// Errors if the buffer contains too much garbage data
 pub fn read_strr(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
     const THRESHOLD: usize = 50;
     let threshold = errors(buf.len(), THRESHOLD);

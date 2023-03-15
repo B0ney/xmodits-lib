@@ -6,6 +6,7 @@ use log::info;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{self, Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
+use crate::parser::bytes::magic_header;
 use crate::parser::read_str::read_strr;
 // use crate::parser::magic::bad_magic_non_consume;
 use crate::parser::{
@@ -27,6 +28,7 @@ const FLAG_LOOP_OFF: u8 = 0;
 const FLAG_LOOP_FORWARD: u8 = 1 << 0;
 const FLAG_LOOP_PINGPONG: u8 = 3;
 
+/// Fasttracker 2 Extended Module
 pub struct XM {
     inner: GenericTracker,
     samples: Box<[Sample]>,
@@ -42,26 +44,20 @@ impl Module for XM {
         todo!()
     }
 
-    fn validate(buf: &[u8]) -> Result<(), Error>
-    where
-        Self: Sized,
-    {
-        todo!()
-    }
-
-    fn load_unchecked(buf: Vec<u8>) -> Result<Self, (Error, Vec<u8>)>
-    where
-        Self: Sized,
-    {
-        todo!()
-    }
-
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
         Ok(delta_decode(smp)(self.inner.get_owned_slice(smp)?).into())
     }
 
     fn samples(&self) -> &[Sample] {
         &self.samples
+    }
+
+    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+        Ok(Box::new(parse_(data)?))
+    }
+
+    fn matches_format(buf: &[u8]) -> bool {
+        magic_header(&MAGIC_EXTENDED_MODULE, buf)
     }
 }
 
@@ -142,28 +138,6 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
     })
 }
 
-// // skip patterns and we'll go straight to the instruments
-// fn skip_header_patterns(
-//     file: &mut impl ReadSeek,
-//     patterns: u16,
-//     header_size: u32,
-// ) -> Result<(), Error> {
-//     file.set_seek_pos(60 + header_size as u64)?;
-
-//     for _ in 0..patterns {
-//         let header_size = file.read_u32_le()?;
-//         file.skip_bytes(3)?; // pattern length, packing type, number of rows in pattern
-
-//         let data_size = file.read_u16_le()? as i64;
-//         file.skip_bytes(data_size)?;
-//         // if data_size > 9 {
-//         //     file.skip_bytes(header_size as i64 -9)?;
-//         // }
-//     }
-
-//     Ok(())
-// }
-const XM_SMP_SIZE: u64 = 40;
 const XM_INS_SIZE: u32 = 263;
 
 fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error> {
@@ -174,10 +148,8 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
         let offset = file.seek_position()?;
 
         let mut header_size = file.read_u32_le()?;
-        let filename = match read_strr(&file.read_bytes(22)?)? {
-            f if f.is_empty() => None,
-            f => Some(f),
-        };
+        let filename = read_strr(&file.read_bytes(22)?)?;
+
         file.skip_bytes(1)?; // instrument type
 
         let sample_number = file.read_u16_le()?;
@@ -205,7 +177,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
             file.skip_bytes(1)?; // reserved
 
             let name = read_strr(&file.read_bytes(22)?)?;
-            
+
             let period: f32 = 7680.0 - ((48.0 + notenum as f32) * 64.0) - (finetune as f32 / 2.0);
             let rate: u32 = (8363.0 * 2.0_f32.powf((4608.0 - period) / 768.0)) as u32;
 
@@ -213,7 +185,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
 
             if length != 0 {
                 staging_samples.push(Sample {
-                    filename: filename.clone(),
+                    filename: Some(filename.clone()),
                     name,
                     length,
                     rate,

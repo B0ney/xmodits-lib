@@ -1,14 +1,13 @@
 use log::{info, warn};
 use std::borrow::Cow;
-use std::io::Write;
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
-use crate::parser::io::non_consume;
 use crate::parser::{
     bitflag::BitFlag,
+    bytes::magic_header,
     io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
     read_str::read_strr,
 };
@@ -57,15 +56,6 @@ impl Module for IT {
         NAME
     }
 
-    fn validate(buf: &[u8]) -> Result<(), Error> {
-        // tag(MAGIC_HEADER)(buf).unwrap();
-        todo!()
-    }
-
-    fn load_unchecked(buf: Vec<u8>) -> Result<Self, (Error, Vec<u8>)> {
-        todo!()
-    }
-
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
         Ok(match smp.compressed {
             true => {
@@ -78,6 +68,14 @@ impl Module for IT {
 
     fn samples(&self) -> &[Sample] {
         &self.samples
+    }
+
+    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+        Ok(Box::new(parse_(data)?))
+    }
+
+    fn matches_format(buf: &[u8]) -> bool {
+        magic_header(&MAGIC_IMPM, buf)
     }
 }
 
@@ -111,7 +109,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
         smp_ptrs.push(file.read_u32_le()?);
     }
 
-    let samples= build_samples(file, smp_ptrs)?.into();
+    let samples = build_samples(file, smp_ptrs)?.into();
 
     file.rewind()?;
     let mut buf: Vec<u8> = Vec::with_capacity(file.size().unwrap_or_default() as usize);
@@ -247,7 +245,6 @@ pub fn a_() {
     file.rewind().unwrap();
     let mut buf: Vec<u8> = Vec::new();
     file.read_to_end(&mut buf).unwrap();
-
 
     // let tracker = IT {
     //     inner: buf.into(),

@@ -113,8 +113,6 @@ pub fn build_context<'a>(module: &dyn Module, audio_format: &'a DynAudioTrait) -
     )
 }
 
-
-
 #[test]
 fn a() {
     // let fnh = ;

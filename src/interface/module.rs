@@ -1,6 +1,9 @@
 use std::borrow::Cow;
 
-use crate::interface::{sample::Sample, Error};
+use crate::{
+    interface::{sample::Sample, Error},
+    parser::io::ReadSeek,
+};
 
 // struct NamePtr {
 //     pub ptr: usize,
@@ -81,30 +84,15 @@ pub trait Module: Send + Sync {
     /// Display internal text
     // fn comments(&self) -> Cow<str>;
 
+    fn matches_format(buf: &[u8]) -> bool
+    where
+        Self: Sized;
+
     /// Load tracker module from a reader
     /// The implementation should keep hold of the reader object,
     /// but it is possible to load everything into a Vec<u8>
     /// This function should not panic.
-    fn load(data: Vec<u8>) -> Result<Self, (Error, Vec<u8>)>
-    where
-        Self: Sized,
-    {
-        if let Err(e) = Self::validate(&data) {
-            return Err((e, data));
-        };
-
-        Self::load_unchecked(data)
-    }
-
-    /// Check if a tracker module is valid without calling the constructor
-    fn validate(buf: &[u8]) -> Result<(), Error>
-    where
-        Self: Sized;
-
-    /// Load tracker module from file without any validation.
-    ///
-    /// Can panic if used without any form of external validation
-    fn load_unchecked(buf: Vec<u8>) -> Result<Self, (Error, Vec<u8>)>
+    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error>
     where
         Self: Sized;
 
@@ -113,19 +101,14 @@ pub trait Module: Send + Sync {
     /// Returns a ``Cow<[u8]>`` to allow referencing the inner buffer
     /// or an owned vec if any processing was done to make the pcm readable, e.g decompression.
     ///
-    /// obtaining the pcm data should not cause side effects
+    /// obtaining the pcm data should not cause side effects hence &self
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error>;
 
-    /// List sample information, may contain empty samples.
-    /// This is kept since comments are sometimes embedded in the sample name.
+    /// List sample information.
     fn samples(&self) -> &[Sample];
 
     /// How many samples are stored
     fn total_samples(&self) -> usize {
         self.samples().len()
     }
-
-    // fn total_samples_actual(&self) -> usize {
-    //
-    // }
 }

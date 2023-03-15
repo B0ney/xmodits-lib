@@ -19,6 +19,7 @@ const FINETUNE: [u32; 16] = [
 pub struct MOD {
     inner: GenericTracker,
     samples: Box<[Sample]>,
+    title: Box<str>,
 }
 
 impl Module for MOD {
@@ -27,17 +28,6 @@ impl Module for MOD {
     }
 
     fn format(&self) -> &str {
-        todo!()
-    }
-
-    fn load(buf: Vec<u8>) -> Result<MOD, (Error, Vec<u8>)>
-    where
-        Self: Sized,
-    {
-        todo!()
-    }
-
-    fn load_unchecked(buf: Vec<u8>) -> Result<Self, (Error, Vec<u8>)> {
         todo!()
     }
 
@@ -53,11 +43,15 @@ impl Module for MOD {
         todo!()
     }
 
-    fn validate(buf: &[u8]) -> Result<(), Error>
+    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error>
     where
         Self: Sized,
     {
         todo!()
+    }
+
+    fn matches_format(buf: &[u8]) -> bool {
+        false
     }
 }
 

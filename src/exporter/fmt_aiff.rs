@@ -76,7 +76,7 @@ impl AudioTrait for Aiff {
         // The docs say the samples use 2's compliment
         // the written samples will be slightly different
         let pcm = match smp.depth {
-            Depth::I16 | Depth::I8 => pcm, // todo! make into 
+            Depth::I16 | Depth::I8 => pcm, // todo! make into
             Depth::U8 => flip_sign_8_bit(pcm.into_owned()).into(),
             Depth::U16 => flip_sign_16_bit(pcm.into_owned()).into(),
         };

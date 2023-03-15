@@ -1,26 +1,43 @@
-use crate::fmt::loader::identify_module;
-use crate::interface::ripper::Ripper;
+use std::borrow::Cow;
+
+use crate::fmt::{formats::*, loader::identify_module, Format};
 use crate::interface::Error;
 use crate::interface::Module;
-use crate::parser::io::Container;
+use crate::interface::Sample;
 use crate::parser::{
-    io::{is_magic, non_consume, ByteReader, ReadSeek},
+    bytes::magic_header,
+    io::{is_magic, non_consume, ByteReader, Container, ReadSeek},
     read_str::read_strr,
 };
-
-use super::Format;
-use super::fmt_it;
-use super::fmt_mod;
-use super::fmt_s3m;
-use super::fmt_xm;
-use super::loader::umx_load_module;
 
 pub const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
 
 struct Private;
 
+/// Unreal Container
 /// "Abandon all hope ye who try to parse this file format." - Tim Sweeney, Unreal Packages
 pub struct UMX(Private);
+
+impl Module for UMX {
+    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+        parse_(data)
+    }
+    fn matches_format(buf: &[u8]) -> bool {
+        magic_header(&MAGIC_UPKG, buf)
+    }
+    fn name(&self) -> &str {
+        unimplemented!()
+    }
+    fn format(&self) -> &str {
+        unimplemented!()
+    }
+    fn pcm(&self, _: &Sample) -> Result<Cow<[u8]>, Error> {
+        unimplemented!()
+    }
+    fn samples(&self) -> &[Sample] {
+        unimplemented!()
+    }
+}
 
 pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     if !is_magic(file, &MAGIC_UPKG)? {
@@ -93,17 +110,14 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
 
     let mut file = Container::new(file).with_size(size);
     let file = &mut file;
+
     // done to prevent overflow compile error
     let module: Box<dyn Module> = match identify_module(file)? {
-        Format::IT => Box::new(fmt_it::parse_(file)?),
-        Format::XM => Box::new(fmt_xm::parse_(file)?),
-        Format::S3M => Box::new(fmt_s3m::parse_(file)?),
-        Format::MOD => Box::new(fmt_mod::parse_(file)?),
+        Format::IT => IT::load(file)?,
+        Format::XM => XM::load(file)?,
+        Format::S3M => S3M::load(file)?,
+        Format::MOD => MOD::load(file)?,
         Format::UMX => unreachable!(),
-        // Format::UMX => match is_umx {
-        //     true => unreachable!("UMX must not contain another UMX container"),
-        //     false => 
-        // }
     };
     Ok(module)
 }

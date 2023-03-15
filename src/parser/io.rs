@@ -1,42 +1,15 @@
-use std::{
-    io::{self, BufReader, Cursor, Read, Seek, SeekFrom},
-    ops::Range,
-};
+use std::io::{self, BufReader, Cursor, Read, Seek, SeekFrom};
 
 pub trait ReadSeek: Read + Seek {
     fn size(&self) -> Option<u64>;
-    fn to_boxed_slice(self) -> io::Result<Box<[u8]>>;
-
-    fn read_from_range(mut self, Range { start, end }: Range<usize>) -> Box<[u8]>
-    where
-        Self: Sized,
-    {
-        self.seek(SeekFrom::Start(start as u64)).unwrap();
-        let mut buf: Vec<u8> = vec![0u8; end - start];
-        self.read_exact(&mut buf).unwrap();
-        buf.into()
-    }
 }
 
 impl<T> ReadSeek for Cursor<T>
 where
     T: AsRef<[u8]>,
-    Vec<u8>: From<T>,
 {
     fn size(&self) -> Option<u64> {
         Some(self.get_ref().as_ref().len() as u64)
-    }
-
-    fn to_boxed_slice(self) -> io::Result<Box<[u8]>> {
-        let a: Vec<u8> = self.into_inner().into();
-        Ok(a.into())
-    }
-
-    fn read_from_range(self, Range { start, end }: Range<usize>) -> Box<[u8]> {
-        let mut a: Vec<u8> = self.into_inner().into();
-        a.drain(..start);
-        a.drain(end..);
-        a.into()
     }
 }
 
@@ -47,26 +20,11 @@ impl ReadSeek for std::fs::File {
             _ => None,
         }
     }
-
-    fn to_boxed_slice(mut self) -> io::Result<Box<[u8]>> {
-        let mut buf: Vec<u8> = Vec::new();
-        self.rewind()?;
-        self.read_to_end(&mut buf)?;
-        Ok(buf.into())
-    }
 }
 
 impl<T: ReadSeek> ReadSeek for BufReader<T> {
     fn size(&self) -> Option<u64> {
         self.get_ref().size()
-    }
-
-    fn to_boxed_slice(self) -> io::Result<Box<[u8]>> {
-        self.into_inner().to_boxed_slice()
-    }
-
-    fn read_from_range(self, range: Range<usize>) -> Box<[u8]> {
-        self.into_inner().read_from_range(range)
     }
 }
 
@@ -150,7 +108,7 @@ impl<T: ReadSeek> ByteReader for T {
     }
 }
 
-/// For When you need to do an IO operation without affecting the cursor
+/// When you need to do an IO operation without affecting the cursor
 pub fn non_consume<R, F, T>(reader: &mut R, operation: F) -> io::Result<T>
 where
     R: ByteReader,
@@ -186,17 +144,12 @@ impl<R: io::Read + Seek> ReadSeek for Container<R> {
     fn size(&self) -> Option<u64> {
         self.size
     }
-
-    fn to_boxed_slice(self) -> io::Result<Box<[u8]>> {
-        todo!()
-    }
 }
 
 impl<R: Read + Seek> Container<R> {
     pub fn new(mut inner: R) -> Self {
         Self {
             size: None,
-            // cursor: 0,
             offset: inner.stream_position().expect("stream position"),
             inner,
         }
@@ -210,7 +163,6 @@ impl<R: Read + Seek> Container<R> {
         self
     }
 }
-
 
 impl<R: Read + Seek> io::Read for Container<R> {
     // todo: add eof limit
@@ -237,7 +189,7 @@ impl<R: Read + Seek> Seek for Container<R> {
                 self.inner.seek(SeekFrom::Start(self.offset))?;
                 self.inner.seek(SeekFrom::Current(n as i64))
             }
-            SeekFrom::End(_) => todo!(),
+            SeekFrom::End(_) => todo!("Need to implement SeekfFrom::end for Container<T>"),
             SeekFrom::Current(n) => {
                 match self.inner.stream_position()? as i64 + n {
                     // prevent seeking back behind the offset
@@ -257,11 +209,10 @@ impl<R: Read + Seek> Seek for Container<R> {
                 self.inner.seek(SeekFrom::Current(n))
             }
         };
-        // self.cursor = (self.inner.stream_position()? - self.offset) as i64;
         Ok(result?)
     }
     fn stream_position(&mut self) -> io::Result<u64> {
-        // Ok(self.cursor as u64)
+
         Ok(self.inner.stream_position()? - self.offset)
     }
 }
@@ -312,6 +263,6 @@ mod tests {
         let G = Cow::Borrowed(&[9u8, 8, 7]);
         let mut a = Cursor::new(&[2, 3, 4u8] as &[u8]);
 
-        let a = a.to_boxed_slice().unwrap();
+        // let a = a.to_boxed_slice().unwrap();
     }
 }

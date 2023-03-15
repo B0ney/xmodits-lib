@@ -31,8 +31,7 @@ pub fn flip_sign_8_bit(mut pcm_8_bit: Vec<u8>) -> Vec<u8> {
 
 #[inline]
 fn _flip_sign_8_bit_ref_mut(pcm_8_bit: &mut [u8]) {
-    maybe_par_iter_mut!(pcm_8_bit)
-        .for_each(|b| *b = b.wrapping_add(i8::MAX as u8 + 1));
+    maybe_par_iter_mut!(pcm_8_bit).for_each(|b| *b = b.wrapping_add(i8::MAX as u8 + 1));
 }
 
 #[inline]
@@ -44,8 +43,7 @@ pub fn flip_sign_16_bit(mut pcm: Vec<u8>) -> Vec<u8> {
 
 #[inline]
 fn _flip_sign_16_bit_ref_mut(pcm_16_bit: &mut [u16]) {
-    maybe_par_iter_mut!(pcm_16_bit)
-        .for_each(|b| *b = b.wrapping_add(i16::MAX as u16 + 1));
+    maybe_par_iter_mut!(pcm_16_bit).for_each(|b| *b = b.wrapping_add(i16::MAX as u16 + 1));
 }
 
 /// Reduce bit depth of 16 bit sample to 8 bit sample.

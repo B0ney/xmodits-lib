@@ -1,9 +1,9 @@
-use std::collections::{BTreeMap, HashMap};
-use crate::interface::{Sample, Module};
 use crate::exporter::fmt_raw;
+use crate::interface::{Module, Sample};
+use std::collections::{BTreeMap, HashMap};
 
 pub struct Cache {
-    cache: BTreeMap<Sample, Box<[u8]>>
+    cache: BTreeMap<Sample, Box<[u8]>>,
 }
 
 impl Cache {
@@ -14,7 +14,5 @@ impl Cache {
             // cache.insert(s, module.pcm(&s).unwrap().into());
         }
         todo!();
-
-        
     }
 }
