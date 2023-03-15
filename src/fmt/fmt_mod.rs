@@ -68,7 +68,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
     file.skip_bytes(4)?; // pseudo signature e.g "M!K!"
 
     // I still haven't figured out why I need to add 1
-    let highest = max(&patterns);
+    let highest = max(&patterns) + 1;
     file.skip_bytes(highest as i64 * 1024)?;
 
     for smp in samples.iter_mut() {
