@@ -1,3 +1,4 @@
+use crate::info;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -8,7 +9,6 @@ use crate::parser::{
     io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
 };
 use crate::utils::deltadecode::{delta_decode_u16, delta_decode_u8};
-use log::info;
 use std::borrow::Cow;
 
 const NAME: &str = "Extended Module";
@@ -49,6 +49,7 @@ impl Module for XM {
     }
 
     fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+        info!("Loading Extended Module");
         Ok(Box::new(parse_(data)?))
     }
 
@@ -59,7 +60,7 @@ impl Module for XM {
 
 #[inline]
 pub fn delta_decode(smp: &Sample) -> impl Fn(Vec<u8>) -> Vec<u8> {
-    info!("Delta decoding sample {}", smp.index_raw());
+    info!("Delta decoding sample with raw index: {}", smp.index_raw());
 
     match smp.is_8_bit() {
         true => delta_decode_u8,

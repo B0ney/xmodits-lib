@@ -1,13 +1,13 @@
 use crate::interface::Error;
 use crate::parser::bytes::le_u16 as _le_u16;
+use crate::{error, warn};
 use bytemuck::cast_slice;
-use log::warn;
 
 fn eof_err(len: usize, offset: usize) -> Error {
     let error = format!(
         "Unexpected EOF for compressed Impulse Tracker sample ({len} bytes) for given offset {offset}"
     );
-    log::error!("{}", error);
+    error!("{}", error);
     Error::Extraction(error)
 }
 

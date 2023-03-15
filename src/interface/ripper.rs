@@ -1,4 +1,3 @@
-use log::{debug, error, info, warn, Level};
 #[cfg(feature = "thread")]
 use rayon::prelude::*;
 use std::io::{self, Write};
@@ -8,7 +7,7 @@ use crate::exporter::ExportFormat;
 use crate::interface::audio::{AudioTrait, DynAudioTrait};
 use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
 use crate::interface::{Error, Module, Sample};
-use crate::maybe_par_iter;
+use crate::{error, maybe_par_iter};
 
 /// Struct to rip samples from a module
 ///

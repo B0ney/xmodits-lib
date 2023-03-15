@@ -13,18 +13,19 @@ thiserror = "1.0.38"
 bytemuck = "1.13.0"
 extended = "0.1.0"
 
-log = { version = "0.4.17", optional = false } # todo
+log = { version = "0.4.17", optional = true }
 rayon = { version = "1.6.1", optional = true }
 serde = { version = "1.0.152", features = ["derive"] , optional = true }
 ffmpeg-next = { version = "5.1.1", optional = true }
 
 [dev-ddependencies]
 env_logger = "0.10.0"
+log = "0.4.14"
 
 [features]
-# default = ["thread"]
+default = ["log"]
 
-# logging = ["log"]
+# log = ["log"]
 thread = ["rayon"]
 serde_support = ["serde"]
 ffmpeg = ["ffmpeg-next"]

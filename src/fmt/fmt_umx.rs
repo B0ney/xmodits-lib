@@ -7,6 +7,7 @@ use crate::parser::{
     io::{is_magic, ByteReader, Container, ReadSeek},
     read_str::read_strr,
 };
+use crate::{error, info};
 use std::borrow::Cow;
 
 const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
@@ -19,6 +20,7 @@ pub struct UMX(Private);
 
 impl Module for UMX {
     fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+        info!("Loading Unreal package");
         parse_(data)
     }
     fn matches_format(buf: &[u8]) -> bool {
@@ -116,7 +118,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
         Format::XM => XM::load(file)?,
         Format::S3M => S3M::load(file)?,
         Format::MOD => MOD::load(file)?,
-        Format::UMX => unreachable!(),
+        Format::UMX => return Err(Error::invalid("Nested Unreal music containers are invalid")),
     };
     Ok(module)
 }

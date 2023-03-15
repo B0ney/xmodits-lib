@@ -8,7 +8,7 @@ use crate::parser::{
     io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
     read_str::read_strr,
 };
-use log::{info, warn};
+use crate::{info, warn};
 use std::borrow::Cow;
 
 const NAME: &str = "Impulse Tracker";
@@ -75,6 +75,7 @@ impl Module for IT {
     }
 
     fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+        info!("Loading Impulse Tracker Module");
         Ok(Box::new(parse_(data)?))
     }
 
@@ -82,8 +83,6 @@ impl Module for IT {
         magic_header(&MAGIC_IMPM, buf) | magic_header(&MAGIC_ZIRCONIA, buf)
     }
 }
-
-
 
 pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
     if is_magic_non_consume(file, &MAGIC_ZIRCONIA)? {
@@ -126,6 +125,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
 
 fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>, Error> {
     let mut samples: Vec<Sample> = Vec::with_capacity(ptrs.len());
+    info!("Building samples");
 
     for (index_raw, sample_header) in ptrs.into_iter().enumerate() {
         file.set_seek_pos(sample_header as u64)?;
@@ -139,7 +139,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         let length = file.read_u32_le()?;
 
         if length == 0 {
-            info!("Skipping empty sample at index {}...", index_raw + 1);
+            info!("Skipping empty sample at raw index: {}...", index_raw + 1);
             continue;
         }
         file.skip_bytes(-44 - 4)?;
@@ -174,7 +174,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
         match file.size() {
             Some(size) if (pointer + length) as u64 > size => {
-                info!("Skipping invalid sample at index {}...", index_raw + 1);
+                info!("Skipping invalid sample at index: {}...", index_raw + 1);
                 continue;
             }
             _ => (),
@@ -212,7 +212,10 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
 #[inline]
 fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Error> {
-    info!("Decompressing Impulse Tracker sample {}", smp.index_raw());
+    info!(
+        "Decompressing Impulse Tracker sample with raw index: {}",
+        smp.index_raw()
+    );
 
     match smp.is_8_bit() {
         true => decompress_8_bit,
@@ -233,7 +236,7 @@ pub fn a_() {
     //     .build_global()
     //     .unwrap();
     // let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
-    let mut file = std::io::Cursor::new(std::fs::read("./utmenu.it").unwrap());
+    let mut file = std::io::Cursor::new(std::fs::read("./modules/slayerdsm.it").unwrap());
 
     let tracker = parse_(&mut file).unwrap();
     // dbg!(samples.len());
@@ -253,7 +256,9 @@ pub fn a_() {
     //     version: 0x0214,
     // };
 
-    // let ripper = Ripper::default();
+    let ripper = Ripper::default();
     // ripper.change_format(ExportFormat::IFF.into());
-    // ripper.rip_to_dir("./test_export/", &tracker).unwrap()
+    ripper
+        .rip_to_dir("./test/export/slayer/", &tracker)
+        .unwrap()
 }

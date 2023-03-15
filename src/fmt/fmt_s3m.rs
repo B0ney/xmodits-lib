@@ -1,3 +1,4 @@
+use crate::info;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -7,7 +8,6 @@ use crate::parser::{
     io::{is_magic, ByteReader, ReadSeek},
     read_str::read_strr,
 };
-use log::info;
 use std::borrow::Cow;
 
 const NAME: &str = "Scream Tracker";
@@ -49,6 +49,7 @@ impl Module for S3M {
     }
 
     fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+        info!("Loading Scream Tracker 3 Module");
         Ok(Box::new(parse_(data)?))
     }
 
@@ -106,7 +107,10 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         file.set_seek_pos(ptr as u64)?;
 
         if file.read_u8()? != 1 {
-            info!("Skipping non-pcm instrument at index {}", index_raw + 1);
+            info!(
+                "Skipping non-pcm instrument at raw index: {}",
+                index_raw + 1
+            );
             continue;
         }
         let filename = read_strr(&file.read_bytes(12)?)?;
@@ -114,7 +118,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         let length = file.read_u32_le()? & 0xffff; // ignore upper 16 bits
 
         if length == 0 {
-            info!("Skipping empty sample at index {}", index_raw + 1);
+            info!("Skipping empty sample at raw index: {}", index_raw + 1);
             continue;
         }
 
@@ -142,7 +146,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
 
         match file.size() {
             Some(len) if (pointer + length) as u64 > len => {
-                info!("Skipping invalid sample at index {}...", index_raw + 1);
+                info!("Skipping invalid sample at raw index: {}...", index_raw + 1);
                 continue;
             }
             _ => (),
@@ -174,20 +178,20 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
 #[test]
 pub fn a() {
     use std::io::{Read, Seek};
-
+    // env_logger::init();
     use crate::interface::ripper::Ripper;
-
-    let mut file = std::fs::File::open("./dusk.s3m").unwrap();
+    // panic!();
+    let mut file = std::fs::File::open("./modules/dusk.s3m").unwrap();
     let tracker = parse_(&mut file).unwrap();
-    dbg!(&tracker.name());
-    for i in tracker.samples() {
-        // dbg!(i.is_stereo());
-        dbg!(i.filename_pretty());
-        dbg!(i.name_pretty());
-        dbg!(i.bits());
-        dbg!(&i.looping);
-        dbg!(i.bits());
-    }
+    info!("3gsfg {}", &tracker.name());
+    // for i in tracker.samples() {
+    //     // dbg!(i.is_stereo());
+    //     dbg!(i.filename_pretty());
+    //     dbg!(i.name_pretty());
+    //     dbg!(i.bits());
+    //     dbg!(&i.looping);
+    //     dbg!(i.bits());
+    // }
 
     // file.rewind().unwrap();
     // let mut inner = Vec::new();

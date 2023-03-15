@@ -42,10 +42,7 @@ impl Module for MOD {
         todo!()
     }
 
-    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error>
-    where
-        Self: Sized,
-    {
+    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
         todo!()
     }
 
@@ -66,6 +63,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
     let mut samples: Vec<Sample> = Vec::new();
 
     let pointer = file.stream_position()? as u32;
+
     let name = read_strr(&file.read_bytes(22)?)?;
     let length = file.read_u16_be()? * 2;
     let finetune = file.read_u8()?;

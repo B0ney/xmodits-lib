@@ -1,6 +1,6 @@
+use crate::warn;
 /// ! Helper functions
 use bytemuck::{cast_slice, cast_slice_mut};
-use log::warn;
 
 use crate::maybe_par_iter_mut;
 #[cfg(feature = "thread")]
