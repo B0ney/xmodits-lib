@@ -1,4 +1,5 @@
-use std::{borrow::Cow, str::from_utf8};
+use crate::parser::io::io_error;
+use std::borrow::Cow;
 
 const FORBIDDEN_CHARS: &[char] = &[
     '/', // Linux/Unix
@@ -6,10 +7,6 @@ const FORBIDDEN_CHARS: &[char] = &[
     '+', '=', '[', ']', ';', ',',  //
     '\0', // for now
 ];
-
-use crate::interface::Error;
-
-use crate::parser::io::io_error;
 
 pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
     buf.iter_mut().for_each(|x| {
@@ -48,7 +45,7 @@ fn is_garbage(buf: &[u8], threshold: usize) -> bool {
     let mut total_garbage: usize = 0;
 
     for i in buf {
-        if !is_printable_ascii(i) {
+        if !is_printable_ascii(*i) {
             total_garbage += 1;
         }
         if total_garbage > threshold {
@@ -59,8 +56,8 @@ fn is_garbage(buf: &[u8], threshold: usize) -> bool {
     // buf.iter().filter(|f| !is_printable_ascii(f)).count() > threashold
 }
 
-fn is_printable_ascii(byte: &u8) -> bool {
-    *byte >= b' ' && *byte < b'~'
+fn is_printable_ascii(byte: u8) -> bool {
+    byte >= b' ' && byte < b'~'
 }
 
 /// trim trailing nulls from u8 slice
@@ -82,7 +79,7 @@ pub fn trim_null(buf: &[u8]) -> &[u8] {
 /// This also trims any whitespace.
 pub fn to_str_os(str: Cow<str>) -> Cow<str> {
     let forbidden_chars = |c: &char| FORBIDDEN_CHARS.contains(c);
-    let non_printable_ascii = |c: &char| !c.is_ascii();
+    let non_printable_ascii = |c: &char| !is_printable_ascii(*c as u8);
     let is_trimmed = |s: &Cow<str>| s.trim() == s;
 
     let bad_stuff = |c: char| forbidden_chars(&c) || non_printable_ascii(&c);

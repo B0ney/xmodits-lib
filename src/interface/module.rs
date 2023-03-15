@@ -1,73 +1,6 @@
+use crate::interface::{sample::Sample, Error};
+use crate::parser::io::ReadSeek;
 use std::borrow::Cow;
-
-use crate::{
-    interface::{sample::Sample, Error},
-    parser::io::ReadSeek,
-};
-
-// struct NamePtr {
-//     pub ptr: usize,
-//     pub len: usize,
-// }
-
-// impl From<(usize, usize)> for NamePtr {
-//     fn from((ptr, len): (usize, usize)) -> Self {
-//         Self { ptr, len }
-//     }
-// }
-
-/// Panic free wrapper to obtain raw samples from a module
-///
-pub struct GenericTracker {
-    // /// Name of the module
-    // name: NamePtr,
-    /// Stored module
-    buf: Box<[u8]>,
-    // pub samples: Option<Box<[Sample]>>,
-}
-
-impl GenericTracker {
-    pub fn new(buf: Vec<u8>) -> Self {
-        Self {
-            buf: buf.into_boxed_slice(),
-        }
-    }
-
-    #[inline]
-    pub fn get_slice(&self, smp: &Sample) -> Result<&[u8], Error> {
-        self.buf
-            .get(smp.ptr_range())
-            .ok_or_else(|| Error::bad_sample(smp))
-    }
-
-    #[inline]
-    pub fn get_slice_trailing(&self, smp: &Sample) -> Result<&[u8], Error> {
-        self.buf
-            .get(smp.pointer as usize..)
-            .ok_or_else(|| Error::bad_sample(smp))
-    }
-
-    #[inline]
-    pub fn get_owned_slice(&self, smp: &Sample) -> Result<Vec<u8>, Error> {
-        Ok(self.get_slice(smp)?.to_owned())
-    }
-
-    #[inline]
-    pub fn get_owned_slice_trailing(&self, smp: &Sample) -> Result<Vec<u8>, Error> {
-        Ok(self.get_slice_trailing(smp)?.to_owned())
-    }
-}
-
-impl From<Box<[u8]>> for GenericTracker {
-    fn from(value: Box<[u8]>) -> Self {
-        Self { buf: value }
-    }
-}
-impl From<Vec<u8>> for GenericTracker {
-    fn from(value: Vec<u8>) -> Self {
-        Self { buf: value.into() }
-    }
-}
 
 /// A barebones representation of a tracker module.
 ///
@@ -110,5 +43,55 @@ pub trait Module: Send + Sync {
     /// How many samples are stored
     fn total_samples(&self) -> usize {
         self.samples().len()
+    }
+}
+
+/// Panic free wrapper to obtain raw samples from a module
+pub struct GenericTracker {
+    /// Stored module
+    buf: Box<[u8]>,
+}
+
+impl GenericTracker {
+    pub fn new(buf: Vec<u8>) -> Self {
+        Self {
+            buf: buf.into_boxed_slice(),
+        }
+    }
+
+    #[inline]
+    pub fn get_slice(&self, smp: &Sample) -> Result<&[u8], Error> {
+        self.buf
+            .get(smp.ptr_range())
+            .ok_or_else(|| Error::bad_sample(smp))
+    }
+
+    #[inline]
+    pub fn get_slice_trailing(&self, smp: &Sample) -> Result<&[u8], Error> {
+        self.buf
+            .get(smp.pointer as usize..)
+            .ok_or_else(|| Error::bad_sample(smp))
+    }
+
+    #[inline]
+    pub fn get_owned_slice(&self, smp: &Sample) -> Result<Vec<u8>, Error> {
+        Ok(self.get_slice(smp)?.to_owned())
+    }
+
+    #[inline]
+    pub fn get_owned_slice_trailing(&self, smp: &Sample) -> Result<Vec<u8>, Error> {
+        Ok(self.get_slice_trailing(smp)?.to_owned())
+    }
+}
+
+impl From<Box<[u8]>> for GenericTracker {
+    fn from(value: Box<[u8]>) -> Self {
+        Self { buf: value }
+    }
+}
+
+impl From<Vec<u8>> for GenericTracker {
+    fn from(value: Vec<u8>) -> Self {
+        Self { buf: value.into() }
     }
 }

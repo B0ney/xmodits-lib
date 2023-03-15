@@ -14,7 +14,8 @@ const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
 
 struct Private;
 
-/// Unreal Container
+/// Unreal Package
+/// 
 /// "Abandon all hope ye who try to parse this file format." - Tim Sweeney, Unreal Packages
 pub struct UMX(Private);
 
