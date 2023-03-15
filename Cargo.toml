@@ -21,10 +21,9 @@ ffmpeg-next = { version = "5.1.1", optional = true }
 [dev-ddependencies]
 env_logger = "0.10.0"
 
-# [default-features]
+[features]
 # default = ["thread"]
 
-[features]
 # logging = ["log"]
 thread = ["rayon"]
 serde_support = ["serde"]
