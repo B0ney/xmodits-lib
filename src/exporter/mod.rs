@@ -7,6 +7,7 @@ pub mod fmt_aiff;
 pub mod fmt_iff;
 pub mod fmt_its;
 pub mod fmt_raw;
+pub mod fmt_s3i;
 pub mod fmt_wav;
 
 /// Possible formats to store the pcm
@@ -24,6 +25,8 @@ pub enum ExportFormat {
     AIFF,
     /// Impulse Tracker Sample
     ITS,
+    /// Scream Tracker 3 Instrument
+    S3I,
     /// Raw PCM
     /// This will lose information about the sample.
     RAW,
@@ -36,11 +39,12 @@ impl ExportFormat {
     /// If the implementation is zero sized, it won't allocate.
     pub fn get_impl(&self) -> Box<dyn AudioTrait> {
         match self {
-            Self::IFF => Box::new(fmt_iff::Iff),
             Self::WAV => Box::new(fmt_wav::Wav),
-            Self::RAW => Box::new(fmt_raw::Raw),
             Self::AIFF => Box::new(fmt_aiff::Aiff),
+            Self::IFF => Box::new(fmt_iff::Iff),
             Self::ITS => Box::new(fmt_its::Its),
+            Self::S3I => Box::new(fmt_s3i::S3i),
+            Self::RAW => Box::new(fmt_raw::Raw),
         }
     }
 }
@@ -62,6 +66,7 @@ impl std::fmt::Display for ExportFormat {
                 Self::RAW => "raw",
                 Self::AIFF => "aiff",
                 Self::ITS => "its",
+                Self::S3I => "s3i",
             }
         )
     }
