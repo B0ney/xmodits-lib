@@ -68,7 +68,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
     file.skip_bytes(4)?; // pseudo signature e.g "M!K!"
 
     // I still haven't figured out why I need to add 1
-    let highest = *patterns.iter().max().unwrap() + 1;
+    let highest = max(&patterns);
     file.skip_bytes(highest as i64 * 1024)?;
 
     for smp in samples.iter_mut() {
@@ -139,6 +139,19 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
         }
     }
     Ok(samples)
+}
+
+/// ``*patterns.iter().max().unwrap() + 1;`` produces 57 lines of asm: https://godbolt.org/z/4sd4E7r9o
+/// 
+/// But this implementation only produces 28 lines of asm: https://godbolt.org/z/353a8d968
+fn max(f: &[u8; 128]) -> u8 {
+    let mut max: u8 = 0;
+    for i in f {
+        if *i > max {
+            max = *i;
+        }
+    }
+    return max;
 }
 
 #[cfg(test)]
