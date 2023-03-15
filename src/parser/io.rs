@@ -147,20 +147,12 @@ impl<R: io::Read + Seek> ReadSeek for Container<R> {
 }
 
 impl<R: Read + Seek> Container<R> {
-    pub fn new(mut inner: R) -> Self {
+    pub fn new(mut inner: R, size: Option<u64>) -> Self {
         Self {
-            size: None,
+            size,
             offset: inner.stream_position().expect("stream position"),
             inner,
         }
-    }
-
-    pub fn with_size(mut self, size: Option<u64>) -> Self {
-        self.size = match size {
-            Some(s) => Some(s - self.inner.stream_position().expect("stream position")),
-            None => None,
-        };
-        self
     }
 }
 
@@ -212,7 +204,6 @@ impl<R: Read + Seek> Seek for Container<R> {
         Ok(result?)
     }
     fn stream_position(&mut self) -> io::Result<u64> {
-
         Ok(self.inner.stream_position()? - self.offset)
     }
 }
@@ -230,7 +221,7 @@ mod tests {
         let mut a = Cursor::new(b"\0\0\0\0Extended Module: Chicken flavour" as &[u8]);
         a.skip_bytes(4).unwrap();
 
-        let mut buf = Container::new(a).with_size(Some(17));
+        let mut buf = Container::new(a, Some(17));
         dbg!(is_magic_non_consume(&mut buf, b"Extended Module: ").unwrap());
         dbg!(is_magic_non_consume(&mut buf, b"Extended Module: ").unwrap());
         dbg!(is_magic_non_consume(&mut buf, b"Extended Module: ").unwrap());
@@ -248,7 +239,7 @@ mod tests {
     }
     #[test]
     fn no_consume() {
-        let mut buf = Container::new(Cursor::new([0u8; 32]));
+        let mut buf = Container::new(Cursor::new([0u8; 32]), Some(32));
 
         assert_eq!(buf.seek_position().unwrap(), 0);
         let _ = is_magic_non_consume(&mut buf, &[0, 0, 0, 0]).unwrap();

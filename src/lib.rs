@@ -9,7 +9,7 @@ pub mod utils;
 pub mod macros;
 
 pub mod traits {
-    pub use crate::parser::io::{ReadSeek, ByteReader};
-    pub use crate::interface::Module;
     pub use crate::interface::name::SampleNamerTrait;
+    pub use crate::interface::Module;
+    pub use crate::parser::io::{ByteReader, ReadSeek};
 }

@@ -1,6 +1,3 @@
-use log::{info, warn};
-use std::borrow::Cow;
-
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
@@ -11,11 +8,13 @@ use crate::parser::{
     io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
     read_str::read_strr,
 };
+use log::{info, warn};
+use std::borrow::Cow;
 
 const NAME: &str = "Impulse Tracker";
 
 /* Magic values */
-pub const MAGIC_IMPM: [u8; 4] = *b"IMPM";
+const MAGIC_IMPM: [u8; 4] = *b"IMPM";
 const MAGIC_IMPS: [u8; 4] = *b"IMPS";
 const MAGIC_ZIRCONIA: [u8; 8] = *b"ziRCONia";
 const MAGIC_IT215: u16 = 0x0215;
@@ -32,6 +31,11 @@ const FLAG_PINGPONG_SUSTAIN: u8 = 1 << 7;
 /* Cvt flags */
 const CVT_SIGNED: u8 = 1; // IT 2.01 and below use unsigned samples
 const CVT_DELTA: u8 = 1 << 2; // off = PCM values, ON = Delta values
+
+const UNSUPPORTED: &str = "Impulse Tracker Module uses 'ziRCON' sample compression";
+const INVALID: &str = "Not a valid Impulse Tracker module";
+const DELTA_PCM: &str =
+    "This Impulse Tracker sample is stored as delta values. Samples may sound quiet.";
 
 /// Impulse Tracker module
 pub struct IT {
@@ -75,14 +79,11 @@ impl Module for IT {
     }
 
     fn matches_format(buf: &[u8]) -> bool {
-        magic_header(&MAGIC_IMPM, buf)
+        magic_header(&MAGIC_IMPM, buf) | magic_header(&MAGIC_ZIRCONIA, buf)
     }
 }
 
-const UNSUPPORTED: &str = "Impulse Tracker Module uses 'ziRCON' sample compression";
-const INVALID: &str = "Not a valid Impulse Tracker module";
-const DELTA_PCM: &str =
-    "This Impulse Tracker sample is stored as delta values. Samples may sound quiet.";
+
 
 pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
     if is_magic_non_consume(file, &MAGIC_ZIRCONIA)? {

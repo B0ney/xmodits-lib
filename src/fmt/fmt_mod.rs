@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -8,6 +6,7 @@ use crate::parser::{
     io::{is_magic, ByteReader, ReadSeek},
     read_str::read_strr,
 };
+use std::borrow::Cow;
 
 const MAGIC_PP20: [u8; 4] = *b"PP20";
 

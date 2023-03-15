@@ -1,23 +1,19 @@
-use std::borrow::Cow;
-
-use bytemuck::offset_of;
-use log::info;
-
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{self, Channel, Depth, Loop, LoopType, Sample};
+use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::bytes::magic_header;
 use crate::parser::read_str::read_strr;
-// use crate::parser::magic::bad_magic_non_consume;
 use crate::parser::{
     bitflag::BitFlag,
     io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
 };
 use crate::utils::deltadecode::{delta_decode_u16, delta_decode_u8};
+use log::info;
+use std::borrow::Cow;
 
 const NAME: &str = "Extended Module";
 
-pub const MAGIC_EXTENDED_MODULE: [u8; 17] = *b"Extended Module: ";
+const MAGIC_EXTENDED_MODULE: [u8; 17] = *b"Extended Module: ";
 const MAGIC_MOD_PLUGIN_PACKED: [u8; 20] = *b"MOD Plugin packed   ";
 const MAGIC_NUMBER: u8 = 0x1A;
 const MINIMUM_VERSION: u16 = 0x0104;
@@ -57,7 +53,7 @@ impl Module for XM {
     }
 
     fn matches_format(buf: &[u8]) -> bool {
-        magic_header(&MAGIC_EXTENDED_MODULE, buf)
+        magic_header(&MAGIC_EXTENDED_MODULE, buf) | magic_header(&MAGIC_MOD_PLUGIN_PACKED, buf)
     }
 }
 
@@ -233,7 +229,8 @@ mod test {
         file.append(&mut a);
         let mut a = Cursor::new(file);
         a.skip_bytes(64).unwrap();
-        let mut a = Container::new(a);
+        let size = a.size();
+        let mut a = Container::new(a, size);
 
         let ripper = Ripper::default();
 

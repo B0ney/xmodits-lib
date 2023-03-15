@@ -1,8 +1,3 @@
-use std::borrow::Cow;
-
-use log::info;
-
-use crate::exporter::ExportFormat;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -12,10 +7,12 @@ use crate::parser::{
     io::{is_magic, ByteReader, ReadSeek},
     read_str::read_strr,
 };
+use log::info;
+use std::borrow::Cow;
 
 const NAME: &str = "Scream Tracker";
 
-pub const MAGIC_SCRM: [u8; 4] = *b"SCRM";
+const MAGIC_SCRM: [u8; 4] = *b"SCRM";
 const MAGIC_SAMPLE: [u8; 4] = *b"SCRS";
 const INVALID: &str = "Not a valid Scream Tracker module";
 
@@ -32,8 +29,6 @@ pub struct S3M {
 
 impl Module for S3M {
     fn name(&self) -> &str {
-        // &String::from_utf8_lossy(self.0.name_raw().as_ref())
-        // todo!()
         &self.name
     }
 

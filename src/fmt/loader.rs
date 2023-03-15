@@ -19,7 +19,7 @@ pub enum Format {
 }
 
 /// load a module
-/// 
+///
 /// data must implement [ReadSeek]
 pub fn load_module(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     let module = match identify_module(data)? {

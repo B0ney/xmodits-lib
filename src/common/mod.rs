@@ -16,7 +16,10 @@ pub fn create_folder_name(path: impl AsRef<Path>) -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::{BufReader, Cursor}};
+    use std::{
+        fs::File,
+        io::{BufReader, Cursor},
+    };
 
     use crate::{
         exporter::ExportFormat,
@@ -38,7 +41,7 @@ mod tests {
 
         let module = load_module(&mut file).unwrap();
         dbg!(module.name());
-        
+
         let ripper = Ripper::new(
             SampleNamer {
                 index_only: true,

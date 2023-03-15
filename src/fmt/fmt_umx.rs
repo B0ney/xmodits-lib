@@ -1,16 +1,15 @@
-use std::borrow::Cow;
-
 use crate::fmt::{formats::*, loader::identify_module, Format};
 use crate::interface::Error;
 use crate::interface::Module;
 use crate::interface::Sample;
 use crate::parser::{
     bytes::magic_header,
-    io::{is_magic, non_consume, ByteReader, Container, ReadSeek},
+    io::{is_magic, ByteReader, Container, ReadSeek},
     read_str::read_strr,
 };
+use std::borrow::Cow;
 
-pub const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
+const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
 
 struct Private;
 
@@ -108,7 +107,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     let size = file.size();
     // store the reader into a Container struct so that seeking
 
-    let mut file = Container::new(file).with_size(size);
+    let mut file = Container::new(file, size);
     let file = &mut file;
 
     // done to prevent overflow compile error
