@@ -1,5 +1,6 @@
 # XMODITS Core Library
 
+Work in progress
 
 ## Supported Formats
 | Extension | Format |
@@ -20,13 +21,5 @@
 | ITS | Impulse Tracker Sample |
 | S3I | Scream Tracker 3 Instrument|
 
-## FFMPEG Support
-An experimental feature to allow xmodits to export samples to more formats.
-
-requires the compiling with the ``ffmpeg`` feature enabled
-
-
 ## License
 The xmodits core library is licensed under the Mozilla Public License 2 (MPLv2)
-
-todo: consider how compiling with ffmpeg support might affect the licensing 

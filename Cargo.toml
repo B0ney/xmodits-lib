@@ -27,4 +27,3 @@ log = "0.4.14"
 default = ["log"]
 
 serde_support = ["serde"]
-ffmpeg = ["ffmpeg-next"]

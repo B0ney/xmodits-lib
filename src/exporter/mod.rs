@@ -1,8 +1,6 @@
 use crate::interface::audio::AudioTrait;
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "ffmpeg")]
-pub mod ffmpeg;
 pub mod fmt_aiff;
 pub mod fmt_iff;
 pub mod fmt_its;

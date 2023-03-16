@@ -1,5 +1,4 @@
 pub mod audio;
-pub mod cacher;
 pub mod errors;
 pub mod module;
 pub mod name;
