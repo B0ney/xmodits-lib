@@ -5,6 +5,7 @@ version = "0.6.0"
 edition = "2021"
 description = "XMODITS core library"
 repository = "https://github.com/B0ney/xmodits-lib"
+license = "MPLv2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
