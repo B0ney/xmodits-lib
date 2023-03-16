@@ -179,7 +179,7 @@ fn max(f: &[u8; 128]) -> u8 {
             max = *i;
         }
     }
-    return max;
+    max
 }
 
 #[cfg(test)]

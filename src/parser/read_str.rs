@@ -53,12 +53,12 @@ fn is_garbage(buf: &[u8], threshold: usize) -> bool {
             return true;
         }
     }
-    return false;
+    false
     // buf.iter().filter(|f| !is_printable_ascii(f)).count() > threashold
 }
 
 fn is_printable_ascii(byte: u8) -> bool {
-    byte >= b' ' && byte < b'~'
+    (b' '..b'~').contains(&byte)
 }
 
 /// trim trailing nulls from u8 slice

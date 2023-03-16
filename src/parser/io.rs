@@ -187,7 +187,7 @@ impl<R: Read + Seek> io::Read for Container<R> {
 
 impl<R: Read + Seek> Seek for Container<R> {
     fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
-        let result = match pos {
+        match pos {
             SeekFrom::Start(n) => {
                 self.inner.seek(SeekFrom::Start(self.offset))?;
                 self.inner.seek(SeekFrom::Current(n as i64))
@@ -211,8 +211,7 @@ impl<R: Read + Seek> Seek for Container<R> {
 
                 self.inner.seek(SeekFrom::Current(n))
             }
-        };
-        Ok(result?)
+        }
     }
     fn stream_position(&mut self) -> io::Result<u64> {
         Ok(self.inner.stream_position()? - self.offset)
