@@ -194,7 +194,7 @@ mod test {
 
     #[test]
     fn a() {
-        let mut m = File::open("./modules/overload.mod").unwrap();
+        let mut m = File::open("./modules/debranu.mod").unwrap();
         parse_(&mut m).unwrap();
     }
 }

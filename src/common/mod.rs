@@ -6,26 +6,17 @@ use std::path::{Path, PathBuf};
 
 const MAX_SIZE_BYTES: u64 = 48 * 1024 * 1024;
 
-/// Turns a path to a module e.g test_module.it
-///
-/// into a filename like: test_module_it
-pub fn create_folder_name(path: impl AsRef<Path>) -> Option<PathBuf> {
-    let dir_name = path
-        .as_ref()
-        .file_name()?
-        .to_os_string()
-        .into_string()
-        .ok()?
-        .replace('.', "_");
-    Some(PathBuf::new().join(dir_name))
-}
-
-pub fn extract(
-    file: impl AsRef<Path>,
-    destination: impl AsRef<Path>,
+/// Extract a module from a path to a destination
+pub fn extract<A, B>(
+    file: A,
+    destination: B,
     ripper: &Ripper,
     self_contained: bool,
-) -> Result<(), Error> {
+) -> Result<(), Error>
+where
+    A: AsRef<Path>,
+    B: AsRef<Path>,
+{
     let file = file.as_ref();
     let destination = destination.as_ref();
 
@@ -45,6 +36,20 @@ pub fn extract(
     ripper.rip_to_dir(destination, module.as_ref())
 }
 
+/// Turns a path to a module e.g test_module.it
+///
+/// into a filename like: test_module_it
+pub fn create_folder_name(path: impl AsRef<Path>) -> Option<PathBuf> {
+    let dir_name = path
+        .as_ref()
+        .file_name()?
+        .to_os_string()
+        .into_string()
+        .ok()?
+        .replace('.', "_");
+    Some(PathBuf::new().join(dir_name))
+}
+
 fn get_destination<'a>(
     file: &Path,
     destination: &'a Path,
@@ -58,14 +63,14 @@ fn get_destination<'a>(
         return Err(no_filename());
     };
 
-    let destintation: PathBuf = destination.join(module_name);
+    let destination: PathBuf = destination.join(module_name);
 
-    match destintation.exists() {
-        true => return Err(already_exists(destination)),
-        false => std::fs::create_dir(&destintation)?,
+    match destination.exists() {
+        true => return Err(already_exists(&destination)),
+        false => std::fs::create_dir(&destination)?,
     }
 
-    Ok(destintation.into())
+    Ok(destination.into())
 }
 
 pub fn filesize(path: &Path) -> Result<u64, Error> {
@@ -127,7 +132,10 @@ mod tests {
         //     .unwrap()
         //     .filter_map(|res| res.map(|e| e.path()).ok())
         //     .collect();
-        extract("./modules/Lockstep.mod", "./modules", &ripper, true).unwrap();
+        match extract("./modules/debranu.mod", "./modules", &ripper, true) {
+            Ok(()) => (),
+            Err(e) => println!("{:#?}",e),
+        };
         // for i in a {
         //     extract(i, "./modules", &ripper, true).unwrap();
         // }

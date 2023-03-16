@@ -219,43 +219,47 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
     Ok(samples)
 }
+#[cfg(test)]
+mod test {
+    use crate::{fmt::fmt_it::parse_, interface::Module};
 
-#[test]
-pub fn a_() {
-    // env_logger::init();
-    use crate::exporter::ExportFormat;
-    use crate::interface::ripper::Ripper;
-    use std::fs::File;
-    use std::io::{Read, Seek};
+    #[test]
+    pub fn a_() {
+        // env_logger::init();
+        use crate::exporter::ExportFormat;
+        use crate::interface::ripper::Ripper;
+        use std::fs::File;
+        use std::io::{Read, Seek};
 
-    // rayon::ThreadPoolBuilder::new()
-    //     .num_threads(2)
-    //     .build_global()
-    //     .unwrap();
-    // let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
-    let mut file = std::io::Cursor::new(std::fs::read("./modules/slayerdsm.it").unwrap());
+        // rayon::ThreadPoolBuilder::new()
+        //     .num_threads(2)
+        //     .build_global()
+        //     .unwrap();
+        // let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
+        let mut file = std::io::Cursor::new(std::fs::read("./modules/slayerdsm.it").unwrap());
 
-    let tracker = parse_(&mut file).unwrap();
-    // dbg!(samples.len());
-    for s in tracker.samples() {
-        dbg!(s.name());
-        dbg!(s.length);
-        dbg!(&s.looping);
+        let tracker = parse_(&mut file).unwrap();
+        // dbg!(samples.len());
+        for s in tracker.samples() {
+            dbg!(s.name());
+            dbg!(s.length);
+            dbg!(&s.looping);
+        }
+
+        file.rewind().unwrap();
+        let mut buf: Vec<u8> = Vec::new();
+        file.read_to_end(&mut buf).unwrap();
+
+        // let tracker = IT {
+        //     inner: buf.into(),
+        //     samples,
+        //     version: 0x0214,
+        // };
+
+        let ripper = Ripper::default();
+        // ripper.change_format(ExportFormat::IFF.into());
+        ripper
+            .rip_to_dir("./test/export/slayer/", &tracker)
+            .unwrap()
     }
-
-    file.rewind().unwrap();
-    let mut buf: Vec<u8> = Vec::new();
-    file.read_to_end(&mut buf).unwrap();
-
-    // let tracker = IT {
-    //     inner: buf.into(),
-    //     samples,
-    //     version: 0x0214,
-    // };
-
-    let ripper = Ripper::default();
-    // ripper.change_format(ExportFormat::IFF.into());
-    ripper
-        .rip_to_dir("./test/export/slayer/", &tracker)
-        .unwrap()
 }

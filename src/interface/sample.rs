@@ -223,3 +223,8 @@ impl Depth {
 //     /// Sample is compressed with Impulse Tracker v2.15
 //     IT215,
 // }
+
+#[cfg(test)]
+mod test {
+    
+}

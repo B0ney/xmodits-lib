@@ -12,6 +12,8 @@ use crate::{error, maybe_par_iter};
 /// Struct to rip samples from a module
 ///
 /// Requires a sample namer and an audio format
+/// 
+/// They can be changed at runtime
 pub struct Ripper {
     /// Function object to name samples
     /// See [SampleNamerTrait]
@@ -79,7 +81,7 @@ impl Ripper {
 
         match errors.len() {
             0 => Ok(()),
-            n if n == module.samples().len() => Error::extraction_failure(todo!()),
+            n if n == module.samples().len() => Error::extraction_failure(errors),
             _ => Error::partial_extraction(errors),
         }
     }
