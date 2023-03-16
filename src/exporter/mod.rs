@@ -1,5 +1,5 @@
 use crate::interface::audio::AudioTrait;
-#[cfg(feature = "serde_support")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 pub mod fmt_aiff;
 pub mod fmt_iff;
@@ -10,7 +10,7 @@ pub mod fmt_wav;
 
 /// Possible formats to store the pcm
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ExportFormat {
     /// Wav, only supports unsigned 8-bit and signed 16-bit samples.
     /// Samples are processed to satisfy this.

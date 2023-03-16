@@ -1,4 +1,4 @@
-#[cfg(feature = "serde_support")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::interface::sample::Sample;
@@ -36,7 +36,7 @@ impl<'a> Context<'a> {
 
 /// Struct to customize how samples are named
 #[derive(Debug, Clone, Copy, Hash)]
-#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SampleNamer {
     /// Only name samples with an index
     pub index_only: bool,
