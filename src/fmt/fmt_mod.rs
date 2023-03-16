@@ -4,7 +4,7 @@ use crate::interface::Error;
 use crate::parser::io::non_consume;
 use crate::parser::{
     io::{is_magic_non_consume, ByteReader, ReadSeek},
-    read_str::read_strr,
+    read_str::read_string,
 };
 use std::borrow::Cow;
 
@@ -15,6 +15,9 @@ const FINETUNE: [u32; 16] = [
 const MAGIC: &[&[u8]] = &[
     b"M.K.", b"M!K!", b"M&K!", b"N.T.", b"CD81", b"OKTA", b"16CN", b"32CN", b"6CHN", b"8CHN",
 ];
+
+// https://github.com/OpenMPT/openmpt/blob/d75cd3eaf299ee84c484ff66ec5836a084738351/soundlib/Load_mod.cpp#L322
+const INVALID_BYTE_THRESHOLD: u8 = 40;
 
 /// Amiga SoundTracker
 pub struct MOD {
@@ -57,7 +60,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
         ));
     };
 
-    let title = read_strr(&file.read_bytes(20)?)?;
+    let title = read_string(&file.read_bytes(20)?)?;
     let sample_number = get_sample_size(file)?;
     let mut samples = build_samples(file, sample_number)?;
     file.skip_bytes(1)?; // song length
@@ -99,24 +102,37 @@ pub fn get_sample_size(data: &mut impl ReadSeek) -> std::io::Result<usize> {
     })
 }
 
+#[rustfmt::skip] 
 fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<Sample>, Error> {
     let mut samples: Vec<Sample> = Vec::new();
+    let mut invalid_score: u8 = 0;
 
     for i in 0..sample_number {
-        let name = read_strr(&file.read_bytes(22)?)?;
+        let name = read_string(&file.read_bytes(22)?)
+            .map_err(|_| Error::invalid("Not a valid MOD file"))?;
+        
         let length = file.read_u16_be()? * 2;
         let finetune = file.read_u8()?;
         let rate = FINETUNE[(finetune as usize) & 0x0F];
-        file.skip_bytes(1)?; // volume
+        let volume = file.read_u8()?;
 
         let mut loop_start = file.read_u16_be()? * 2;
         let loop_len = file.read_u16_be()? * 2;
-        let mut loop_end = loop_start + loop_len;
+        // let loop_end = loop_start + loop_len;
+        let loop_end = 0;
 
-        // Make sure loop points don't overflow
-        if (loop_len > 2) && (loop_end > length) && ((loop_start / 2) <= length) {
-            loop_start /= 2;
-            loop_end = loop_start + loop_len;
+        // // Make sure loop points don't overflow
+        // if (loop_len > 2) && (loop_end > length) && ((loop_start / 2) <= length) {
+        //     loop_start /= 2;
+        //     loop_end = loop_start + loop_len;
+        // }
+
+        invalid_score += get_invalid_score(volume, finetune, loop_start, loop_end);
+
+        if invalid_score > INVALID_BYTE_THRESHOLD {
+            return Err(Error::invalid(
+                "Not a valid MOD file, contains too much invalid samples"
+            ));
         }
 
         if length != 0 {
@@ -141,8 +157,18 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
     Ok(samples)
 }
 
-/// ``*patterns.iter().max().unwrap() + 1;`` produces 57 lines of asm: https://godbolt.org/z/4sd4E7r9o
+/// https://github.com/OpenMPT/openmpt/blob/d75cd3eaf299ee84c484ff66ec5836a084738351/soundlib/Load_mod.cpp#L314
 /// 
+/// Compute a "rating" of this sample header by counting invalid header data to ultimately reject garbage files.
+#[rustfmt::skip] 
+fn get_invalid_score(volume: u8, finetune: u8, loop_start: u16, loop_end: u16) -> u8 {
+    (volume > 64) as u8 + 
+    (finetune > 15) as u8 + 
+    (loop_start > loop_end * 2) as u8
+}
+
+/// ``*patterns.iter().max().unwrap() + 1;`` produces 57 lines of asm: https://godbolt.org/z/4sd4E7r9o
+///
 /// But this implementation only produces 28 lines of asm: https://godbolt.org/z/353a8d968
 fn max(f: &[u8; 128]) -> u8 {
     let mut max: u8 = 0;
@@ -162,7 +188,7 @@ mod test {
 
     #[test]
     fn a() {
-        let mut m = File::open("./modules/space_debris.mod").unwrap();
-        parse_(&mut m);
+        let mut m = File::open("./modules/overload.mod").unwrap();
+        parse_(&mut m).unwrap();
     }
 }

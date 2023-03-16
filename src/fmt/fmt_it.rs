@@ -6,7 +6,7 @@ use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,
     io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
-    read_str::read_strr,
+    read_str::read_string,
 };
 use crate::{info, warn};
 use std::borrow::Cow;
@@ -84,6 +84,19 @@ impl Module for IT {
     }
 }
 
+#[inline]
+fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Error> {
+    info!(
+        "Decompressing Impulse Tracker sample with raw index: {}",
+        smp.index_raw()
+    );
+
+    match smp.is_8_bit() {
+        true => decompress_8_bit,
+        false => decompress_16_bit,
+    }
+}
+
 pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
     if is_magic_non_consume(file, &MAGIC_ZIRCONIA)? {
         return Err(Error::unsupported(UNSUPPORTED));
@@ -93,7 +106,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
         return Err(Error::invalid(INVALID));
     }
 
-    let title = read_strr(&file.read_bytes(26)?)?;
+    let title = read_string(&file.read_bytes(26)?)?;
     file.skip_bytes(2)?;
 
     let ord_num = file.read_u16_le()?;
@@ -141,13 +154,13 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         }
         file.skip_bytes(-44 - 4)?;
 
-        let filename = read_strr(&file.read_bytes(12)?)?;
+        let filename = read_string(&file.read_bytes(12)?)?;
         file.skip_bytes(2)?; // zero, gvl
 
         let flags = file.read_u8()?;
         file.skip_bytes(1)?; // vol
 
-        let name = read_strr(&file.read_bytes(26)?)?;
+        let name = read_string(&file.read_bytes(26)?)?;
         let cvt = file.read_u8()?;
         file.skip_bytes(1)?; // dfp
         file.skip_bytes(4)?; // sample length since it's not empty
@@ -205,19 +218,6 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
     }
 
     Ok(samples)
-}
-
-#[inline]
-fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Error> {
-    info!(
-        "Decompressing Impulse Tracker sample with raw index: {}",
-        smp.index_raw()
-    );
-
-    match smp.is_8_bit() {
-        true => decompress_8_bit,
-        false => decompress_16_bit,
-    }
 }
 
 #[test]

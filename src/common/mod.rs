@@ -41,7 +41,7 @@ mod tests {
         // RUST_LOG=xmodits_lib cargo test --package xmodits-lib --lib -- common::tests::test8
         // env_logger::init();
         // let mut file = BufReader::new(File::open("./sweetdre.xm").unwrap());
-        let mut file = Cursor::new(std::fs::read("./modules/overload.mod").unwrap());
+        let mut file = Cursor::new(std::fs::read("./modules/ugot2letthemusic.mod").unwrap());
         // let a = trace!("dafdas");
         let module = load_module(&mut file).unwrap();
         // dbg!(module.name());
@@ -56,7 +56,7 @@ mod tests {
         let ripper = Ripper::default();
         // ripper.change_format(ExportFormat::IFF.into());
         ripper
-            .rip_to_dir("./test/export/overload/", module.as_ref())
+            .rip_to_dir("./test/export/ugot2/", module.as_ref())
             .unwrap()
     }
 }

@@ -20,13 +20,14 @@ pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
 /// Returns an owned string slice
 ///
 /// Errors if the buffer contains too much garbage data
-pub fn read_strr(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
-    const THRESHOLD: usize = 50;
-    let threshold = errors(buf.len(), THRESHOLD);
+pub fn read_string(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
+    const THRESHOLD: usize = 50; 
 
+    let threshold = errors(buf.len(), THRESHOLD);
     let buf = trim_null(buf);
 
-    // If true, then it's highly likely that there's a bug in the parsing
+    // If true, then it's highly likely that there's a bug in the parsing.
+    // ...Or that the module is invalid/corrupted.
     if is_garbage(buf, threshold) {
         return Err(io_error("String does not contain valid data:"));
     };

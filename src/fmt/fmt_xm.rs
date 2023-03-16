@@ -3,7 +3,7 @@ use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::bytes::magic_header;
-use crate::parser::read_str::read_strr;
+use crate::parser::read_str::read_string;
 use crate::parser::{
     bitflag::BitFlag,
     io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
@@ -79,7 +79,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
         return Err(Error::invalid("Not a valid Extended Module"));
     }
 
-    let title = read_strr(&file.read_bytes(20)?)?;
+    let title = read_string(&file.read_bytes(20)?)?;
 
     if !is_magic(file, &[MAGIC_NUMBER])? {
         return Err(Error::invalid("Not a valid Extended Module"));
@@ -141,7 +141,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
         let offset = file.seek_position()?;
 
         let mut header_size = file.read_u32_le()?;
-        let filename = read_strr(&file.read_bytes(22)?)?;
+        let filename = read_string(&file.read_bytes(22)?)?;
 
         file.skip_bytes(1)?; // instrument type
 
@@ -169,7 +169,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
             let notenum = file.read_u8()? as i8;
             file.skip_bytes(1)?; // reserved
 
-            let name = read_strr(&file.read_bytes(22)?)?;
+            let name = read_string(&file.read_bytes(22)?)?;
 
             let period: f32 = 7680.0 - ((48.0 + notenum as f32) * 64.0) - (finetune as f32 / 2.0);
             let rate: u32 = (8363.0 * 2.0_f32.powf((4608.0 - period) / 768.0)) as u32;
