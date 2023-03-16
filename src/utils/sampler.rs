@@ -1,10 +1,6 @@
-use crate::warn;
 /// ! Helper functions
+use crate::warn;
 use bytemuck::{cast_slice, cast_slice_mut};
-
-use crate::maybe_par_iter_mut;
-#[cfg(feature = "thread")]
-use rayon::prelude::*;
 
 /// Ensures the pcm has an even number of elements
 ///
@@ -31,7 +27,9 @@ pub fn flip_sign_8_bit(mut pcm_8_bit: Vec<u8>) -> Vec<u8> {
 
 #[inline]
 fn _flip_sign_8_bit_ref_mut(pcm_8_bit: &mut [u8]) {
-    maybe_par_iter_mut!(pcm_8_bit).for_each(|b| *b = b.wrapping_add(i8::MAX as u8 + 1));
+    pcm_8_bit
+        .iter_mut()
+        .for_each(|b| *b = b.wrapping_add(i8::MAX as u8 + 1));
 }
 
 #[inline]
@@ -43,7 +41,9 @@ pub fn flip_sign_16_bit(mut pcm: Vec<u8>) -> Vec<u8> {
 
 #[inline]
 fn _flip_sign_16_bit_ref_mut(pcm_16_bit: &mut [u16]) {
-    maybe_par_iter_mut!(pcm_16_bit).for_each(|b| *b = b.wrapping_add(i16::MAX as u16 + 1));
+    pcm_16_bit
+        .iter_mut()
+        .for_each(|b| *b = b.wrapping_add(i16::MAX as u16 + 1));
 }
 
 /// Reduce bit depth of 16 bit sample to 8 bit sample.
@@ -60,21 +60,21 @@ fn _reduce_bit_depth_u16_to_u8(pcm_16_bit: &[u16]) -> Vec<u8> {
 
     let quantize = |sample: &u16| (*sample as f32 / SCALE as f32).round() as u8;
 
-    #[cfg(not(feature = "thread"))]
-    {
-        pcm_16_bit.iter().map(quantize).collect()
-    }
+    // #[cfg(not(feature = "thread"))]
+    // {
+    pcm_16_bit.iter().map(quantize).collect()
+    // }
 
-    #[cfg(feature = "thread")]
-    {
-        // Pre-allocate buffer for resampled pcm
-        let mut resampled: Vec<u8> = Vec::with_capacity(pcm_16_bit.len());
-        pcm_16_bit
-            .par_iter()
-            .map(quantize)
-            .collect_into_vec(&mut resampled);
-        resampled
-    }
+    // #[cfg(feature = "thread")]
+    // {
+    //     // Pre-allocate buffer for resampled pcm
+    //     let mut resampled: Vec<u8> = Vec::with_capacity(pcm_16_bit.len());
+    //     pcm_16_bit
+    //         .par_iter()
+    //         .map(quantize)
+    //         .collect_into_vec(&mut resampled);
+    //     resampled
+    // }
 }
 
 /// Interleave data.

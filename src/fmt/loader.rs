@@ -53,7 +53,7 @@ impl std::fmt::Display for Format {
             "{}",
             match self {
                 Self::IT => "Impulse Tracker",
-                Self::XM => "Fasttracker 2 Extended Module",
+                Self::XM => "FastTracker 2 Extended Module",
                 Self::S3M => "Scream Tracker 3",
                 Self::MOD => "Amiga ProTracker",
                 Self::UMX => "Unreal Music Container",

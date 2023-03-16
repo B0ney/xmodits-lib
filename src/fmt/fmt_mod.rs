@@ -1,3 +1,4 @@
+use crate::info;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -44,6 +45,7 @@ impl Module for MOD {
     }
 
     fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+        info!("Loading Amiga ProTracker Module");
         Ok(Box::new(parse_(data)?))
     }
 
