@@ -32,7 +32,7 @@ pub fn extract(
     }
     let destination = get_destination(file, destination, self_contained)?;
 
-    let mut data = std::fs::File::open(file)?;
+    let mut data = std::io::BufReader::new(std::fs::File::open(file)?);
     let module = load_module(&mut data)?;
 
     ripper.rip_to_dir(destination, module.as_ref())?;
@@ -107,8 +107,13 @@ mod tests {
     #[test]
     pub fn test8() {
         let ripper = Ripper::default();
+        let a: Vec<std::path::PathBuf> = std::fs::read_dir("./modules").unwrap().filter_map(|res| res.map(|e| e.path()).ok()).collect();
+        
+        for i in a{
+            extract(i, "./modules", &ripper, true).unwrap();
+        }
 
-        extract("./modules/ugot2letthemusic.mod", "./cheese/", &ripper, true).unwrap();
+        
         // // RUST_LOG=xmodits_lib cargo test --package xmodits-lib --lib -- common::tests::test8
         // // env_logger::init();
         // // let mut file = BufReader::new(File::open("./sweetdre.xm").unwrap());

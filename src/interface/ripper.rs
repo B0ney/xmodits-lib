@@ -1,4 +1,4 @@
-#[cfg(feature = "thread")]
+#[cfg(feature = "rayon")]
 use rayon::prelude::*;
 use std::io::{self, Write};
 use std::{fs, path::Path};
