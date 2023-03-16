@@ -9,6 +9,13 @@ use crate::parser::{
 };
 use std::borrow::Cow;
 
+/*
+TODO: debranu.mod is an IFF containing a MOD
+looking at the binary shows that it was made with ProTracker 3.
+ProTracker 3.6x supports saving modules inside of IFF containers.
+https://bugs.openmpt.org/view.php?id=752
+ */
+
 const MAGIC_PP20: [u8; 4] = *b"PP20";
 const FINETUNE: [u32; 16] = [
     8363, 8413, 8463, 8529, 8581, 8651, 8723, 8757, 7895, 7941, 7985, 8046, 8107, 8169, 8232, 8280,
