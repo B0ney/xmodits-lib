@@ -4,6 +4,8 @@ use crate::parser::io::io_error;
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
+const MAX_SIZE_BYTES: u64 = 48 * 1024 * 1024;
+
 /// Turns a path to a module e.g test_module.it
 ///
 /// into a filename like: test_module_it
@@ -27,17 +29,20 @@ pub fn extract(
     let file = file.as_ref();
     let destination = destination.as_ref();
 
-    if !destination.is_dir() {
-        return Err(does_not_exist(destination));
+    if filesize(file)? > MAX_SIZE_BYTES {
+        return Err(too_large(MAX_SIZE_BYTES));
     }
-    let destination = get_destination(file, destination, self_contained)?;
 
     let mut data = std::io::BufReader::new(std::fs::File::open(file)?);
     let module = load_module(&mut data)?;
 
-    ripper.rip_to_dir(destination, module.as_ref())?;
+    if !destination.is_dir() {
+        return Err(does_not_exist(destination));
+    }
 
-    Ok(())
+    let destination = get_destination(file, destination, self_contained)?;
+
+    ripper.rip_to_dir(destination, module.as_ref())
 }
 
 fn get_destination<'a>(
@@ -63,6 +68,10 @@ fn get_destination<'a>(
     Ok(destintation.into())
 }
 
+pub fn filesize(path: &Path) -> Result<u64, Error> {
+    Ok(std::fs::metadata(path)?.len())
+}
+
 fn does_not_exist(path: &Path) -> Error {
     Error::Io(io_error(&format!(
         "Directory '{}' does not exist",
@@ -74,6 +83,13 @@ fn already_exists(path: &Path) -> Error {
     Error::Io(io_error(&format!(
         "Destination '{}' already exists",
         path.display()
+    )))
+}
+
+fn too_large(max: u64) -> Error {
+    Error::Io(io_error(&format!(
+        "File is larger than {} MB",
+        max / (1024 * 1024)
     )))
 }
 
@@ -107,13 +123,15 @@ mod tests {
     #[test]
     pub fn test8() {
         let ripper = Ripper::default();
-        let a: Vec<std::path::PathBuf> = std::fs::read_dir("./modules").unwrap().filter_map(|res| res.map(|e| e.path()).ok()).collect();
-        
-        for i in a{
-            extract(i, "./modules", &ripper, true).unwrap();
-        }
+        // let a: Vec<std::path::PathBuf> = std::fs::read_dir("./modules")
+        //     .unwrap()
+        //     .filter_map(|res| res.map(|e| e.path()).ok())
+        //     .collect();
+        extract("./modules/Lockstep.mod", "./modules", &ripper, true).unwrap();
+        // for i in a {
+        //     extract(i, "./modules", &ripper, true).unwrap();
+        // }
 
-        
         // // RUST_LOG=xmodits_lib cargo test --package xmodits-lib --lib -- common::tests::test8
         // // env_logger::init();
         // // let mut file = BufReader::new(File::open("./sweetdre.xm").unwrap());
