@@ -132,7 +132,7 @@ mod tests {
         //     .unwrap()
         //     .filter_map(|res| res.map(|e| e.path()).ok())
         //     .collect();
-        match extract("./modules/debranu copy.mod", "./modules", &ripper, true) {
+        match extract("./modules/do the moogman.pt36", "./modules", &ripper, true) {
             Ok(()) => (),
             Err(e) => println!("{:#?}",e),
         };

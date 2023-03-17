@@ -159,9 +159,14 @@ impl<R: io::Read + Seek> ReadSeek for Container<R> {
 
 impl<R: Read + Seek> Container<R> {
     pub fn new(mut inner: R, size: Option<u64>) -> Self {
+        let offset = inner.stream_position().expect("stream position");
+        let size = match size {
+            Some(s) => Some(s - offset),
+            None => None,
+        };
         Self {
             size,
-            offset: inner.stream_position().expect("stream position"),
+            offset,
             inner,
         }
     }

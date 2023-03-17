@@ -200,14 +200,11 @@ impl Depth {
     }
 
     pub fn is_8_bit(self) -> bool {
-        matches!(self, Depth::U8 | Depth::I8)
+        matches!(self, Self::U8 | Self::I8)
     }
 
     pub fn is_signed(self) -> bool {
-        match self {
-            Self::I8 | Self::I16 => true,
-            Self::U8 | Self::U16 => false,
-        }
+        matches!(self, Self::I8 | Self::I16)
     }
 }
 
@@ -225,6 +222,4 @@ impl Depth {
 // }
 
 #[cfg(test)]
-mod test {
-    
-}
+mod test {}

@@ -12,6 +12,7 @@
 *.s3m
 *.xm
 *.mod
+*.pt3*
 
 !/app/gui/res/**/*.wav
 

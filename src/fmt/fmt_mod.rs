@@ -2,12 +2,13 @@ use crate::info;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
-use crate::parser::io::non_consume;
+use crate::parser::io::{non_consume, Container};
 use crate::parser::{
     io::{is_magic_non_consume, ByteReader, ReadSeek},
     read_str::read_string,
 };
 use std::borrow::Cow;
+use std::io::Read;
 
 /*
 TODO: debranu.mod is an IFF containing a MOD
@@ -53,7 +54,8 @@ impl Module for MOD {
 
     fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
         info!("Loading Amiga ProTracker Module");
-        Ok(Box::new(parse_(data)?))
+        let mut data = check_iff(data)?;
+        Ok(Box::new(parse_(&mut data)?))
     }
 
     fn matches_format(buf: &[u8]) -> bool {
@@ -63,11 +65,7 @@ impl Module for MOD {
 }
 
 pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
-    if is_magic_non_consume(file, &MAGIC_PP20)? {
-        return Err(Error::unsupported(
-            "XPK compressed MOD files are not supported",
-        ));
-    };
+    check_xpk(file)?;
 
     let title = read_string(&file.read_bytes(20)?)?;
     let sample_number = get_sample_size(file)?;
@@ -163,6 +161,27 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
         }
     }
     Ok(samples)
+}
+
+fn check_iff<R>(data: &mut R) -> Result<Container<&mut R>, Error>
+where
+    R: ReadSeek,
+{
+    let size = data.size();
+    if is_magic_non_consume(data, b"FORM")? {
+        todo!("protracker 3.6")
+    };
+
+    Ok(Container::new(data, size))
+}
+
+fn check_xpk(data: &mut impl ReadSeek) -> Result<(), Error> {
+    match is_magic_non_consume(data, &MAGIC_PP20)? {
+        true => Err(Error::unsupported(
+            "XPK compressed MOD files are not supported",
+        )),
+        false => Ok(()),
+    }
 }
 
 /// https://github.com/OpenMPT/openmpt/blob/d75cd3eaf299ee84c484ff66ec5836a084738351/soundlib/Load_mod.cpp#L314
