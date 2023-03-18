@@ -105,7 +105,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
 
         if file.read_u8()? != 1 {
             info!(
-                "Skipping non-pcm instrument at raw index: {}",
+                "Skipping non-pcm instrument at index: {}",
                 index_raw + 1
             );
             continue;
@@ -115,7 +115,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         let length = file.read_u32_le()? & 0xffff; // ignore upper 16 bits
 
         if length == 0 {
-            info!("Skipping empty sample at raw index: {}", index_raw + 1);
+            info!("Skipping empty sample at index: {}", index_raw + 1);
             continue;
         }
 

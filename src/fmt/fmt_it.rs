@@ -132,7 +132,18 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
         version,
     })
 }
+/*
+todo: saga_musix_-_gleaming.it
+compressed: true
+CVT_DELTA: true
 
+stereo samples: true - but in reality it's not, 
+    and because of that it, fails to decompress the samples
+
+bacter_vs_saga_musix_-_ocean_paradise.it
+also CVT_DELTA
+
+*/
 fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>, Error> {
     let mut samples: Vec<Sample> = Vec::with_capacity(ptrs.len());
     info!("Building samples");
@@ -179,7 +190,8 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
         let compressed = flags.contains(FLAG_COMPRESSION);
         let depth = Depth::new(!flags.contains(FLAG_BITS_16), signed, signed);
-        let channel = Channel::new(flags.contains(FLAG_STEREO), false);
+        // let channel = Channel::new(flags.contains(FLAG_STEREO), false);
+        let channel = Channel::new(false, false);
         let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
 
         if let Some(size) = file.size() {
