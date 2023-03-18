@@ -11,7 +11,7 @@ pub mod fmt_wav;
 /// Possible formats to store the pcm
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum ExportFormat {
+pub enum AudioFormat {
     /// Wav, only supports unsigned 8-bit and signed 16-bit samples.
     /// Samples are processed to satisfy this.
     #[default]
@@ -30,7 +30,7 @@ pub enum ExportFormat {
     RAW,
 }
 
-impl ExportFormat {
+impl AudioFormat {
     pub const FORMATS: [Self; 5] = [Self::WAV, Self::IFF, Self::AIFF, Self::ITS, Self::RAW];
     /// Returns an AudioTrait object.
     ///
@@ -47,13 +47,13 @@ impl ExportFormat {
     }
 }
 
-impl From<ExportFormat> for Box<dyn AudioTrait> {
-    fn from(val: ExportFormat) -> Self {
+impl From<AudioFormat> for Box<dyn AudioTrait> {
+    fn from(val: AudioFormat) -> Self {
         val.get_impl()
     }
 }
 
-impl std::fmt::Display for ExportFormat {
+impl std::fmt::Display for AudioFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
