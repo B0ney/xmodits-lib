@@ -141,12 +141,11 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         let channel = Channel::new(flags.contains(FLAG_STEREO), false);
         let length = length * channel.channels() as u32 * depth.bytes() as u32;
 
-        match file.size() {
-            Some(len) if (pointer + length) as u64 > len => {
-                info!("Skipping invalid sample at raw index: {}...", index_raw + 1);
+        if let Some(size) = file.size() {
+            if (pointer + length) as u64 > size {
+                info!("Skipping invalid sample at index: {}...", index_raw + 1);
                 continue;
             }
-            _ => (),
         };
 
         let index_raw = index_raw as u16;

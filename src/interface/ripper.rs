@@ -12,7 +12,7 @@ use crate::{error, maybe_par_iter};
 /// Struct to rip samples from a module
 ///
 /// Requires a sample namer and an audio format
-/// 
+///
 /// They can be changed at runtime
 pub struct Ripper {
     /// Function object to name samples
@@ -69,7 +69,7 @@ impl Ripper {
 
         let extract_samples = |(index, smp): (usize, &Sample)| -> Result<(), Error> {
             let path = directory.join((self.namer_func)(smp, &context, index));
-            let pcm = module.pcm(smp)?; 
+            let pcm = module.pcm(smp)?;
             // Only create the file if we can obtain the pcm to prevent artifacts
             let mut file = fs::File::create(path)?;
 

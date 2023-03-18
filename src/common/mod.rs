@@ -2,6 +2,8 @@ use crate::fmt::loader::load_module;
 use crate::interface::{ripper::Ripper, Error};
 use crate::parser::io::io_error;
 use std::borrow::Cow;
+use std::fs::{read_dir, File};
+use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
 const MAX_SIZE_BYTES: u64 = 48 * 1024 * 1024;
@@ -20,11 +22,12 @@ where
     let file = file.as_ref();
     let destination = destination.as_ref();
 
+    // Check if file is too large
     if filesize(file)? > MAX_SIZE_BYTES {
         return Err(too_large(MAX_SIZE_BYTES));
     }
 
-    let mut data = std::io::BufReader::new(std::fs::File::open(file)?);
+    let mut data = BufReader::new(File::open(file)?);
     let module = load_module(&mut data)?;
 
     if !destination.is_dir() {
@@ -34,20 +37,6 @@ where
     let destination = get_destination(file, destination, self_contained)?;
 
     ripper.rip_to_dir(destination, module.as_ref())
-}
-
-/// Turns a path to a module e.g test_module.it
-///
-/// into a filename like: test_module_it
-pub fn create_folder_name(path: impl AsRef<Path>) -> Option<PathBuf> {
-    let dir_name = path
-        .as_ref()
-        .file_name()?
-        .to_os_string()
-        .into_string()
-        .ok()?
-        .replace('.', "_");
-    Some(PathBuf::new().join(dir_name))
 }
 
 fn get_destination<'a>(
@@ -66,11 +55,31 @@ fn get_destination<'a>(
     let destination: PathBuf = destination.join(module_name);
 
     match destination.exists() {
-        true => return Err(already_exists(&destination)),
+        true => if !is_dir_empty(&destination)? {
+            return Err(not_empty(&destination));
+        }
         false => std::fs::create_dir(&destination)?,
     }
 
     Ok(destination.into())
+}
+
+/// Turns a path to a module e.g test_module.it
+///
+/// into a filename like: test_module_it
+pub fn create_folder_name(path: impl AsRef<Path>) -> Option<PathBuf> {
+    let dir_name = path
+        .as_ref()
+        .file_name()?
+        .to_os_string()
+        .into_string()
+        .ok()?
+        .replace('.', "_");
+    Some(PathBuf::new().join(dir_name))
+}
+
+pub fn is_dir_empty(path: impl AsRef<Path>) -> Result<bool, Error> {
+    Ok(read_dir(path.as_ref())?.next().is_none())
 }
 
 pub fn filesize(path: &Path) -> Result<u64, Error> {
@@ -84,11 +93,8 @@ fn does_not_exist(path: &Path) -> Error {
     )))
 }
 
-fn already_exists(path: &Path) -> Error {
-    Error::Io(io_error(&format!(
-        "Destination '{}' already exists",
-        path.display()
-    )))
+fn not_empty(path: &Path) -> Error {
+    Error::Io(io_error(&format!("'{}' is not empty", path.display())))
 }
 
 fn too_large(max: u64) -> Error {
@@ -127,21 +133,26 @@ mod tests {
     }
     #[test]
     pub fn test8() {
+        env_logger::init();
         let ripper = Ripper::default();
         // let a: Vec<std::path::PathBuf> = std::fs::read_dir("./modules")
         //     .unwrap()
         //     .filter_map(|res| res.map(|e| e.path()).ok())
+        //     .filter(|f| f.is_file())
         //     .collect();
-        match extract("./modules/do the moogman.pt36", "./modules", &ripper, true) {
+        match extract("./modules/ttocdiskomusik.umx", "./modules", &ripper, true) {
             Ok(()) => (),
-            Err(e) => println!("{:#?}",e),
+            Err(e) => println!("{:#?}", e),
         };
         // for i in a {
-        //     extract(i, "./modules", &ripper, true).unwrap();
+        //     if let Err(e) = extract(i, "./modules", &ripper, true) {
+        //         dbg!(e);
+        //         // panic!()
+        //     };
         // }
 
         // // RUST_LOG=xmodits_lib cargo test --package xmodits-lib --lib -- common::tests::test8
-        // // env_logger::init();
+        
         // // let mut file = BufReader::new(File::open("./sweetdre.xm").unwrap());
         // let mut file = Cursor::new(std::fs::read("./modules/ugot2letthemusic.mod").unwrap());
         // // let a = trace!("dafdas");

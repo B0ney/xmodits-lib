@@ -36,7 +36,6 @@ pub enum Error {
     //     expected: String,
     //     got: String,
     // },
-
     #[error("The module doesn't contain any samples")]
     EmptyModule,
 
@@ -53,7 +52,6 @@ pub enum Error {
     #[error("Could not find a valid format")]
     NoFormatFound,
 }
-
 
 impl From<Error> for Result<(), Error> {
     fn from(val: Error) -> Self {

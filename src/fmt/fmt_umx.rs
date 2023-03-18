@@ -105,11 +105,12 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     }
 
     let _ = read_compact_index(file)?; // obj size field
-    let size = read_compact_index(file)? as usize;
+    let _inner_size = read_compact_index(file)? as u64;
 
     let size = file.size();
-    // store the reader into a Container struct so that seeking
-
+    
+    // store the reader into a Container struct
+    // so that seeking is relative to this current offset
     let mut file = Container::new(file, size);
     let file = &mut file;
 
@@ -208,7 +209,7 @@ mod tests {
     }
     #[test]
     fn table() {
-        let mut a = BufReader::new(File::open("./Mayhem.umx").unwrap());
+        let mut a = BufReader::new(File::open("./modules/Mayhem.umx").unwrap());
         parse_(&mut a);
     }
 }

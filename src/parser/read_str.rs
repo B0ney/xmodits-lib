@@ -21,7 +21,7 @@ pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
 ///
 /// Errors if the buffer contains too much garbage data
 pub fn read_string(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
-    const THRESHOLD: usize = 50; 
+    const THRESHOLD: usize = 50;
 
     let threshold = errors(buf.len(), THRESHOLD);
     let buf = trim_null(buf);

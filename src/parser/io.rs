@@ -147,7 +147,6 @@ pub fn io_error(error: &str) -> std::io::Error {
 pub struct Container<R: io::Read + Seek> {
     size: Option<u64>,
     offset: u64,
-    // cursor: i64,
     inner: R,
 }
 
@@ -160,10 +159,7 @@ impl<R: io::Read + Seek> ReadSeek for Container<R> {
 impl<R: Read + Seek> Container<R> {
     pub fn new(mut inner: R, size: Option<u64>) -> Self {
         let offset = inner.stream_position().expect("stream position");
-        let size = match size {
-            Some(s) => Some(s - offset),
-            None => None,
-        };
+        let size = size.map(|s| s - offset);
         Self {
             size,
             offset,
@@ -173,20 +169,21 @@ impl<R: Read + Seek> Container<R> {
 }
 
 impl<R: Read + Seek> io::Read for Container<R> {
-    // todo: add eof limit
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        // match self.size {
-        //     Some(f) if self.cursor > f as i64 => {
-        //         return Err(std::io::Error::new(
-        //             std::io::ErrorKind::UnexpectedEof,
-        //             "End of File",
-        //         ));
-        //     }
-        //     _ => (),
-        // };
-        let bytes_read = self.inner.read(buf)?;
-        // self.cursor += bytes_read as i64;
-        Ok(bytes_read)
+    fn read(&mut self, mut buf: &mut [u8]) -> io::Result<usize> {
+        let buf_len = buf.len();
+        let cursor = self.stream_position()?;
+
+        // If the cursor + buf.len() is greater than the given size
+        // trim the buf slice so that the cursor won't go over
+        if let Some(data_size) = self.size {
+            if (cursor + buf_len as u64) > data_size {
+                // Make sure end index doesn't overflow...
+                let end = data_size.min(buf_len as u64) as usize; 
+                buf = &mut buf[..end];
+            }
+        }
+
+        self.inner.read(buf)
     }
 }
 
@@ -229,7 +226,7 @@ mod tests {
     use crate::parser::io::{is_magic_non_consume, Container, ReadSeek};
     use std::{
         borrow::Cow,
-        io::{Cursor, Seek},
+        io::{Cursor, Seek, Read},
     };
     #[test]
     fn a() {
@@ -270,5 +267,18 @@ mod tests {
         let mut a = Cursor::new(&[2, 3, 4u8] as &[u8]);
 
         // let a = a.to_boxed_slice().unwrap();
+    }
+
+    #[test]
+    fn gg() {
+        let f=Cursor::new([1u8; 20]);
+        let len = 15;
+        let mut a = Container::new(f, Some(len));
+        let mut buf = [0u8;20];
+
+        dbg!(a.read(&mut buf));
+        dbg!(buf);
+        
+        
     }
 }

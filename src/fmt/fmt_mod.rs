@@ -169,7 +169,7 @@ where
 {
     let size = data.size();
     if is_magic_non_consume(data, b"FORM")? {
-        todo!("protracker 3.6")
+        // todo!("protracker 3.6")
     };
 
     Ok(Container::new(data, size))
