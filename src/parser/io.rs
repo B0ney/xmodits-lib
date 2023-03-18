@@ -1,33 +1,15 @@
 use std::io::{self, BufReader, Cursor, Read, Seek, SeekFrom};
 
+/// Having a supertrait over ``Read + Seek`` makes things cleaner
+///
+/// TODO: make size ``u64`` instead of ``Option<u64>``?
 pub trait ReadSeek: Read + Seek {
     fn size(&self) -> Option<u64>;
 }
 
-impl<T> ReadSeek for Cursor<T>
-where
-    T: AsRef<[u8]>,
-{
-    fn size(&self) -> Option<u64> {
-        Some(self.get_ref().as_ref().len() as u64)
-    }
-}
-
-impl ReadSeek for std::fs::File {
-    fn size(&self) -> Option<u64> {
-        match self.metadata() {
-            Ok(x) => Some(x.len()),
-            _ => None,
-        }
-    }
-}
-
-impl<T: ReadSeek> ReadSeek for BufReader<T> {
-    fn size(&self) -> Option<u64> {
-        self.get_ref().size()
-    }
-}
-
+/// An abstract trait used for parsing.
+///
+/// I found that parsing with Byteorder a little annoying so... Here's 200+ loc :D
 pub trait ByteReader {
     /// Return size of underlying reader
     fn size(&self) -> Option<u64>;
@@ -60,11 +42,17 @@ pub trait ByteReader {
 
         Ok((hi >> 16) | (low << 4))
     }
+    /// Skip n number of bytes
     fn skip_bytes(&mut self, bytes: i64) -> io::Result<()>;
+    /// Jump to an offset
     fn set_seek_pos(&mut self, offset: u64) -> io::Result<()>;
+    /// Reveal the current Cursor position
     fn seek_position(&mut self) -> io::Result<u64>;
     fn read_bytes(&mut self, bytes: usize) -> io::Result<Vec<u8>>;
     fn load_to_memory(&mut self) -> io::Result<Vec<u8>>;
+    // /// Read exactly N bytes into an N sized array.
+    // ///
+    // fn read_bytes_const<const N: usize>(&mut self) -> io::Result<[u8;N]>;
 }
 
 impl<T: ReadSeek> ByteReader for T {
@@ -117,9 +105,17 @@ impl<T: ReadSeek> ByteReader for T {
             Ok(buf)
         })
     }
+
+    // fn read_bytes_const<const N: usize>(&mut self) -> io::Result<[u8;N]> {
+    //     let mut buf = [0u8; N];
+    //     self.read_exact(&mut buf)?;
+    //     Ok(buf)
+    // }
 }
 
-/// When you need to do an IO operation without affecting the cursor
+/// A function that lets you do a [ByteReader] operation without affecting the inner cursor.
+///
+/// Just make sure you don't return references.
 pub fn non_consume<R, F, T>(reader: &mut R, operation: F) -> io::Result<T>
 where
     R: ByteReader,
@@ -143,17 +139,66 @@ pub fn io_error(error: &str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, error)
 }
 
-/// Good for when we need to deal with container formats
-pub struct Container<R: io::Read + Seek> {
-    size: Option<u64>,
-    offset: u64,
-    inner: R,
+impl<T> ReadSeek for Cursor<T>
+where
+    T: AsRef<[u8]>,
+{
+    fn size(&self) -> Option<u64> {
+        Some(self.get_ref().as_ref().len() as u64)
+    }
+}
+
+impl ReadSeek for std::fs::File {
+    fn size(&self) -> Option<u64> {
+        match self.metadata() {
+            Ok(x) => Some(x.len()),
+            _ => None,
+        }
+    }
+}
+
+impl<T: ReadSeek> ReadSeek for BufReader<T> {
+    fn size(&self) -> Option<u64> {
+        self.get_ref().size()
+    }
 }
 
 impl<R: io::Read + Seek> ReadSeek for Container<R> {
     fn size(&self) -> Option<u64> {
         self.size
     }
+}
+
+/// A lightweight wrapper over ``Read + Seek`` types.
+///
+/// Seeking will be relative to a fixed offset, which is set on instantiation and cannot be changed.
+///
+/// ## Why?
+///
+/// This is useful when we are dealing with container file formats.
+///
+/// The [ByteReader] helper trait has a method called ``set_seek_pos``, which lets you to jump to any offset.
+///
+/// This is extremely useful when you need to access values at documented offsets.
+///
+/// For example, 4 bytes are checked at offset ``1080`` in ``MOD`` files to determine whether
+/// it has 31 or 15 samples.
+///
+/// Another example would be using the list of sample pointers stored in
+/// ``Scream Tracker 3`` and ``Impulse Tracker`` headers, to access sample metadata.
+///
+/// The list goes on.
+///
+/// ...But this approach will not work if the format is stored in a container like ``UMX (Unreal Package)`` or ``IFF``.
+///
+/// Containers are, to be frank, just additional metadata added to the start of the file.
+///
+/// TODO: Finish
+///
+pub struct Container<R: io::Read + Seek> {
+    size: Option<u64>,
+    offset: u64,
+    inner: R,
 }
 
 impl<R: Read + Seek> Container<R> {
@@ -178,7 +223,7 @@ impl<R: Read + Seek> io::Read for Container<R> {
         if let Some(data_size) = self.size {
             if (cursor + buf_len as u64) > data_size {
                 // Make sure end index doesn't overflow...
-                let end = data_size.min(buf_len as u64) as usize; 
+                let end = data_size.min(buf_len as u64) as usize;
                 buf = &mut buf[..end];
             }
         }
@@ -198,6 +243,7 @@ impl<R: Read + Seek> Seek for Container<R> {
             SeekFrom::Current(n) => {
                 match self.inner.stream_position()? as i64 + n {
                     // prevent seeking back behind the offset
+                    // todo
                     f if f < self.offset as i64 => {
                         return Err(io_error("no"));
                     }
@@ -226,7 +272,7 @@ mod tests {
     use crate::parser::io::{is_magic_non_consume, Container, ReadSeek};
     use std::{
         borrow::Cow,
-        io::{Cursor, Seek, Read},
+        io::{Cursor, Read, Seek},
     };
     #[test]
     fn a() {
@@ -271,14 +317,13 @@ mod tests {
 
     #[test]
     fn gg() {
-        let f=Cursor::new([1u8; 20]);
+        let f = Cursor::new([1u8; 20]);
         let len = 15;
+        // let mut a: Box<dyn ReadSeek> = Box::new(Container::new(f, Some(len)));
         let mut a = Container::new(f, Some(len));
-        let mut buf = [0u8;20];
+        let mut buf = [0u8; 20];
 
         dbg!(a.read(&mut buf));
         dbg!(buf);
-        
-        
     }
 }
