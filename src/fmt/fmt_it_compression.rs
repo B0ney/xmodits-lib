@@ -182,7 +182,8 @@ pub fn decompress_8_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8>
 
 #[inline(always)]
 #[rustfmt::skip]
-pub fn decompress_16_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8>, Error> {
+pub fn decompress_16_bit(buf: &[u8], len: u32, it215: bool) -> Result<Vec<u8>, Error> {
+    let mut len = len / 2;         // Length of uncompressed sample. We half this we're decompressing a &[u16] as a &[u8]
     let mut blklen: u16;                // uncompressed block length. Usually 0x4000 for 16-Bit samples
     let mut blkpos: u16;                // block position
     let mut sample_value: i16;          // decompressed sample value             (Note i16 for 16 bit samples)
@@ -190,7 +191,7 @@ pub fn decompress_16_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8
     let mut d2: i16;                    // second integrator buffer for IT2.15   (Note i16 for 16 bit samples)
     let mut width: u8;                  // Bit width. (Starts at 17 For 16-Bit samples)
     let mut value: u32;                 // Value read (Note u32 for 16 bit sample)
-    let mut dest_buf: Vec<u8>           = Vec::with_capacity(len as usize); // Buffer to write decompressed data
+    let mut dest_buf: Vec<u8>           = Vec::with_capacity(len as usize * 2); // Buffer to write decompressed data
     let mut bitreader: BitReader        = BitReader::new(buf);
 
     while len != 0 {
