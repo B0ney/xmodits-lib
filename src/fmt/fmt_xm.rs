@@ -136,6 +136,7 @@ const XM_INS_SIZE: u32 = 263;
 fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error> {
     let mut samples: Vec<Sample> = Vec::new();
     let mut staging_samples: Vec<Sample> = Vec::new();
+    let mut total_samples: u16 = 0;
 
     for _ in 0..ins_num {
         let offset = file.seek_position()?;
@@ -185,7 +186,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
                     pointer: 0,
                     depth,
                     channel: Channel::Mono,
-                    index_raw: samples.len() as u16,
+                    index_raw: total_samples,
                     compressed: false,
                     looping: Loop {
                         start: loop_start,
@@ -193,6 +194,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
                         kind: LoopType::Off, // TODO
                     },
                 });
+                total_samples += 1;
             }
         }
 
