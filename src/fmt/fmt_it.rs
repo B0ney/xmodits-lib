@@ -5,7 +5,7 @@ use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,
-    io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
+    io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek,non_consume},
     string::read_str,
 };
 use crate::{info, warn};
@@ -156,14 +156,15 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         }
 
         // Check if the sample is empty so we don't waste resources.
-        file.skip_bytes(44)?;
-        let length = file.read_u32_le()?;
-
+        let length = non_consume(file, |file| {
+            file.skip_bytes(44)?;
+            file.read_u32_le()
+        })?;
+        
         if length == 0 {
             info!("Skipping empty sample at raw index: {}...", index_raw + 1);
             continue;
         }
-        file.skip_bytes(-44 - 4)?;
 
         let filename = read_str::<12>(file)?;
         file.skip_bytes(2)?; // zero, gvl
