@@ -1,5 +1,5 @@
-use crate::parser::io::io_error;
-use std::borrow::Cow;
+use crate::{parser::io::io_error, traits};
+use std::{borrow::Cow, io};
 
 const FORBIDDEN_CHARS: &[char] = &[
     '/', // Linux/Unix
@@ -17,10 +17,18 @@ pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
     buf
 }
 
+/// Returns an owned string slice from a known size
+pub fn read_str<const N: usize>(data: &mut impl traits::ReadSeek) -> io::Result<Box<str>> {
+    let mut buf = [0u8; N];
+    data.read_exact(&mut buf)?;
+
+    read_string(&buf)
+}
+
 /// Returns an owned string slice
 ///
 /// Errors if the buffer contains too much garbage data
-pub fn read_string(buf: &[u8]) -> Result<Box<str>, std::io::Error> {
+pub fn read_string(buf: &[u8]) -> std::io::Result<Box<str>> {
     const THRESHOLD: usize = 50;
 
     let threshold = errors(buf.len(), THRESHOLD);

@@ -6,7 +6,7 @@ use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,
     io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek},
-    read_str::read_string,
+    string::read_str,
 };
 use crate::{info, warn};
 use std::borrow::Cow;
@@ -106,7 +106,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
         return Err(Error::invalid(INVALID));
     }
 
-    let title = read_string(&file.read_bytes(26)?)?;
+    let title = read_str::<26>(file)?;
     file.skip_bytes(2)?;
 
     let ord_num = file.read_u16_le()?;
@@ -137,7 +137,7 @@ todo: saga_musix_-_gleaming.it
 compressed: true
 CVT_DELTA: true
 
-stereo samples: true - but in reality it's not, 
+stereo samples: true - but in reality it's not,
     and because of that it, fails to decompress the samples
 
 bacter_vs_saga_musix_-_ocean_paradise.it
@@ -165,13 +165,13 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         }
         file.skip_bytes(-44 - 4)?;
 
-        let filename = read_string(&file.read_bytes(12)?)?;
+        let filename = read_str::<12>(file)?;
         file.skip_bytes(2)?; // zero, gvl
 
         let flags = file.read_u8()?;
         file.skip_bytes(1)?; // vol
 
-        let name = read_string(&file.read_bytes(26)?)?;
+        let name = read_str::<26>(file)?;
         let cvt = file.read_u8()?;
         file.skip_bytes(1)?; // dfp
         file.skip_bytes(4)?; // sample length since it's not empty
@@ -237,7 +237,7 @@ mod test {
     #[test]
     pub fn a_() {
         // env_logger::init();
-        use crate::exporter::ExportFormat;
+        use crate::exporter::AudioFormat;
         use crate::interface::ripper::Ripper;
         use std::fs::File;
         use std::io::{Read, Seek};

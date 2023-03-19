@@ -5,7 +5,7 @@ use crate::interface::Sample;
 use crate::parser::{
     bytes::magic_header,
     io::{is_magic, ByteReader, Container, ReadSeek},
-    read_str::read_string,
+    string::read_string,
 };
 use crate::{error, info};
 use std::borrow::Cow;

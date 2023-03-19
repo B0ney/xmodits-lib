@@ -6,7 +6,7 @@ use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,
     io::{is_magic, ByteReader, ReadSeek},
-    read_str::read_string,
+    string::read_str,
 };
 use std::borrow::Cow;
 
@@ -62,7 +62,7 @@ impl Module for S3M {
 }
 
 pub fn parse_(file: &mut impl ReadSeek) -> Result<S3M, Error> {
-    let title = read_string(&file.read_bytes(28)?)?;
+    let title = read_str::<28>(file)?;
 
     if !is_magic(file, &[0x1a, 0x10])? {
         return Err(Error::invalid(INVALID));
@@ -104,13 +104,10 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         file.set_seek_pos(ptr as u64)?;
 
         if file.read_u8()? != 1 {
-            info!(
-                "Skipping non-pcm instrument at index: {}",
-                index_raw + 1
-            );
+            info!("Skipping non-pcm instrument at index: {}", index_raw + 1);
             continue;
         }
-        let filename = read_string(&file.read_bytes(12)?)?;
+        let filename = read_str::<12>(file)?;
         let pointer = file.read_u24_le()?; //
         let length = file.read_u32_le()? & 0xffff; // ignore upper 16 bits
 
@@ -132,7 +129,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         let rate = file.read_u32_le()? & 0xffff;
         file.skip_bytes(12)?; // internal buffer used during playback
 
-        let name = read_string(&file.read_bytes(28)?)?;
+        let name = read_str::<28>(file)?;
         if !is_magic(file, &MAGIC_SAMPLE)? {
             return Err(Error::invalid(INVALID));
         }

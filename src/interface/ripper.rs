@@ -3,7 +3,7 @@ use rayon::prelude::*;
 use std::io::{self, Write};
 use std::{fs, path::Path};
 
-use crate::exporter::ExportFormat;
+use crate::exporter::AudioFormat;
 use crate::interface::audio::{AudioTrait, DynAudioTrait};
 use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
 use crate::interface::{Error, Module, Sample};
@@ -28,7 +28,7 @@ impl Default for Ripper {
     fn default() -> Self {
         Self {
             namer_func: SampleNamer::default().into(),
-            format: ExportFormat::WAV.into(),
+            format: AudioFormat::WAV.into(),
         }
     }
 }

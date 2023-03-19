@@ -1,3 +1,6 @@
+// Copyright 2023 B0ney
+// SPDX-License-Identifier: MPL-2.0
+
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::sample::Sample;

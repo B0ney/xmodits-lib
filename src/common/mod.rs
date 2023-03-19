@@ -117,7 +117,7 @@ mod tests {
     };
 
     use crate::{
-        exporter::ExportFormat,
+        exporter::AudioFormat,
         fmt::loader::load_module,
         info,
         interface::{name::SampleNamer, ripper::Ripper},
