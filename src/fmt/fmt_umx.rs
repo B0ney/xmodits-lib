@@ -108,7 +108,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     let _inner_size = read_compact_index(file)? as u64;
 
     let size = file.size();
-    
+
     // store the reader into a Container struct
     // so that seeking is relative to this current offset
     let mut file = Container::new(file, size);
@@ -132,11 +132,11 @@ fn name_table_above_64(file: &mut impl ReadSeek) -> Result<Box<str>, Error> {
 
 fn name_table_below_64(file: &mut impl ReadSeek) -> Result<Box<str>, Error> {
     const NULL: &u8 = &0;
-    // const MAX_LEN: usize = 12;
+    const MAX_LEN: usize = 10;
 
-    let mut buffer: Vec<u8> = Vec::with_capacity(12);
+    let mut buffer: Vec<u8> = Vec::with_capacity(MAX_LEN);
 
-    while buffer.last() != Some(NULL) {
+    while buffer.last() != Some(NULL) && buffer.len() < MAX_LEN {
         buffer.push(file.read_byte()?)
     }
 
@@ -210,6 +210,9 @@ mod tests {
     #[test]
     fn table() {
         let mut a = BufReader::new(File::open("./modules/Mayhem.umx").unwrap());
-        parse_(&mut a);
+        match parse_(&mut a){
+            Ok(_) =>(),
+            Err(e) => {dbg!(e);},
+        };
     }
 }
