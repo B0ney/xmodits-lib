@@ -1,5 +1,6 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 
 use crate::interface::sample::Sample;
 
@@ -86,7 +87,7 @@ impl SampleNamer {
     /// The function consumes `self`, but SampleNamer implements `Copy`
     pub fn to_func(self) -> impl SampleNamerTrait {
         move |smp: &Sample, ctx: &Context, index: usize| -> String {
-            let index_component = {
+            let index_component: String = {
                 let (index, largest) = match self.index_raw {
                     true => (smp.index_raw(), ctx.highest),
                     false => (index + 1, ctx.total),
@@ -100,7 +101,7 @@ impl SampleNamer {
                 format!("{index:0padding$}")
             };
 
-            let extension = ctx.extension.trim_matches('.');
+            let extension: &str = ctx.extension.trim_matches('.');
 
             let smp_name = || {
                 let name = match self.prefer_filename {
@@ -109,7 +110,7 @@ impl SampleNamer {
                 };
 
                 match name {
-                    name if name.is_empty() => name.into(),
+                    name if name.is_empty() => name,
                     name => {
                         let name = name
                             .trim_end_matches(&format!(".{}", extension.to_ascii_lowercase()))
@@ -121,13 +122,14 @@ impl SampleNamer {
                             (false, true) => name.to_ascii_lowercase(),
                             _ => name,
                         };
-                        format!(" - {name}")
+                        
+                        format!(" - {name}").into()
                     }
                 }
             };
 
-            let name_component = match self.index_only {
-                true => "".to_string(),
+            let name_component: Cow<str> = match self.index_only {
+                true => "".into(),
                 false => smp_name(),
             };
 
