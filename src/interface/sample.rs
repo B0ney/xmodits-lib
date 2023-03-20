@@ -88,6 +88,10 @@ impl Sample {
     pub fn bits(&self) -> u8 {
         self.depth.bits()
     }
+    /// How many bytes are used to encode the sample
+    pub fn bytes(&self) -> u8 {
+        self.depth.bytes()
+    }
     /// Is the sample 8 bit
     pub fn is_8_bit(&self) -> bool {
         self.depth.is_8_bit()

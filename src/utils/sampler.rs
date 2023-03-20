@@ -46,6 +46,19 @@ fn _flip_sign_16_bit_ref_mut(pcm_16_bit: &mut [u16]) {
         .for_each(|b| *b = b.wrapping_add(i16::MAX as u16 + 1));
 }
 
+#[inline]
+pub fn to_be_16(mut pcm: Vec<u8>) -> Vec<u8> { 
+    align_u16(&mut pcm);
+    _to_be_16(cast_slice_mut(&mut pcm));
+    pcm
+}
+
+fn _to_be_16(pcm_16_bit: &mut [u16]) {
+    pcm_16_bit
+        .iter_mut()
+        .for_each(|b| *b = b.to_be());
+}
+
 /// Reduce bit depth of 16 bit sample to 8 bit sample.
 /// The sign is preserved.
 #[inline]
