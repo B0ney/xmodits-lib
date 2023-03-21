@@ -47,16 +47,31 @@ fn _flip_sign_16_bit_ref_mut(pcm_16_bit: &mut [u16]) {
 }
 
 #[inline]
-pub fn to_be_16(mut pcm: Vec<u8>) -> Vec<u8> { 
-    align_u16(&mut pcm);
-    _to_be_16(cast_slice_mut(&mut pcm));
+#[allow(unused_mut)]
+pub fn to_be_16(mut pcm: Vec<u8>) -> Vec<u8> {
+    if cfg!(target_endian = "little") {
+        align_u16(&mut pcm);
+        _to_be_16(cast_slice_mut(&mut pcm));
+    }
     pcm
 }
 
 fn _to_be_16(pcm_16_bit: &mut [u16]) {
-    pcm_16_bit
-        .iter_mut()
-        .for_each(|b| *b = b.to_be());
+    pcm_16_bit.iter_mut().for_each(|b| *b = b.to_be());
+}
+
+#[inline]
+#[allow(unused_mut)]
+pub fn to_le_16(mut pcm: Vec<u8>) -> Vec<u8> {
+    if cfg!(target_endian = "big") {
+        align_u16(&mut pcm);
+        _to_le_16(cast_slice_mut(&mut pcm));
+    }
+    pcm
+}
+
+fn _to_le_16(pcm_16_bit: &mut [u16]) {
+    pcm_16_bit.iter_mut().for_each(|b| *b = b.to_le());
 }
 
 /// Reduce bit depth of 16 bit sample to 8 bit sample.

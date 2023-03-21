@@ -7,6 +7,7 @@ pub mod fmt_its;
 pub mod fmt_raw;
 pub mod fmt_s3i;
 pub mod fmt_wav;
+mod helper;
 
 /// Possible formats to store the pcm
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]

@@ -1,11 +1,9 @@
 use std::{borrow::Cow, io::Write};
 
+use super::helper::PCMFormatter;
 use crate::interface::audio::AudioTrait;
 use crate::interface::sample::{Channel, Depth, Sample};
 use crate::interface::Error;
-use crate::utils::sampler::{
-    flip_sign_16_bit, flip_sign_8_bit, interleave_16_bit, interleave_8_bit, to_be_16,
-};
 use bytemuck::cast_slice;
 use extended::Extended;
 
@@ -77,16 +75,16 @@ impl AudioTrait for Aiff {
         // The samples are also stored in big endian
         let pcm = match smp.depth {
             Depth::I8 => pcm,
-            Depth::I16 => to_be_16(pcm.into_owned()).into(),
-            Depth::U8 => flip_sign_8_bit(pcm.into_owned()).into(),
-            Depth::U16 => to_be_16(flip_sign_16_bit(pcm.into_owned())).into(),
+            Depth::I16 => pcm.to_be_16(),
+            Depth::U8 => pcm.flip_sign_8(),
+            Depth::U16 => pcm.flip_sign_16().to_be_16(),
         };
 
         // Stereo samples are interleaved
         match smp.channel {
             Channel::Stereo { interleaved: false } => match smp.depth {
-                Depth::I8 | Depth::U8 => write(&interleave_8_bit(&pcm)),
-                Depth::I16 | Depth::U16 => write(cast_slice(&interleave_16_bit(pcm.into_owned()))),
+                Depth::I8 | Depth::U8 => write(&pcm.interleave_8()),
+                Depth::I16 | Depth::U16 => write(cast_slice(&pcm.interleave_16())),
             },
             _ => write(&pcm),
         }?;

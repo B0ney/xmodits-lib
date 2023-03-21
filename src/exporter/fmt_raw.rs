@@ -11,6 +11,7 @@ impl AudioTrait for Raw {
         "raw"
     }
 
+    // todo: does target endian have any affect here?
     fn write(&self, _: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
         Ok(writer.write_all(&pcm)?)
     }

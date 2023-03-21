@@ -1,12 +1,10 @@
 use bytemuck::cast_slice;
 use std::{borrow::Cow, io::Write};
 
+use super::helper::PCMFormatter;
 use crate::interface::audio::AudioTrait;
 use crate::interface::sample::{Channel, Depth, Sample};
 use crate::interface::Error;
-use crate::utils::sampler::{
-    flip_sign_16_bit, flip_sign_8_bit, interleave_16_bit, interleave_8_bit,
-};
 
 #[derive(Clone, Copy)]
 pub struct Wav;
@@ -54,59 +52,32 @@ impl AudioTrait for Wav {
         write(&DATA)?;
         write(&pcm_len.to_le_bytes())?; // size of chunk
 
-        // Only signed 16 bit & unsigned 8 bit samples are supported.
-        // If not, flip the sign.
+        /*  Only signed 16 bit & unsigned 8 bit samples are supported.
+            If not, flip the sign.
+
+            We also make sure the pcm samples are stored in little endian, 
+            on native systems, it will do nothing.
+        */ 
         let pcm = match smp.depth {
-            Depth::U8 | Depth::I16 => pcm,
-            Depth::I8 => flip_sign_8_bit(pcm.into_owned()).into(),
-            Depth::U16 => flip_sign_16_bit(pcm.into_owned()).into(),
+            Depth::U8 => pcm,
+            Depth::I16 => pcm.to_le_16(),
+            Depth::I8 => pcm.flip_sign_8(),
+            Depth::U16 => pcm.flip_sign_16().to_le_16(),
         };
 
         match smp.channel {
             Channel::Stereo { interleaved: false } => match smp.is_8_bit() {
-                true => write(&interleave_8_bit(&pcm)),
-                false => write(cast_slice(&interleave_16_bit(pcm.into_owned()))),
+                true => write(&pcm.interleave_8()),
+                false => write(cast_slice(&pcm.interleave_16())),
             },
             _ => write(&pcm),
         }?;
 
-        // write smpl chunk
+        // TODO: write smpl chunk
 
         Ok(())
     }
 }
 
 #[cfg(test)]
-mod tests {
-    // use std::borrow::Cow;
-
-    // use crate::interface::{
-    //     audio::AudioTrait,
-    //     sample::{Channel, Depth, Sample},
-    // };
-
-    // use super::Wav;
-
-    // #[test]
-    // fn a() {
-    //     rayon::ThreadPoolBuilder::new()
-    //         .num_threads(4)
-    //         .build_global()
-    //         .unwrap();
-    //     let mut buf: Vec<u8> = Vec::new();
-    //     // let data: Vec<u8> = (0..2048).map(|x| (x % i8::MAX as usize) as u8).collect();
-    //     let data = include_bytes!("../../stereo_i16_single.raw");
-    //     let mut file = std::fs::File::create("./stereo_i16_interleave.wav").unwrap();
-    //     Wav.write(
-    //         &Sample {
-    //             depth: Depth::I16,
-    //             rate: 11025,
-    //             channel: Channel::Stereo { interleaved: false },
-    //             ..Default::default()
-    //         },
-    //         Cow::Borrowed(data),
-    //         &mut file,
-    //     );
-    //     // dbg!(buf);
-    // }
-}
+mod tests {}
