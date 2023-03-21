@@ -23,13 +23,13 @@ pub trait PCMFormatter {
     ///
     /// Assumes the samples are stored as: LLLLRRRR
     ///
-    /// Which then converts them to: LRLRLRLR
+    /// Which interleaves them to: LRLRLRLR
     fn interleave_8(self) -> Vec<u8>;
     /// Interleave 16-bit PCM.
     ///
     /// Assumes the samples are stored as: LLLLRRRR
     ///
-    /// Which interleaves then to: LRLRLRLR
+    /// Which interleaves them to: LRLRLRLR
     fn interleave_16(self) -> Vec<u16>;
     /// Convert 16-bit PCM samples to 8-bit.
     fn reduce_bit_depth_16_to_8(self) -> Self;
