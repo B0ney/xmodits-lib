@@ -89,19 +89,19 @@ impl Ripper {
         }
     }
 
-    // extract a particular sample to a writer object.
-    // This should be used for extracting a sample to memory
-    pub fn rip_to_writer(
-        &self,
-        module: &dyn Module,
-        writer: &mut dyn Write,
-        index: usize,
-    ) -> Result<(), Error> {
-        todo!()
-        // let metadata = module.samples().get(index).ok_or_else(|| todo!())?; // todo
-        // let pcm = module.pcm(metadata)?;
-        // self.format.write(metadata, pcm, writer)
-    }
+    // // extract a particular sample to a writer object.
+    // // This should be used for extracting a sample to memory
+    // pub fn rip_to_writer(
+    //     &self,
+    //     module: &dyn Module,
+    //     writer: &mut dyn Write,
+    //     index: usize,
+    // ) -> Result<(), Error> {
+    //     todo!()
+    //     // let metadata = module.samples().get(index).ok_or_else(|| todo!())?; // todo
+    //     // let pcm = module.pcm(metadata)?;
+    //     // self.format.write(metadata, pcm, writer)
+    // }
 }
 
 pub fn build_context<'a>(module: &'a dyn Module, audio_format: &'a DynAudioTrait) -> Context<'a> {

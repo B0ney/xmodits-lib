@@ -4,14 +4,6 @@ use thiserror::Error;
 
 use crate::{interface::Sample, parser::io::io_error};
 
-pub struct Context {
-    path: Option<PathBuf>,
-    title: String,
-    size: u32,
-    reported_samples: u16,
-    errors: Vec<Error>,
-}
-
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("{0}")]
@@ -102,15 +94,5 @@ impl Error {
             pointer: smp.pointer,
             length: smp.length,
         }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::interface::Error;
-
-    #[test]
-    fn a() {
-        dbg!(std::mem::size_of::<Error>());
     }
 }

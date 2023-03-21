@@ -59,11 +59,11 @@ impl PCMFormatter for Cow<'_, [u8]> {
     }
 
     fn interleave_8(self) -> Vec<u8> {
-        interleave_8_bit(&self).into()
+        interleave_8_bit(&self)
     }
 
     fn interleave_16(self) -> Vec<u16> {
-        interleave_16_bit(self.into_owned()).into()
+        interleave_16_bit(self.into_owned())
     }
 
     fn reduce_bit_depth_16_to_8(self) -> Self {
