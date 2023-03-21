@@ -10,6 +10,7 @@ use crate::parser::{
 };
 use crate::utils::deltadecode::{delta_decode_u16, delta_decode_u8};
 use std::borrow::Cow;
+use std::path::{Path, PathBuf};
 
 const NAME: &str = "Extended Module";
 
@@ -28,6 +29,7 @@ const FLAG_LOOP_PINGPONG: u8 = 3;
 pub struct XM {
     inner: GenericTracker,
     samples: Box<[Sample]>,
+    source: Option<Box<Path>>,
     title: Box<str>,
 }
 
@@ -55,6 +57,15 @@ impl Module for XM {
 
     fn matches_format(buf: &[u8]) -> bool {
         magic_header(&MAGIC_EXTENDED_MODULE, buf) | magic_header(&MAGIC_MOD_PLUGIN_PACKED, buf)
+    }
+
+    fn set_source(mut self: Box<Self>, path: PathBuf) -> Box<dyn Module> {
+        self.source = Some(path.into());
+        self
+    }
+
+    fn source(&self) -> Option<&Path> {
+       self.source.as_deref()
     }
 }
 
@@ -128,6 +139,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
         title,
         inner,
         samples,
+        source: None,
     })
 }
 

@@ -8,6 +8,7 @@ use crate::parser::{
 };
 use std::borrow::Cow;
 use std::io::Read;
+use std::path::{Path, PathBuf};
 
 /*
 TODO: debranu.mod is an IFF containing a MOD
@@ -31,6 +32,7 @@ const INVALID_BYTE_THRESHOLD: u8 = 40;
 pub struct MOD {
     inner: GenericTracker,
     samples: Box<[Sample]>,
+    source: Option<Box<Path>>,
     title: Box<str>,
 }
 
@@ -60,6 +62,15 @@ impl Module for MOD {
     fn matches_format(buf: &[u8]) -> bool {
         // for now
         true
+    }
+
+    fn set_source(mut self: Box<Self>, path: PathBuf) -> Box<dyn Module> {
+        self.source = Some(path.into());
+        self
+    }
+
+    fn source(&self) -> Option<&Path> {
+       self.source.as_deref()
     }
 }
 
@@ -91,6 +102,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
         title,
         inner,
         samples: samples.into(),
+        source: None,
     })
 }
 

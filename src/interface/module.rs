@@ -1,6 +1,7 @@
 use crate::interface::{sample::Sample, Error};
 use crate::parser::io::ReadSeek;
 use std::borrow::Cow;
+use std::path::{PathBuf, Path};
 
 /// A barebones representation of a tracker module.
 ///
@@ -44,6 +45,8 @@ pub trait Module: Send + Sync {
     fn total_samples(&self) -> usize {
         self.samples().len()
     }
+    fn set_source(self: Box<Self>, path: PathBuf) -> Box<dyn Module>;
+    fn source(&self) -> Option<&Path>;
 }
 
 /// Panic free wrapper to obtain raw samples from a module

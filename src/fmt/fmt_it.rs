@@ -10,6 +10,7 @@ use crate::parser::{
 };
 use crate::{info, warn};
 use std::borrow::Cow;
+use std::path::{Path, PathBuf};
 
 const NAME: &str = "Impulse Tracker";
 
@@ -42,6 +43,7 @@ pub struct IT {
     inner: GenericTracker,
     samples: Box<[Sample]>,
     title: Box<str>,
+    source: Option<Box<Path>>,
     version: u16,
 }
 
@@ -81,6 +83,15 @@ impl Module for IT {
 
     fn matches_format(buf: &[u8]) -> bool {
         magic_header(&MAGIC_IMPM, buf) | magic_header(&MAGIC_ZIRCONIA, buf)
+    }
+
+    fn set_source(mut self: Box<Self>, path: PathBuf) -> Box<dyn Module> {
+        self.source = Some(path.into());
+        self
+    }
+
+    fn source(&self) -> Option<&Path> {
+       self.source.as_deref()
     }
 }
 
@@ -130,6 +141,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
         inner,
         samples,
         version,
+        source: None,
     })
 }
 /*

@@ -9,6 +9,7 @@ use crate::parser::{
     string::read_str,
 };
 use std::borrow::Cow;
+use std::path::{PathBuf, Path};
 
 const NAME: &str = "Scream Tracker";
 
@@ -25,6 +26,7 @@ pub struct S3M {
     inner: GenericTracker,
     samples: Box<[Sample]>,
     name: Box<str>,
+    source: Option<Box<Path>>,
 }
 
 impl Module for S3M {
@@ -58,6 +60,15 @@ impl Module for S3M {
             Some(slice) => magic_header(&MAGIC_SCRM, slice),
             None => false,
         }
+    }
+
+    fn set_source(mut self: Box<Self>, path: PathBuf) -> Box<dyn Module> {
+        self.source = Some(path.into());
+        self
+    }
+
+    fn source(&self) -> Option<&Path> {
+       self.source.as_deref()
     }
 }
 
@@ -94,6 +105,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<S3M, Error> {
         name: title,
         inner,
         samples,
+        source: None,
     })
 }
 

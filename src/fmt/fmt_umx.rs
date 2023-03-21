@@ -39,6 +39,12 @@ impl Module for UMX {
     fn samples(&self) -> &[Sample] {
         unimplemented!()
     }
+    fn set_source(self: Box<Self>, _: std::path::PathBuf) -> Box<dyn Module> {
+        unimplemented!()
+    }
+    fn source(&self) -> Option<&std::path::Path> {
+        unimplemented!()
+    }
 }
 
 pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {

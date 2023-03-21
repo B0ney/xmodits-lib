@@ -1,6 +1,6 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
+use std::{borrow::Cow, path::Path};
 
 use crate::interface::sample::Sample;
 
@@ -23,16 +23,8 @@ pub struct Context<'a> {
 
     /// Highest sample index
     pub highest: usize,
-}
 
-impl<'a> Context<'a> {
-    pub fn new(total: usize, extension: &'a str, highest: usize) -> Self {
-        Self {
-            total,
-            extension,
-            highest,
-        }
-    }
+    pub source_path: Option<&'a Path>,
 }
 
 /// Struct to customize how samples are named
@@ -40,7 +32,7 @@ impl<'a> Context<'a> {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SampleNamer {
     /// Prefix exported samples
-    pub prefix: Option<Box<str>>,
+    pub prefix_source: bool,
 
     /// Only name samples with an index
     pub index_only: bool,
@@ -74,7 +66,7 @@ impl Default for SampleNamer {
             lower: false,
             upper: false,
             prefer_filename: true,
-            prefix: None,
+            prefix_source: false,
         }
     }
 }
@@ -132,9 +124,12 @@ impl SampleNamer {
                 }
             };
 
-            let prefix: Cow<str> = match self.prefix {
-                Some(ref prefix) => format!("{prefix} - ").into(),
-                None => "".into(),
+            let prefix: Cow<str> = match self.prefix_source {
+                true => match source_name(ctx.source_path) {
+                    Some(prefix) => format!("{prefix} - ").into(),
+                    None => "".into(),
+                },
+                false => "".into(),
             };
 
             let name: Cow<str> = match self.index_only {
@@ -145,6 +140,17 @@ impl SampleNamer {
             format!("{prefix}{index}{name}.{extension}")
         }
     }
+}
+
+pub fn source_name(path: Option<&Path>) -> Option<Cow<str>> {
+    let path = path?;
+    let str: Cow<str> = path
+        .file_name()?
+        .to_str()?
+        .split_terminator('.')
+        .next()?
+        .into();
+    str.into()
 }
 
 /// Calculate the number of digits for a given ``usize``

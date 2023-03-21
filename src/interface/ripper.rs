@@ -104,17 +104,18 @@ impl Ripper {
     }
 }
 
-pub fn build_context<'a>(module: &dyn Module, audio_format: &'a DynAudioTrait) -> Context<'a> {
-    Context::new(
-        module.samples().len(),
-        audio_format.extension(),
-        module
+pub fn build_context<'a>(module: &'a dyn Module, audio_format: &'a DynAudioTrait) -> Context<'a> {
+    Context {
+        total: module.samples().len(),
+        extension: audio_format.extension(),
+        highest: module
             .samples()
             .iter()
             .map(Sample::index_raw)
             .max()
-            .unwrap(), // samples have a unique index so it shouldn't panic
-    )
+            .unwrap(),
+        source_path: module.source(),
+    }
 }
 
 #[test]
