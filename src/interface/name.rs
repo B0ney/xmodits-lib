@@ -36,9 +36,12 @@ impl<'a> Context<'a> {
 }
 
 /// Struct to customize how samples are named
-#[derive(Debug, Clone, Copy, Hash)]
+#[derive(Debug, Clone, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SampleNamer {
+    /// Prefix exported samples
+    pub prefix: Option<Box<str>>,
+
     /// Only name samples with an index
     pub index_only: bool,
 
@@ -71,6 +74,7 @@ impl Default for SampleNamer {
             lower: false,
             upper: false,
             prefer_filename: true,
+            prefix: None,
         }
     }
 }
@@ -84,10 +88,10 @@ impl From<SampleNamer> for Box<dyn SampleNamerTrait> {
 impl SampleNamer {
     /// Construct a functor implementing the SampleNamerTrait
     ///
-    /// The function consumes `self`, but SampleNamer implements `Copy`
+    /// The function consumes `self`
     pub fn to_func(self) -> impl SampleNamerTrait {
         move |smp: &Sample, ctx: &Context, index: usize| -> String {
-            let index_component: String = {
+            let index: String = {
                 let (index, largest) = match self.index_raw {
                     true => (smp.index_raw(), ctx.highest),
                     false => (index + 1, ctx.total),
@@ -122,18 +126,23 @@ impl SampleNamer {
                             (false, true) => name.to_ascii_lowercase(),
                             _ => name,
                         };
-                        
+
                         format!(" - {name}").into()
                     }
                 }
             };
 
-            let name_component: Cow<str> = match self.index_only {
+            let prefix: Cow<str> = match self.prefix {
+                Some(ref prefix) => format!("{prefix} - ").into(),
+                None => "".into(),
+            };
+
+            let name: Cow<str> = match self.index_only {
                 true => "".into(),
                 false => smp_name(),
             };
 
-            format!("{index_component}{name_component}.{extension}")
+            format!("{prefix}{index}{name}.{extension}")
         }
     }
 }
