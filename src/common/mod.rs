@@ -14,7 +14,7 @@ use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
 const MAX_SIZE_BYTES: u64 = 48 * 1024 * 1024;
-const BUFFER_SIZE: usize = 64 * 1024; // 64KiB Buffering
+const BUFFER_SIZE: usize = 16 * 1024; // 64KiB Buffering
 
 /// Extract a module from a path to a destination
 pub fn extract<A, B>(
