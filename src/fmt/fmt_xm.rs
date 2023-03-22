@@ -46,7 +46,7 @@ impl Module for XM {
     }
 
     fn format(&self) -> &str {
-        todo!()
+        NAME
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {

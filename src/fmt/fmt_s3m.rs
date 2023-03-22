@@ -53,10 +53,6 @@ impl Module for S3M {
         &self.samples
     }
 
-    fn total_samples(&self) -> usize {
-        self.samples().len()
-    }
-
     fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
         info!("Loading Scream Tracker 3 Module");
         Ok(Box::new(parse_(data)?))

@@ -49,7 +49,7 @@ impl Module for MOD {
     }
 
     fn format(&self) -> &str {
-        todo!()
+        "Amiga ProTracker"
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
