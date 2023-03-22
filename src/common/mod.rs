@@ -14,6 +14,7 @@ use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
 const MAX_SIZE_BYTES: u64 = 48 * 1024 * 1024;
+const BUFFER_SIZE: usize = 64 * 1024; // 64KiB Buffering
 
 /// Extract a module from a path to a destination
 pub fn extract<A, B>(
@@ -34,7 +35,7 @@ where
         return Err(too_large(MAX_SIZE_BYTES));
     }
 
-    let mut data = BufReader::new(File::open(file)?);
+    let mut data = BufReader::with_capacity(BUFFER_SIZE, File::open(file)?);
     let module = load_module(&mut data)?.set_source(file.into());
 
     if !destination.is_dir() {
