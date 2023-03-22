@@ -18,24 +18,6 @@ use crate::parser::bytes::le_u16 as _le_u16;
 use crate::{error, warn};
 use bytemuck::cast_slice;
 
-fn eof_err(len: usize, offset: usize) -> Error {
-    let error = format!(
-        "Unexpected EOF for compressed Impulse Tracker sample ({len} bytes) for given offset {offset}"
-    );
-    error!("{}", error);
-    Error::Extraction(error)
-}
-
-fn le_u16(buf: &[u8], offset: usize) -> Result<u16, Error> {
-    _le_u16(buf, offset).ok_or_else(|| eof_err(buf.len(), offset))
-}
-
-fn get_byte(buf: &[u8], offset: usize) -> Result<u8, Error> {
-    buf.get(offset)
-        .ok_or_else(|| eof_err(buf.len(), offset))
-        .copied()
-}
-
 #[rustfmt::skip] 
 struct BitReader<'a> {
     block_offset: usize,    // Location of next block
@@ -283,6 +265,24 @@ pub fn decompress_16_bit(buf: &[u8], len: u32, it215: bool) -> Result<Vec<u8>, E
     }
 
     Ok(dest_buf)
+}
+
+fn eof_err(len: usize, offset: usize) -> Error {
+    let error = format!(
+        "Unexpected EOF for compressed Impulse Tracker sample ({len} bytes) for given offset {offset}"
+    );
+    error!("{}", error);
+    Error::Extraction(error)
+}
+
+fn le_u16(buf: &[u8], offset: usize) -> Result<u16, Error> {
+    _le_u16(buf, offset).ok_or_else(|| eof_err(buf.len(), offset))
+}
+
+fn get_byte(buf: &[u8], offset: usize) -> Result<u8, Error> {
+    buf.get(offset)
+        .ok_or_else(|| eof_err(buf.len(), offset))
+        .copied()
 }
 
 #[cfg(test)]
