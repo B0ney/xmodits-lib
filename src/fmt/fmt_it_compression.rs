@@ -1,3 +1,18 @@
+// xmodits core library
+// Copyright (c) 2023 B0ney
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+//! Rust implementation for decompressing compressed Impulse Tracker samples
+//! 
+//! Algorithm for sample decompression: 
+//!     https://github.com/nicolasgramlich/AndEngineMODPlayerExtension/blob/master/jni/loaders/itsex.c
+//! 
+//! Bitreading:
+//!     https://github.com/Konstanty/libmodplug/blob/master/src/load_it.cpp#L1183
+
 use crate::interface::Error;
 use crate::parser::bytes::le_u16 as _le_u16;
 use crate::{error, warn};
