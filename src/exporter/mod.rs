@@ -39,7 +39,11 @@ pub enum AudioFormat {
 }
 
 impl AudioFormat {
-    pub const FORMATS: [Self; 5] = [Self::WAV, Self::IFF, Self::AIFF, Self::ITS, Self::RAW];
+    pub const ALL: [Self; 6] = [
+        Self::WAV, Self::IFF, 
+        Self::AIFF, Self::ITS, 
+        Self::S3I, Self::RAW
+    ];
     /// Returns an AudioTrait object.
     ///
     /// If the implementation is zero sized, it won't allocate.
