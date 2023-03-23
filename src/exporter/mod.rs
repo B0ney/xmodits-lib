@@ -17,7 +17,7 @@ pub mod fmt_wav;
 mod helper;
 
 /// Possible formats to store the pcm
-#[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum AudioFormat {
     /// Wav, only supports unsigned 8-bit and signed 16-bit samples.

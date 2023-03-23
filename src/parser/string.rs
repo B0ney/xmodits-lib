@@ -93,24 +93,20 @@ pub fn trim_null(buf: &[u8]) -> &[u8] {
 /// If the string doesn't contain any invalid chars, it will return the orginal string
 ///
 /// This also trims any whitespace.
-pub fn to_str_os(str: Cow<str>) -> Cow<str> {
+pub fn to_str_os(str: &str) -> Cow<str> {
     let forbidden_chars = |c: &char| FORBIDDEN_CHARS.contains(c);
     let non_printable_ascii = |c: &char| !is_printable_ascii(*c as u8);
-    let is_trimmed = |s: &Cow<str>| s.trim() == s;
 
     let bad_stuff = |c: char| forbidden_chars(&c) || non_printable_ascii(&c);
-    let needs_trimming = !is_trimmed(&str);
 
-    let str = match needs_trimming {
-        true => Cow::Owned(str.trim().to_owned()),
-        false => str,
-    };
-    let str = match str.contains(bad_stuff) {
+    let str = str.trim();
+
+    let str: Cow<str> = match str.contains(bad_stuff) {
         true => str
             .chars()
             .filter(|c| !(forbidden_chars(c) || non_printable_ascii(c)))
             .collect(),
-        false => str,
+        false => str.into(),
     };
 
     str
