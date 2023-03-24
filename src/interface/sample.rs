@@ -237,7 +237,7 @@ pub fn verify_samples(samples: &[Sample], size: Option<u64>) -> Result<(), Error
         }
 
         if errors > threshold {
-            return Err(Error::invalid("Not a valid MOD file"));
+            return Err(Error::invalid("Too many invalid samples"));
         }
     }
 
