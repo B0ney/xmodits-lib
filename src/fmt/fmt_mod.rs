@@ -7,7 +7,7 @@
 
 use crate::info;
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
+use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample, verify_samples};
 use crate::interface::Error;
 use crate::parser::{
     io::{is_magic_non_consume, non_consume, ByteReader, Container, ReadSeek},
@@ -102,6 +102,8 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
         smp.pointer = file.seek_position()? as u32;
         file.skip_bytes(smp.length as i64)?;
     }
+
+    verify_samples(&samples, file.size())?;
 
     let inner = file.load_to_memory()?.into();
 

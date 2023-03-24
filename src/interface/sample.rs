@@ -219,6 +219,31 @@ impl Depth {
     }
 }
 
+use super::Error;
+/// Verify that the generated samples aren't pointing to invalid offsets
+pub fn verify_samples(samples: &[Sample], size: Option<u64>) -> Result<(), Error> {
+    use crate::parser::string::errors;
+
+    let Some(size) = size else {
+        return Ok(());
+    };
+
+    let threshold: usize = errors(samples.len(), 50);
+    let mut errors: usize = 0;
+
+    for smp in samples {
+        if (smp.pointer + smp.length) as u64 > size {
+            errors += 1;
+        }
+
+        if errors > threshold {
+            return Err(Error::invalid("Not a valid MOD file"));
+        }
+    }
+
+    Ok(())
+}
+
 // #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 // pub enum PcmType {
 //     /// Samples are stored as PCM values

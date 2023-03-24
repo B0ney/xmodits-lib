@@ -51,7 +51,7 @@ pub fn read_string(buf: &[u8]) -> std::io::Result<Box<str>> {
 }
 
 /// approximate the amount of errors before we consider it garbage
-const fn errors(items: usize, percent: usize) -> usize {
+pub const fn errors(items: usize, percent: usize) -> usize {
     (items * percent) / 100
 }
 

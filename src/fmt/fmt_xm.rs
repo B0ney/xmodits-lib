@@ -7,7 +7,7 @@
 
 use crate::info;
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
+use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample, verify_samples};
 use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
@@ -140,6 +140,8 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
     }
 
     let samples = build(file, insnum)?;
+    verify_samples(&samples, file.size())?;
+
     let inner = file.load_to_memory()?.into();
 
     Ok(XM {
