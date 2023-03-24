@@ -159,10 +159,27 @@ pub fn interleave_16_bit(mut pcm: Vec<u8>) -> Vec<u16> {
     align_u16(&mut pcm);
     _interleave_16_bit(cast_slice(&pcm))
 }
-
 #[inline]
 fn _interleave_16_bit(pcm: &[u16]) -> Vec<u16> {
     interleave(pcm).collect()
+}
+
+#[inline]
+pub fn deinterleave_8_bit(pcm: &[u8]) -> Vec<u8> {
+    deinterleave(pcm).collect()
+}
+
+/// deinterleave 16 bit samples
+///
+/// We need to own the pcm to ensure it is aligned.
+#[inline]
+pub fn deinterleave_16_bit(mut pcm: Vec<u8>) -> Vec<u16> {
+    align_u16(&mut pcm);
+    _deinterleave_16_bit(cast_slice(&pcm))
+}
+
+fn _deinterleave_16_bit(pcm: &[u16]) -> Vec<u16> {
+    deinterleave(pcm).collect()
 }
 
 #[cfg(test)]

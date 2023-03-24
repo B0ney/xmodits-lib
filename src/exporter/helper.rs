@@ -9,7 +9,7 @@ use std::borrow::Cow;
 
 use crate::utils::sampler::{
     flip_sign_16_bit, flip_sign_8_bit, interleave_16_bit, interleave_8_bit,
-    reduce_bit_depth_16_to_8, to_be_16, to_le_16,
+    reduce_bit_depth_16_to_8, to_be_16, to_le_16, deinterleave_8_bit, deinterleave_16_bit,
 };
 
 /// Helper trait to allow chaining operations.
@@ -38,6 +38,18 @@ pub trait PCMFormatter {
     ///
     /// Which interleaves them to: LRLRLRLR
     fn interleave_16(self) -> Vec<u16>;
+    /// denterleave 8-bit PCM.
+    ///
+    /// Assumes the samples are stored as: LRLRLRLR
+    ///
+    /// Which deinterleaves them to: LLLLRRRR
+    fn deinterleave_8(self) -> Vec<u8>;
+    /// deinterleave 16-bit PCM.
+    ///
+    /// Assumes the samples are stored as: LRLRLRLR
+    ///
+    /// Which deinterleaves them to: LLLLRRRR
+    fn deinterleave_16(self) -> Vec<u16>;
     /// Convert 16-bit PCM samples to 8-bit.
     fn reduce_bit_depth_16_to_8(self) -> Self;
 }
@@ -75,5 +87,13 @@ impl PCMFormatter for Cow<'_, [u8]> {
 
     fn reduce_bit_depth_16_to_8(self) -> Self {
         reduce_bit_depth_16_to_8(self.into_owned()).into()
+    }
+
+    fn deinterleave_8(self) -> Vec<u8> {
+        deinterleave_8_bit(&self)
+    }
+
+    fn deinterleave_16(self) -> Vec<u16> {
+        deinterleave_16_bit(self.into_owned())
     }
 }
