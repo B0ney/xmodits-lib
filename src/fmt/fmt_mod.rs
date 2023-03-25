@@ -184,22 +184,32 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
         let name = read_str::<22>(file)
             .map_err(|_| Error::invalid("Not a valid MOD file"))?;
         
-        let length = to_byte(file.read_u16_be()?)?;
+        let length = to_byte(file.read_u16_be()?)? as u32;
         let finetune = file.read_u8()?;
-        let rate = FINETUNE[(finetune as usize) & 0x0F];
         let volume = file.read_u8()?;
 
-        let mut loop_start = to_byte(file.read_u16_be()?)?;
-        let loop_len = to_byte(file.read_u16_be()?)?;
-        let mut loop_end = 0;
+        let mut loop_start = to_byte(file.read_u16_be()?)? as u32;
+        let loop_len = to_byte(file.read_u16_be()?)? as u32;
+
+        let mut loop_end = loop_start  + loop_len;
+
+        invalid_score += get_invalid_score(
+            volume, 
+            finetune, 
+            loop_start as u16, 
+            loop_end as u16
+        );
 
         // // Make sure loop points don't overflow
-        // if (loop_len > 2) && (loop_end > length) && ((loop_start / 2) <= length) {
-        //     loop_start /= 2;
-        //     loop_end = loop_start + loop_len;
-        // }
+        if (loop_len > 2) && (loop_end > length) && ((loop_start / 2) <= length) {
+            loop_start /= 2;
+            loop_end = loop_start + loop_len;
+        }
 
-        invalid_score += get_invalid_score(volume, finetune, loop_start, loop_end);
+        let loop_kind = match loop_start == loop_end {
+            true  => LoopType::Off,
+            false => LoopType::Forward,
+        };
 
         if invalid_score > INVALID_BYTE_THRESHOLD {
             return Err(Error::invalid(
@@ -207,11 +217,13 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
             ));
         }
 
+        let rate = FINETUNE[(finetune as usize) & 0x0F];
+
         if length != 0 {
             samples.push(Sample {
                 filename: None,
                 name,
-                length: length as u32,
+                length,
                 rate,
                 pointer: 0,
                 depth: Depth::I8,
@@ -219,9 +231,9 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
                 index_raw: i as u16,
                 compressed: false,
                 looping: Loop {
-                    start: 0 as u32,
-                    stop: 0 as u32,
-                    kind: LoopType::Off,
+                    start: loop_start,
+                    stop: loop_end,
+                    kind: loop_kind,
                 },
             });
         }
