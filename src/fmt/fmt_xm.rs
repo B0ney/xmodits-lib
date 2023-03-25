@@ -28,10 +28,6 @@ const MINIMUM_VERSION: u16 = 0x0104;
 
 const FLAG_BITS: u8 = 1 << 4;
 
-const FLAG_LOOP_OFF: u8 = 0;
-const FLAG_LOOP_FORWARD: u8 = 1 << 0;
-const FLAG_LOOP_PINGPONG: u8 = 3;
-
 /// Fasttracker 2 Extended Module
 pub struct XM {
     inner: GenericTracker,
@@ -179,9 +175,8 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
             let length = file.read_u32_le()?;
             let loop_start = file.read_u32_le()?;
             let loop_length = file.read_u32_le()?;
-            // let loop_end = loop_start + loop_length;
+            let loop_end = loop_start + loop_length;
 
-            let loop_end = 0;
             file.skip_bytes(1)?; // volume
 
             let finetune = file.read_u8()? as i8;
@@ -198,6 +193,13 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
 
             let depth = Depth::new(!flag.contains(FLAG_BITS), true, true);
 
+            let loop_kind = match flag & 0x3 {
+                0 => LoopType::Off,
+                1 => LoopType::Forward,
+                3 => LoopType::PingPong,
+                _ => LoopType::Off,
+            };
+
             if length != 0 {
                 staging_samples.push(Sample {
                     filename: Some(filename.clone()),
@@ -212,7 +214,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
                     looping: Loop {
                         start: loop_start,
                         stop: loop_end,
-                        kind: LoopType::Off, // TODO
+                        kind: loop_kind,
                     },
                 });
                 total_samples += 1;
