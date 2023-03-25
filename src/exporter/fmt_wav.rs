@@ -10,7 +10,7 @@ use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
 use crate::interface::audio::AudioTrait;
-use crate::interface::sample::{Channel, Depth, Sample};
+use crate::interface::sample::{Channel, Depth, LoopType, Sample};
 use crate::interface::Error;
 
 #[derive(Clone, Copy)]
@@ -28,7 +28,7 @@ impl AudioTrait for Wav {
         const WAVE: [u8; 4] = *b"WAVE";
         const FMT_: [u8; 4] = *b"fmt ";
         const DATA: [u8; 4] = *b"data";
-        // const SMPL: [u8; 4] = *b"smpl";
+        const SMPL: [u8; 4] = *b"smpl";
         const WAV_SCS: [u8; 4] = 16_u32.to_le_bytes();
         const WAV_TYPE: [u8; 2] = 1_u16.to_le_bytes();
 
@@ -62,9 +62,9 @@ impl AudioTrait for Wav {
         /*  Only signed 16 bit & unsigned 8 bit samples are supported.
             If not, flip the sign.
 
-            We also make sure the pcm samples are stored in little endian, 
+            We also make sure the pcm samples are stored in little endian,
             on native systems, it will do nothing.
-        */ 
+        */
         let pcm = match smp.depth {
             Depth::U8 => pcm,
             Depth::I16 => pcm.to_le_16(),
@@ -80,8 +80,44 @@ impl AudioTrait for Wav {
             _ => write(&pcm),
         }?;
 
-        // TODO: write smpl chunk
+        // Write smpl chunk
+        if !smp.looping.is_disabled() {
+            const ZERO: [u8; 4] = [0u8; 4];
 
+            let chunk_size: u32 = 36 + 24;
+            let period: u32 = (1_000_000_000.0 / frequency as f64).round() as u32;
+            let midi_note: u32 = 60;
+            let midi_pitch: u32 = 1;
+            let sample_loops: u32 = 1;
+
+            let loop_start: u32 = smp.looping.start;
+            let loop_end: u32 = smp.looping.stop;
+            let loop_type: u32 = match smp.looping.kind {
+                LoopType::Off => unreachable!(),
+                LoopType::Forward => 0,
+                LoopType::Backward => 2,
+                LoopType::PingPong => 1,
+            };
+        
+            write(&SMPL)?;
+            write(&chunk_size.to_le_bytes())?;
+            write(&ZERO)?; // manufacturer
+            write(&ZERO)?; // product
+            write(&period.to_le_bytes())?;
+            write(&midi_note.to_le_bytes())?;
+            write(&midi_pitch.to_le_bytes())?;
+            write(&ZERO)?; // SMPTE format
+            write(&ZERO)?; // SMPTE offset
+            write(&sample_loops.to_le_bytes())?;
+            write(&ZERO)?; // sample data
+            write(&ZERO)?; // unique ID of loop
+            write(&loop_type.to_le_bytes())?;
+            write(&loop_start.to_le_bytes())?;
+            write(&loop_end.to_le_bytes())?;
+            write(&ZERO)?; // fraction
+            write(&ZERO)?; // repeats
+        }
+        
         Ok(())
     }
 }

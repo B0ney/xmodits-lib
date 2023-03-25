@@ -127,6 +127,12 @@ pub struct Loop {
     pub kind: LoopType,
 }
 
+impl Loop {
+    pub fn is_disabled(&self) -> bool {
+        self.kind == LoopType::Off
+    }
+}
+
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoopType {
     #[default]
