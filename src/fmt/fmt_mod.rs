@@ -22,20 +22,21 @@ TODO: debranu.mod is an IFF containing a MOD
 looking at the binary shows that it was made with ProTracker 3.
 ProTracker 3.6x supports saving modules inside of IFF containers.
 https://bugs.openmpt.org/view.php?id=752
- */
+*/
 
-const MAGIC_PP20: [u8; 4] = *b"PP20";
-const FINETUNE: [u32; 16] = [
-    8363, 8413, 8463, 8529, 8581, 8651, 8723, 8757, 7895, 7941, 7985, 8046, 8107, 8169, 8232, 8280,
-];
-const MAGIC: &[&[u8]] = &[
-     
-];
 const CHANNEL_4: &[&[u8]] = &[b"M.K.", b"M!K!", b"M&K!", b"N.T."];
-const CHANNEL_6: &[&[u8]] = &[b"6CHN"];
-const CHANNEL_8: &[&[u8]] = &[b"CD81", b"8CHN", b"OKTA"];
+const CHANNEL_6: &[&[u8]] = &[b"CD61"];
+const CHANNEL_8: &[&[u8]] = &[b"CD81", b"OKTA"];
 const CHANNEL_16: &[&[u8]] = &[b"16CN"];
 const CHANNEL_32: &[&[u8]] = &[b"32CN"];
+
+#[rustfmt::skip]
+const FINETUNE: [u32; 16] = [
+    8363, 8413, 8463, 8529, 8581, 8651, 8723, 8757, 
+    7895, 7941, 7985, 8046, 8107, 8169, 8232, 8280,
+];
+
+const MAGIC_PP20: [u8; 4] = *b"PP20";
 
 // https://github.com/OpenMPT/openmpt/blob/d75cd3eaf299ee84c484ff66ec5836a084738351/soundlib/Load_mod.cpp#L322
 const INVALID_BYTE_THRESHOLD: u8 = 40;
