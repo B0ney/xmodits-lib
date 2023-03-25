@@ -29,8 +29,13 @@ const FINETUNE: [u32; 16] = [
     8363, 8413, 8463, 8529, 8581, 8651, 8723, 8757, 7895, 7941, 7985, 8046, 8107, 8169, 8232, 8280,
 ];
 const MAGIC: &[&[u8]] = &[
-    b"M.K.", b"M!K!", b"M&K!", b"N.T.", b"CD81", b"OKTA", b"16CN", b"32CN", b"6CHN", b"8CHN",
+     
 ];
+const CHANNEL_4: &[&[u8]] = &[b"M.K.", b"M!K!", b"M&K!", b"N.T."];
+const CHANNEL_6: &[&[u8]] = &[b"6CHN"];
+const CHANNEL_8: &[&[u8]] = &[b"CD81", b"8CHN", b"OKTA"];
+const CHANNEL_16: &[&[u8]] = &[b"16CN"];
+const CHANNEL_32: &[&[u8]] = &[b"32CN"];
 
 // https://github.com/OpenMPT/openmpt/blob/d75cd3eaf299ee84c484ff66ec5836a084738351/soundlib/Load_mod.cpp#L322
 const INVALID_BYTE_THRESHOLD: u8 = 40;
@@ -85,8 +90,8 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
     check_xpk(file)?;
 
     let title = read_str::<20>(file)?;
-    let sample_number = get_sample_size(file)?;
-    let mut samples = build_samples(file, sample_number)?;
+    let MODInfo { channels, samples } = get_mod_info(file)?;
+    let mut samples = build_samples(file, samples as usize)?;
     file.skip_bytes(1)?; // song length
     file.skip_bytes(1)?; // reset flag
 
@@ -96,7 +101,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
 
     // I still haven't figured out why I need to add 1
     let highest = max(&patterns) + 1;
-    file.skip_bytes(highest as i64 * 1024)?;
+    file.skip_bytes(highest as i64 * channels as i64 * 256)?;
 
     for smp in samples.iter_mut() {
         smp.pointer = file.seek_position()? as u32;
@@ -115,18 +120,58 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
     })
 }
 
-pub fn get_sample_size(data: &mut impl ReadSeek) -> std::io::Result<usize> {
+fn get_mod_info(data: &mut impl ReadSeek) -> std::io::Result<MODInfo> {
     non_consume(data, |data| {
         data.set_seek_pos(1080)?;
         let magic: [u8; 4] = data.read_u32_be()?.to_be_bytes();
+        Ok(MODInfo::generate(magic))
+    })
+}
 
-        let samples = match magic.as_ref() {
-            m if MAGIC.contains(&m) => 31,
-            _ => 15,
+struct MODInfo {
+    pub channels: u8,
+    pub samples: u8,
+}
+
+impl MODInfo {
+    pub fn generate(magic: [u8; 4]) -> Self {
+        let mut samples = 31;
+        
+        // https://github.com/Konstanty/libmodplug/blob/master/src/load_mod.cpp#L208-L224
+        #[rustfmt::skip]
+        let advanced = |magic: [u8; 4]| -> Option<u8> {
+            match magic {
+                m if m[..3] == *b"FLT" && (b'4'..=b'9').contains(&m[3]) => Some(m[3] - b'0'),
+                m if m[..3] == *b"TDZ" && (b'4'..=b'9').contains(&m[3]) => Some(m[3] - b'0'),
+                m if m[1..] == *b"CHN" && (b'2'..=b'9').contains(&m[0]) => Some(m[0] - b'0'),
+                m if (m[0] == b'1' && m[2..] == *b"CH") && (b'0'..=b'9').contains(&m[1]) => Some(m[1] - b'0' + 10),
+                m if (m[0] == b'2' && m[2..] == *b"CH") && (b'0'..=b'9').contains(&m[1]) => Some(m[1] - b'0' + 20),
+                m if (m[0] == b'3' && m[2..] == *b"CH") && (b'0'..=b'2').contains(&m[1]) => Some(m[1] - b'0' + 30),
+                _=> None,
+            }
         };
 
-        Ok(samples)
-    })
+        let channels = match magic.as_ref() {
+            m if CHANNEL_4.contains(&m) => 4,
+            m if CHANNEL_6.contains(&m) => 6,
+            m if CHANNEL_8.contains(&m) => 8,
+            m if CHANNEL_16.contains(&m) => 16,
+            m if CHANNEL_32.contains(&m) => 32,
+            _ => match advanced(magic) {
+                Some(channels) => channels,
+                None => {
+                    samples = 15;
+                    4
+                }
+            }
+        };
+
+
+        Self {
+            channels,
+            samples
+        }
+    }
 }
 
 #[rustfmt::skip] 
