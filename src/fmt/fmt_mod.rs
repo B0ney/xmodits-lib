@@ -268,8 +268,8 @@ fn check_xpk(data: &mut impl ReadSeek) -> Result<(), Error> {
 #[rustfmt::skip] 
 fn get_invalid_score(volume: u8, finetune: u8, loop_start: u16, loop_end: u16) -> u8 {
     (volume > 64) as u8 + 
-    (finetune > 15) as u8 + 0
-    // (loop_start > loop_end * 2) as u8
+    (finetune > 15) as u8 +
+    (loop_start > loop_end * 2) as u8
 }
 
 fn to_byte(n: u16) -> Result<u16, Error> {
