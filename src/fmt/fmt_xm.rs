@@ -216,9 +216,9 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
                         stop: loop_end,
                         kind: loop_kind,
                     },
-                });
-                total_samples += 1;
+                });                
             }
+            total_samples += 1;
         }
 
         for smp in staging_samples.iter_mut() {
