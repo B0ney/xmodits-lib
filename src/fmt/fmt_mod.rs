@@ -184,20 +184,20 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
         let name = read_str::<22>(file)
             .map_err(|_| Error::invalid("Not a valid MOD file"))?;
         
-        let length = to_byte(file.read_u16_be()?)? as u32;
+        let length = file.read_u16_be()? as u32 * 2;
         let finetune = file.read_u8()?;
         let volume = file.read_u8()?;
 
-        let mut loop_start = to_byte(file.read_u16_be()?)? as u32;
-        let loop_len = to_byte(file.read_u16_be()?)? as u32;
+        let mut loop_start = file.read_u16_be()? as u32 * 2;
+        let loop_len = file.read_u16_be()? as u32 * 2;
 
         let mut loop_end = loop_start  + loop_len;
 
         invalid_score += get_invalid_score(
             volume, 
             finetune, 
-            loop_start as u16, 
-            loop_end as u16
+            loop_start, 
+            loop_end
         );
 
         // // Make sure loop points don't overflow
@@ -266,15 +266,10 @@ fn check_xpk(data: &mut impl ReadSeek) -> Result<(), Error> {
 /// 
 /// Compute a "rating" of this sample header by counting invalid header data to ultimately reject garbage files.
 #[rustfmt::skip] 
-fn get_invalid_score(volume: u8, finetune: u8, loop_start: u16, loop_end: u16) -> u8 {
+fn get_invalid_score(volume: u8, finetune: u8, loop_start: u32, loop_end: u32) -> u8 {
     (volume > 64) as u8 + 
     (finetune > 15) as u8 +
     (loop_start > loop_end * 2) as u8
-}
-
-fn to_byte(n: u16) -> Result<u16, Error> {
-    n.checked_mul(2)
-        .ok_or_else(|| Error::invalid("Not a valid MOD file"))
 }
 
 /// ``*patterns.iter().max().unwrap() + 1;`` produces 57 lines of asm: https://godbolt.org/z/4sd4E7r9o
