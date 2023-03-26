@@ -65,19 +65,19 @@ pub trait ByteReader {
 impl<T: ReadSeek> ByteReader for T {
     fn read_word(&mut self) -> io::Result<[u8; 2]> {
         let mut buf = [0u8; 2];
-        self.read_exact(&mut buf)?;
+        self.read_exact(&mut buf).map_err(prettify_eof)?;
         Ok(buf)
     }
 
     fn read_dword(&mut self) -> io::Result<[u8; 4]> {
         let mut buf = [0u8; 4];
-        self.read_exact(&mut buf)?;
+        self.read_exact(&mut buf).map_err(prettify_eof)?;
         Ok(buf)
     }
 
     fn read_byte(&mut self) -> io::Result<u8> {
         let mut buf = [0u8; 1];
-        self.read_exact(&mut buf)?;
+        self.read_exact(&mut buf).map_err(prettify_eof)?;
         Ok(buf[0])
     }
 
@@ -87,7 +87,7 @@ impl<T: ReadSeek> ByteReader for T {
 
     fn read_bytes(&mut self, bytes: usize) -> io::Result<Vec<u8>> {
         let mut buf = vec![0; bytes];
-        self.read_exact(&mut buf)?;
+        self.read_exact(&mut buf).map_err(prettify_eof)?;
         Ok(buf)
     }
 
@@ -144,6 +144,24 @@ pub fn is_magic_non_consume(reader: &mut impl ByteReader, magc: &[u8]) -> io::Re
 
 pub fn io_error(error: &str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, error)
+}
+
+pub fn prettify_eof(err: io::Error) -> io::Error {
+    match err.kind() {
+        std::io::ErrorKind::UnexpectedEof => std::io::Error::new(
+            std::io::ErrorKind::UnexpectedEof,
+            "Failed to parse this file: unexpected end of file",
+        ),
+        _ => err,
+    }
+}
+
+pub fn read_exact_const<const N: usize>(data: &mut impl ReadSeek) -> io::Result<[u8; N]> {
+    let mut buf = [0u8; N];
+    data.read_exact(&mut buf)
+        .map_err(prettify_eof)?;
+
+    Ok(buf)
 }
 
 impl<T> ReadSeek for Cursor<T>
