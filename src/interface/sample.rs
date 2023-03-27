@@ -131,6 +131,13 @@ impl Loop {
     pub fn is_disabled(&self) -> bool {
         self.kind == LoopType::Off
     }
+    
+    pub fn kind(&self) -> LoopType {
+        if self.start == self.stop {
+            return LoopType::Off;
+        }
+        self.kind
+    }
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
