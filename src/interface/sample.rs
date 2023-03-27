@@ -120,22 +120,38 @@ impl PartialEq for Sample {
 #[derive(Default, Debug)]
 pub struct Loop {
     /// sample loop start
-    pub start: u32,
+    start: u32,
     /// sample loop end
-    pub stop: u32,
+    end: u32,
     /// The type of loop
-    pub kind: LoopType,
+    kind: LoopType,
 }
 
 impl Loop {
+    pub fn new(start: u32, stop: u32, mut kind: LoopType) -> Self {
+        if start == stop  && kind != LoopType::Off {
+            kind = LoopType::Off;
+        }
+
+        Self { start, end: stop, kind }
+    }
+
     pub fn is_disabled(&self) -> bool {
         self.kind == LoopType::Off
     }
-    
+
+    /// sample loop start
+    pub fn start(&self) -> u32 {
+        self.start
+    }
+
+    /// sample loop end
+    pub fn end(&self) -> u32 {
+        self.end
+    }
+
+    /// The type of loop
     pub fn kind(&self) -> LoopType {
-        if self.start == self.stop {
-            return LoopType::Off;
-        }
         self.kind
     }
 }

@@ -7,7 +7,7 @@
 
 use crate::info;
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample, verify_samples};
+use crate::interface::sample::{verify_samples, Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
@@ -68,7 +68,7 @@ impl Module for XM {
     }
 
     fn source(&self) -> Option<&Path> {
-       self.source.as_deref()
+        self.source.as_deref()
     }
 }
 
@@ -199,10 +199,6 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
                 3 => LoopType::PingPong,
                 _ => LoopType::Off,
             };
-            
-            if loop_start == loop_end {
-                loop_kind = LoopType::Off;
-            };
 
             if length != 0 {
                 staging_samples.push(Sample {
@@ -215,12 +211,8 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
                     channel: Channel::Mono,
                     index_raw: total_samples,
                     compressed: false,
-                    looping: Loop {
-                        start: loop_start,
-                        stop: loop_end,
-                        kind: loop_kind,
-                    },
-                });                
+                    looping: Loop::new(loop_start, loop_end, loop_kind),
+                });
             }
             total_samples += 1;
         }

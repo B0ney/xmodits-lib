@@ -90,9 +90,9 @@ impl AudioTrait for Wav {
             let midi_pitch: u32 = 1;
             let sample_loops: u32 = 1;
 
-            let loop_start: u32 = smp.looping.start;
-            let loop_end: u32 = smp.looping.stop;
-            let loop_type: u32 = match smp.looping.kind {
+            let loop_start: u32 = smp.looping.start();
+            let loop_end: u32 = smp.looping.end();
+            let loop_type: u32 = match smp.looping.kind() {
                 LoopType::Off => unreachable!(),
                 LoopType::Forward => 0,
                 LoopType::Backward => 2,

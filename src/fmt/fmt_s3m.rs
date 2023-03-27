@@ -171,11 +171,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
             depth,
             channel,
             index_raw,
-            looping: Loop {
-                start: loop_start,
-                stop: loop_stop,
-                kind: loop_kind,
-            },
+            looping: Loop::new(loop_start, loop_stop, loop_kind),
             ..Default::default()
         })
     }

@@ -240,11 +240,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
             channel,
             index_raw,
             compressed,
-            looping: Loop {
-                start: loop_start,
-                stop: loop_end,
-                kind: loop_kind,
-            },
+            looping: Loop::new(loop_start, loop_end, loop_kind),
         })
     }
 
