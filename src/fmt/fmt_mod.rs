@@ -148,7 +148,7 @@ impl MODInfo {
                 m if (m[0] == b'1' && m[2..] == *b"CH") && (b'0'..=b'9').contains(&m[1]) => Some(m[1] - b'0' + 10),
                 m if (m[0] == b'2' && m[2..] == *b"CH") && (b'0'..=b'9').contains(&m[1]) => Some(m[1] - b'0' + 20),
                 m if (m[0] == b'3' && m[2..] == *b"CH") && (b'0'..=b'2').contains(&m[1]) => Some(m[1] - b'0' + 30),
-                _=> None,
+                _ => None,
             }
         };
 
@@ -166,7 +166,6 @@ impl MODInfo {
                 }
             }
         };
-
 
         Self {
             channels,
