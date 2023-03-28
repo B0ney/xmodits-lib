@@ -5,7 +5,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::{parser::io::{io_error, read_exact_const}, traits};
+use crate::parser::io::{io_error, read_exact_const};
+use crate::traits::ReadSeek;
 use std::{borrow::Cow, io};
 
 const FORBIDDEN_CHARS: &[char] = &[
@@ -25,7 +26,7 @@ pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
 }
 
 /// Returns an owned string slice from a known size
-pub fn read_str<const N: usize>(data: &mut impl traits::ReadSeek) -> io::Result<Box<str>> {
+pub fn read_str<const N: usize>(data: &mut impl ReadSeek) -> io::Result<Box<str>> {
     read_string(&read_exact_const::<N>(data)?)
 }
 
@@ -54,7 +55,6 @@ pub const fn errors(items: usize, percent: usize) -> usize {
 
 /// If the slice contains too many non-printable-ascii values, it is most likely garbage.
 fn is_garbage(buf: &[u8], threshold: usize) -> bool {
-    // This produces smaller assembly than the commented code.
     let mut total_garbage: usize = 0;
 
     for i in buf {
@@ -66,12 +66,10 @@ fn is_garbage(buf: &[u8], threshold: usize) -> bool {
         }
     }
     false
-    // buf.iter().filter(|f| !is_printable_ascii(f)).count() > threashold
 }
 
 fn is_printable_ascii(byte: u8) -> bool {
-    // ' '..='¬'
-    (32..=170).contains(&byte)
+    (b' '..=b'~').contains(&byte)
 }
 
 /// trim trailing nulls from u8 slice
@@ -108,12 +106,4 @@ pub fn to_str_os(str: &str) -> Cow<str> {
     };
 
     str
-}
-
-#[test]
-fn a() {
-    let str: [u8; 10] = [1, 5, 6, 6, 5, 9, 7, 6, 5, 5];
-    let str: _ = *b"hi \0\0";
-    // dbg!(&[1,2,3,4,5,6][..2]);
-    dbg!(trim_null(&str));
 }
