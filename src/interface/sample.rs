@@ -128,12 +128,12 @@ pub struct Loop {
 }
 
 impl Loop {
-    pub fn new(start: u32, stop: u32, mut kind: LoopType) -> Self {
-        if start == stop  && kind != LoopType::Off {
+    pub fn new(start: u32, end: u32, mut kind: LoopType) -> Self {
+        if end < 2  && kind != LoopType::Off {
             kind = LoopType::Off;
         }
 
-        Self { start, end: stop, kind }
+        Self { start, end, kind }
     }
 
     pub fn is_disabled(&self) -> bool {
@@ -148,6 +148,14 @@ impl Loop {
     /// sample loop end
     pub fn end(&self) -> u32 {
         self.end
+    }
+
+    pub fn len(&self) -> u32 {
+        if self.kind == LoopType::Off {
+            return 0;
+        }
+
+        self.end - self.start
     }
 
     /// The type of loop
