@@ -92,24 +92,9 @@ pub fn reduce_bit_depth_16_to_8(mut pcm_16_bit: Vec<u8>) -> Vec<u8> {
 #[inline]
 fn _reduce_bit_depth_u16_to_u8(pcm_16_bit: &[u16]) -> Vec<u8> {
     const SCALE: u16 = u16::MAX / u8::MAX as u16;
-
     let quantize = |sample: &u16| (*sample as f32 / SCALE as f32).round() as u8;
-
-    // #[cfg(not(feature = "thread"))]
-    // {
+    
     pcm_16_bit.iter().map(quantize).collect()
-    // }
-
-    // #[cfg(feature = "thread")]
-    // {
-    //     // Pre-allocate buffer for resampled pcm
-    //     let mut resampled: Vec<u8> = Vec::with_capacity(pcm_16_bit.len());
-    //     pcm_16_bit
-    //         .par_iter()
-    //         .map(quantize)
-    //         .collect_into_vec(&mut resampled);
-    //     resampled
-    // }
 }
 
 /// Interleave data.
@@ -184,7 +169,7 @@ fn _deinterleave_16_bit(pcm: &[u16]) -> Vec<u16> {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::sampler::align_u16;
+    use crate::utils::pcm::align_u16;
 
     use super::_interleave_16_bit;
     use super::deinterleave;
