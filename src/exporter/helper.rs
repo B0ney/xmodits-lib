@@ -7,7 +7,7 @@
 
 use std::borrow::Cow;
 
-use crate::utils::sampler::{
+use crate::utils::pcm::{
     flip_sign_16_bit, flip_sign_8_bit, interleave_16_bit, interleave_8_bit,
     reduce_bit_depth_16_to_8, to_be_16, to_le_16, deinterleave_8_bit, deinterleave_16_bit,
 };

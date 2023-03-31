@@ -6,6 +6,8 @@
 *.aiff
 *.its
 *.raw
+*.8svx
+*.iff
 
 *.umx
 *.it
