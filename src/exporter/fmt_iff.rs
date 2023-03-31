@@ -34,22 +34,15 @@ impl AudioTrait for Iff {
         const BODY: [u8; 4] = *b"BODY";
         const ZERO: [u8; 4] = 0u32.to_be_bytes();
 
-        const VOLUME: [u8; 4] = 255_u32.to_be_bytes();
+        const VOLUME: [u8; 4] = 65536_u32.to_be_bytes();
         const OCTAVE: [u8; 1] = [1];
         const COMPRESSION: [u8; 1] = [0];
 
         // 
-        let mut frequency: u32 = smp.rate as u32;
-        let mut len: u32 = pcm.len() as u32;
+        let frequency: u32 = smp.rate as u32;
+        let len: u32 = pcm.len() as u32;
         // let name_data: _= smp.name_pretty();
         // let name_data_len: u32 = name_data.as_bytes().len() as u32;
-
-        // half the length and frequency for 16 bit samples
-        // if !smp.is_8_bit() {
-        //     // len /= 2;
-        //     // frequency *= 2;
-        // };
-
         let frequency: u16 = frequency as u16;
 
         let form_chunk_size: u32 = 32 + len;
@@ -62,7 +55,8 @@ impl AudioTrait for Iff {
 
         write(&VHDR)?;
         write(&voice_chunk_size.to_be_bytes())?; // chunk size
-        write(&len.to_be_bytes())?; // samples in the high octave 1-shot part
+        // write(&len.to_be_bytes())?; // samples in the high octave 1-shot part
+        write(&ZERO)?; // samples in the high octave 1-shot part
         write(&ZERO)?; // samples per low cycle
         write(&ZERO)?; // samples per hi cycle
         write(&frequency.to_be_bytes())?;
@@ -86,6 +80,6 @@ impl AudioTrait for Iff {
             Depth::U16 => write(&pcm.reduce_bit_depth_16_to_8().flip_sign_8()),
         }?;
 
-        todo!()
+        Ok(())
     }
 }
