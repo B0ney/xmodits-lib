@@ -7,7 +7,7 @@
 
 use crate::info;
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
+use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
@@ -16,7 +16,7 @@ use crate::parser::{
     string::read_str,
 };
 use std::borrow::Cow;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
 const NAME: &str = "Scream Tracker";
 
@@ -71,7 +71,7 @@ impl Module for S3M {
     }
 
     fn source(&self) -> Option<&Path> {
-       self.source.as_deref()
+        self.source.as_deref()
     }
 }
 
@@ -153,12 +153,10 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         let channel = Channel::new(flags.contains(FLAG_STEREO), false);
         let length = length * channel.channels() as u32 * depth.bytes() as u32;
 
-        if let Some(size) = file.size() {
-            if (pointer + length) as u64 > size {
-                info!("Skipping invalid sample at index: {}...", index_raw + 1);
-                continue;
-            }
-        };
+        if !is_sample_valid(pointer, length, file.size(), false) {
+            info!("Skipping invalid sample at index: {}...", index_raw + 1);
+            continue;
+        }
 
         let index_raw = index_raw as u16;
 

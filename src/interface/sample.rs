@@ -129,7 +129,7 @@ pub struct Loop {
 
 impl Loop {
     pub fn new(start: u32, end: u32, mut kind: LoopType) -> Self {
-        if end < 2  && kind != LoopType::Off {
+        if end < 2 && kind != LoopType::Off {
             kind = LoopType::Off;
         }
 
@@ -257,6 +257,7 @@ impl Depth {
 }
 
 use super::Error;
+
 /// Verify that the generated samples aren't pointing to invalid offsets
 pub fn verify_samples(samples: &[Sample], size: Option<u64>) -> Result<(), Error> {
     use crate::parser::string::errors;
@@ -269,7 +270,7 @@ pub fn verify_samples(samples: &[Sample], size: Option<u64>) -> Result<(), Error
     let mut errors: usize = 0;
 
     for smp in samples {
-        if (smp.pointer + smp.length) as u64 > size {
+        if !is_sample_valid(smp.pointer, smp.length, Some(size), smp.compressed) {
             errors += 1;
         }
 
@@ -279,6 +280,22 @@ pub fn verify_samples(samples: &[Sample], size: Option<u64>) -> Result<(), Error
     }
 
     Ok(())
+}
+
+pub fn is_sample_valid(pointer: u32, length: u32, size: Option<u64>, compressed: bool) -> bool {
+    let Some(size) = size else {
+        return true;
+    };
+
+    if pointer as u64 >= size {
+        return false;
+    }
+
+    if (pointer + length) as u64 > size && !compressed {
+        return false;
+    }
+
+    true
 }
 
 // #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]

@@ -7,12 +7,12 @@
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample};
+use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,
-    io::{is_magic, is_magic_non_consume, ByteReader, ReadSeek,non_consume},
+    io::{is_magic, is_magic_non_consume, non_consume, ByteReader, ReadSeek},
     string::read_str,
 };
 use crate::{info, warn};
@@ -98,7 +98,7 @@ impl Module for IT {
     }
 
     fn source(&self) -> Option<&Path> {
-       self.source.as_deref()
+        self.source.as_deref()
     }
 }
 
@@ -179,7 +179,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
             file.skip_bytes(44)?;
             file.read_u32_le()
         })?;
-        
+
         if length == 0 {
             info!("Skipping empty sample at raw index: {}...", index_raw + 1);
             continue;
@@ -214,12 +214,10 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         let channel = Channel::new(false, false);
         let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
 
-        if let Some(size) = file.size() {
-            if (pointer + length) as u64 > size {
-                info!("Skipping invalid sample at index: {}...", index_raw + 1);
-                continue;
-            }
-        };
+        if !is_sample_valid(pointer, length, file.size(), compressed) {
+            info!("Skipping invalid sample at index: {}...", index_raw + 1);
+            continue;
+        }
 
         let index_raw = index_raw as u16;
         let loop_kind = match flags {
