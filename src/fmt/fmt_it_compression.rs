@@ -107,9 +107,9 @@ pub fn decompress_8_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8>
         while blkpos < blklen {
 
             if width > 9 {
-                warn!("Failed to fully extract this sample due to an invalid bit width: {}. (Should be < 10)", width);
-                return Ok(dest_buf);
-                // return Err(Error::Extraction(format!("Invalid Bit width. Why is it {}?", width)));
+                error!("Failed to fully extract this sample due to an invalid bit width: {}. (Should be < 10)", width);
+                // return Ok(dest_buf);
+                return Err(Error::Extraction(format!("Invalid Bit width. Why is it {}?", width)));
             };
 
             value = bitreader.read_bits_u16(width)?;
@@ -205,9 +205,9 @@ pub fn decompress_16_bit(buf: &[u8], len: u32, it215: bool) -> Result<Vec<u8>, E
         while blkpos < blklen {
 
             if width > 17 {
-                warn!("Failed to fully extract this sample due to an invalid bit width: {}. (Should be < 18)", width);
-                return Ok(dest_buf);
-                // return Err(Error::Extraction(format!("Invalid Bit width. Why is it {}?", width)));
+                error!("Failed to fully extract this sample due to an invalid bit width: {}. (Should be < 18)", width);
+                // return Ok(dest_buf);
+                return Err(Error::Extraction(format!("Invalid Bit width. Why is it {}?", width)));
             }
 
             value = bitreader.read_bits_u32(width)?;
