@@ -193,7 +193,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
 
             let depth = Depth::new(!flag.contains(FLAG_BITS), true, true);
 
-            let mut loop_kind = match flag & 0x3 {
+            let loop_kind = match flag & 0x3 {
                 0 => LoopType::Off,
                 1 => LoopType::Forward,
                 3 => LoopType::PingPong,

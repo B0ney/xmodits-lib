@@ -64,11 +64,11 @@ impl Sample {
     /// We need to make sure that the name is os_friendly and doesn't have any trailing whitespace.
     /// This is different from the sample namer during export
     pub fn name_pretty(&self) -> Cow<str> {
-        to_str_os(self.name().into())
+        to_str_os(self.name())
     }
     /// todo
     pub fn filename_pretty(&self) -> Cow<str> {
-        to_str_os(self.filename().into())
+        to_str_os(self.filename())
     }
     /// Display Sample's filename from its raw buffer.
     ///

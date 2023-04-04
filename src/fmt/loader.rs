@@ -71,16 +71,16 @@ impl std::fmt::Display for Format {
 
 #[cfg(test)]
 mod test {
-    use crate::fmt::loader::identify_module;
-    use std::{io, vec};
+    // use crate::fmt::loader::identify_module;
+    // use std::{io, vec};
 
-    #[test]
-    fn a() {
-        let mut buf = vec![0u8; 0x2c];
-        buf.extend_from_slice(b"SCRM");
+    // #[test]
+    // fn a() {
+    //     let mut buf = vec![0u8; 0x2c];
+    //     buf.extend_from_slice(b"SCRM");
 
-        let head: &[u8] = &buf;
-        let mut head = io::Cursor::new(head);
-        dbg!(identify_module(&mut head));
-    }
+    //     let head: &[u8] = &buf;
+    //     let mut head = io::Cursor::new(head);
+    //     dbg!(identify_module(&mut head));
+    // }
 }

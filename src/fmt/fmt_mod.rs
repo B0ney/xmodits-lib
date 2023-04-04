@@ -14,7 +14,6 @@ use crate::parser::{
     string::read_str,
 };
 use std::borrow::Cow;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 
 /*

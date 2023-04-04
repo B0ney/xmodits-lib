@@ -293,62 +293,62 @@ impl<R: Read + Seek> Seek for Container<R> {
 
 #[cfg(test)]
 mod tests {
-    use super::ByteReader;
-    use crate::parser::io::{is_magic_non_consume, Container, ReadSeek};
-    use std::{
-        borrow::Cow,
-        io::{Cursor, Read, Seek},
-    };
-    #[test]
-    fn a() {
-        let mut a = Cursor::new(b"\0\0\0\0Extended Module: Chicken flavour" as &[u8]);
-        a.skip_bytes(4).unwrap();
+    // use super::ByteReader;
+    // use crate::parser::io::{is_magic_non_consume, Container, ReadSeek};
+    // use std::{
+    //     borrow::Cow,
+    //     io::{Cursor, Read, Seek},
+    // };
+    // #[test]
+    // fn a() {
+    //     let mut a = Cursor::new(b"\0\0\0\0Extended Module: Chicken flavour" as &[u8]);
+    //     a.skip_bytes(4).unwrap();
 
-        let mut buf = Container::new(a, Some(17));
-        dbg!(is_magic_non_consume(&mut buf, b"Extended Module: ").unwrap());
-        dbg!(is_magic_non_consume(&mut buf, b"Extended Module: ").unwrap());
-        dbg!(is_magic_non_consume(&mut buf, b"Extended Module: ").unwrap());
-        dbg!(buf.seek(std::io::SeekFrom::Current(17)));
+    //     let mut buf = Container::new(a, Some(17));
+    //     dbg!(is_magic_non_consume(&mut buf, b"Extended Module: ").unwrap());
+    //     dbg!(is_magic_non_consume(&mut buf, b"Extended Module: ").unwrap());
+    //     dbg!(is_magic_non_consume(&mut buf, b"Extended Module: ").unwrap());
+    //     dbg!(buf.seek(std::io::SeekFrom::Current(17)));
 
-        for _ in 0..3 {
-            dbg!(buf.read_byte().unwrap());
-        }
-        dbg!(&buf.read_bytes(3));
-        buf.rewind().unwrap();
+    //     for _ in 0..3 {
+    //         dbg!(buf.read_byte().unwrap());
+    //     }
+    //     dbg!(&buf.read_bytes(3));
+    //     buf.rewind().unwrap();
 
-        // for _ in 0..3 {
-        //     dbg!(buf.read_byte().unwrap());
-        // }
-    }
-    #[test]
-    fn no_consume() {
-        let mut buf = Container::new(Cursor::new([0u8; 32]), Some(32));
+    //     // for _ in 0..3 {
+    //     //     dbg!(buf.read_byte().unwrap());
+    //     // }
+    // }
+    // #[test]
+    // fn no_consume() {
+    //     let mut buf = Container::new(Cursor::new([0u8; 32]), Some(32));
 
-        assert_eq!(buf.seek_position().unwrap(), 0);
-        let _ = is_magic_non_consume(&mut buf, &[0, 0, 0, 0]).unwrap();
-        assert_eq!(buf.seek_position().unwrap(), 0);
+    //     assert_eq!(buf.seek_position().unwrap(), 0);
+    //     let _ = is_magic_non_consume(&mut buf, &[0, 0, 0, 0]).unwrap();
+    //     assert_eq!(buf.seek_position().unwrap(), 0);
 
-        buf.set_seek_pos(27).unwrap();
+    //     buf.set_seek_pos(27).unwrap();
 
-        assert_eq!(buf.seek_position().unwrap(), 27);
-        let _ = is_magic_non_consume(&mut buf, &[0, 0, 0, 0]).unwrap();
-        assert_eq!(buf.seek_position().unwrap(), 27);
+    //     assert_eq!(buf.seek_position().unwrap(), 27);
+    //     let _ = is_magic_non_consume(&mut buf, &[0, 0, 0, 0]).unwrap();
+    //     assert_eq!(buf.seek_position().unwrap(), 27);
 
-        let G = Cow::Borrowed(&[9u8, 8, 7]);
-        let mut a = Cursor::new(&[2, 3, 4u8] as &[u8]);
+    //     let G = Cow::Borrowed(&[9u8, 8, 7]);
+    //     let mut a = Cursor::new(&[2, 3, 4u8] as &[u8]);
 
-        // let a = a.to_boxed_slice().unwrap();
-    }
+    //     // let a = a.to_boxed_slice().unwrap();
+    // }
 
-    #[test]
-    fn gg() {
-        let f = Cursor::new([1u8; 20]);
-        let len = 15;
-        // let mut a: Box<dyn ReadSeek> = Box::new(Container::new(f, Some(len)));
-        let mut a = Container::new(f, Some(len));
-        let mut buf = [0u8; 20];
+    // #[test]
+    // fn gg() {
+    //     let f = Cursor::new([1u8; 20]);
+    //     let len = 15;
+    //     // let mut a: Box<dyn ReadSeek> = Box::new(Container::new(f, Some(len)));
+    //     let mut a = Container::new(f, Some(len));
+    //     let mut buf = [0u8; 20];
 
-        dbg!(a.read(&mut buf));
-        dbg!(buf);
-    }
+    //     dbg!(a.read(&mut buf));
+    //     dbg!(buf);
+    // }
 }

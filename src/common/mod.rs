@@ -121,7 +121,9 @@ fn no_filename() -> Error {
 }
 
 #[cfg(test)]
+#[allow(unused)]
 mod tests {
+    
     use std::{
         fs::File,
         io::{BufReader, Cursor},
@@ -147,16 +149,25 @@ mod tests {
     pub fn test8() {
         env_logger::init();
         let mut ripper = Ripper::default();
-        ripper.change_namer(SampleNamer {
-            prefix_source: true,
-            ..Default::default()
-        }.into());
+        // ripper.change_format(AudioFormat::IFF.into());
+        // ripper.change_namer(SampleNamer {
+        //     prefix_source: true,
+        //     ..Default::default()
+        // }.into());
         // let a: Vec<std::path::PathBuf> = std::fs::read_dir("./modules")
         //     .unwrap()
         //     .filter_map(|res| res.map(|e| e.path()).ok())
         //     .filter(|f| f.is_file())
         //     .collect();
-        match extract("./modules/xo-swtd.xm", "./modules", &ripper, true) {
+        // let mut file = std::fs::File::open("./modules/bug/s_dou.it").unwrap();
+        // let module = load_module(&mut file).unwrap();
+        // // info!("dfs");
+        // for i in  module.samples() {
+        //     info!("{:#?}", i);
+        // }
+        // log::info!("s");
+
+        match extract("./modules/bug/spn_noise.it", "./modules", &ripper, true) {
             Ok(()) => (),
             Err(e) => {
                 dbg!(&e);
@@ -172,24 +183,5 @@ mod tests {
         // }
 
         // // RUST_LOG=xmodits_lib cargo test --package xmodits-lib --lib -- common::tests::test8
-        
-        // // let mut file = BufReader::new(File::open("./sweetdre.xm").unwrap());
-        // let mut file = Cursor::new(std::fs::read("./modules/ugot2letthemusic.mod").unwrap());
-        // // let a = trace!("dafdas");
-        // let module = load_module(&mut file).unwrap();
-        // // dbg!(module.name());
-
-        // let ripper = Ripper::default();
-        // for i in module.samples() {
-        //     info!("{:#?}", i);
-        // }
-        // // ripper.change_format(ExportFormat::AIFF.into());
-
-        // // ripper.rip_to_dir("./void", module.as_ref()).unwrap();
-
-        // // ripper.change_format(ExportFormat::IFF.into());
-        // ripper
-        //     .rip_to_dir("./test/export/ugot2/", module.as_ref())
-        //     .unwrap()
     }
 }

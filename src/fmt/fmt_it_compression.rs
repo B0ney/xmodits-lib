@@ -15,7 +15,7 @@
 
 use crate::interface::Error;
 use crate::parser::bytes::le_u16 as _le_u16;
-use crate::{error, warn};
+use crate::error;
 use bytemuck::cast_slice;
 
 #[rustfmt::skip] 

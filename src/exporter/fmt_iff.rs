@@ -26,11 +26,12 @@ impl AudioTrait for Iff {
     /// 1) Error
     /// 2) Tweak the sample rate
     /// 3) Resample the PCM <-- slowest to do (I will do this)
+    #[allow(clippy::unnecessary_cast)]
     fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
         const FORM: [u8; 4] = *b"FORM";
         const _8SVX: [u8; 4] = *b"8SVX";
         const VHDR: [u8; 4] = *b"VHDR";
-        const NAME: [u8; 4] = *b"NAME";
+        // const NAME: [u8; 4] = *b"NAME";
         const ANNO: [u8; 4] = *b"ANNO";
         const BODY: [u8; 4] = *b"BODY";
         const ZERO: [u8; 4] = 0u32.to_be_bytes();

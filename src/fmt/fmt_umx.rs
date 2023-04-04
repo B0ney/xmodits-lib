@@ -14,7 +14,7 @@ use crate::parser::{
     io::{is_magic, ByteReader, Container, ReadSeek},
     string::read_string,
 };
-use crate::{error, info};
+use crate::info;
 use std::borrow::Cow;
 
 const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
