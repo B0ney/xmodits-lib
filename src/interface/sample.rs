@@ -312,4 +312,41 @@ pub fn is_sample_valid(pointer: u32, length: u32, size: Option<u64>, compressed:
 // }
 
 #[cfg(test)]
-mod test {}
+mod test {
+    use super::*;
+
+    #[test]
+    fn bit_depth() {
+        const U8_BYTES: usize = std::mem::size_of::<u8>();
+        const U16_BYTES: usize = std::mem::size_of::<u16>();
+
+        const U8_BITS: usize = U8_BYTES * 8;
+        const U16_BITS: usize = U16_BYTES * 8;
+
+        let unsigned_8_bit = Depth::U8;
+        let unsigned_16_bit = Depth::U16;
+
+        let signed_8_bit = Depth::I8;
+        let signed_16_bit = Depth::I16;
+
+        assert_eq!(unsigned_8_bit.is_signed(), false);
+        assert_eq!(unsigned_16_bit.is_signed(), false);
+
+        assert_eq!(signed_8_bit.is_signed(), true);
+        assert_eq!(signed_16_bit.is_signed(), true);
+
+
+        assert_eq!(unsigned_8_bit.bits() as usize, U8_BITS);
+        assert_eq!(signed_8_bit.bits() as usize, U8_BITS);
+
+        assert_eq!(unsigned_16_bit.bits() as usize, U16_BITS);
+        assert_eq!(signed_16_bit.bits() as usize, U16_BITS);
+
+
+        assert_eq!(unsigned_8_bit.bytes() as usize, U8_BYTES);
+        assert_eq!(signed_8_bit.bytes() as usize, U8_BYTES);
+
+        assert_eq!(unsigned_16_bit.bytes() as usize, U16_BYTES);
+        assert_eq!(signed_16_bit.bytes() as usize, U16_BYTES);
+    }
+}
