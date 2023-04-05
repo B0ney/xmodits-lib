@@ -259,28 +259,28 @@ impl Depth {
 use super::Error;
 
 /// Verify that the generated samples aren't pointing to invalid offsets
-pub fn verify_samples(samples: &[Sample], size: Option<u64>) -> Result<(), Error> {
-    use crate::parser::string::errors;
+// pub fn verify_samples(samples: &[Sample], size: Option<u64>) -> Result<(), Error> {
+//     use crate::parser::string::errors;
 
-    let Some(size) = size else {
-        return Ok(());
-    };
+//     let Some(size) = size else {
+//         return Ok(());
+//     };
 
-    let threshold: usize = errors(samples.len(), 50);
-    let mut errors: usize = 0;
+//     let threshold: usize = errors(samples.len(), 50);
+//     let mut errors: usize = 0;
 
-    for smp in samples {
-        if !is_sample_valid(smp.pointer, smp.length, Some(size), smp.compressed) {
-            errors += 1;
-        }
+//     for smp in samples {
+//         if !is_sample_valid(smp.pointer, smp.length, Some(size), smp.compressed) {
+//             errors += 1;
+//         }
 
-        if errors > threshold {
-            return Err(Error::invalid("Too many invalid samples"));
-        }
-    }
+//         if errors > threshold {
+//             return Err(Error::invalid("Too many invalid samples"));
+//         }
+//     }
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 pub fn is_sample_valid(pointer: u32, length: u32, size: Option<u64>, compressed: bool) -> bool {
     let Some(size) = size else {
@@ -296,6 +296,35 @@ pub fn is_sample_valid(pointer: u32, length: u32, size: Option<u64>, compressed:
     }
 
     true
+}
+
+pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) -> Result<(), Error> {
+    use crate::parser::string::errors;
+
+    if size.is_none() {
+        return Ok(());
+    };
+
+    let threshold: usize = errors(smp.len(), 50);
+    let mut errors: usize = 0;
+
+    let is_not_valid =
+        |smp: &mut Sample| !is_sample_valid(smp.pointer, smp.length, size, smp.compressed);
+
+    let mut i = 0;
+    while i < smp.len() {
+        if is_not_valid(&mut smp[i]) {
+            let _ = smp.remove(i);
+            errors += 1;
+            if errors > threshold {
+                return Err(Error::invalid("Too many invalid samples"));
+            }
+        } else {
+            i += 1;
+        }
+    }
+
+    Ok(())
 }
 
 // #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
@@ -335,13 +364,11 @@ mod test {
         assert_eq!(signed_8_bit.is_signed(), true);
         assert_eq!(signed_16_bit.is_signed(), true);
 
-
         assert_eq!(unsigned_8_bit.bits() as usize, U8_BITS);
         assert_eq!(signed_8_bit.bits() as usize, U8_BITS);
 
         assert_eq!(unsigned_16_bit.bits() as usize, U16_BITS);
         assert_eq!(signed_16_bit.bits() as usize, U16_BITS);
-
 
         assert_eq!(unsigned_8_bit.bytes() as usize, U8_BYTES);
         assert_eq!(signed_8_bit.bytes() as usize, U8_BYTES);

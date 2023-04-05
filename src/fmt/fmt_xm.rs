@@ -7,7 +7,7 @@
 
 use crate::info;
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{verify_samples, Channel, Depth, Loop, LoopType, Sample};
+use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample, remove_invalid_samples};
 use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
@@ -135,22 +135,22 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
         // }
     }
 
-    let samples = build(file, insnum)?;
-    verify_samples(&samples, file.size())?;
+    let mut samples = build(file, insnum)?;
+    remove_invalid_samples(&mut samples, file.size())?;
 
     let inner = file.load_to_memory()?.into();
 
     Ok(XM {
         title,
         inner,
-        samples,
+        samples: samples.into(),
         source: None,
     })
 }
 
 const XM_INS_SIZE: u32 = 263;
 
-fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error> {
+fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
     let mut samples: Vec<Sample> = Vec::new();
     let mut staging_samples: Vec<Sample> = Vec::new();
     let mut total_samples: u16 = 0;
@@ -226,7 +226,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Box<[Sample]>, Error>
         samples.append(&mut staging_samples);
     }
 
-    Ok(samples.into())
+    Ok(samples)
 }
 
 #[cfg(test)]
