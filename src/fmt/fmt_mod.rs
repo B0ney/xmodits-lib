@@ -219,7 +219,7 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
             ));
         }
 
-        let rate = FINETUNE[(finetune as usize) & 0x0F];
+        let rate = FINETUNE[(finetune as usize) & 0x0F] * 2; // Double frequency to move to 3rd octave
 
         if length != 0 {
             samples.push(Sample {
