@@ -39,7 +39,7 @@ impl AudioTrait for Iff {
         const VOLUME: [u8; 4] = 65536_u32.to_be_bytes();
         const OCTAVE: [u8; 1] = [1];
         const COMPRESSION: [u8; 1] = [0];
-        const PROGRAM: [u8; 8] = *b"XMODITS "; // MUST HAVE AND EVEN LENGTH
+        const PROGRAM: [u8; 8] = *b"XMODITS "; // MUST HAVE AN EVEN LENGTH
 
         let frequency: u32 = smp.rate as u32;
         let pcm_len: u32 = pcm.len() as u32;
