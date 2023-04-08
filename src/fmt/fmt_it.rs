@@ -12,7 +12,7 @@ use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,
-    io::{is_magic, is_magic_non_consume, non_consume, ByteReader, ReadSeek},
+    io::{is_magic, non_consume, read_exact_const, ByteReader, ReadSeek},
     string::read_str,
 };
 use crate::{info, warn};
@@ -116,9 +116,7 @@ fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Erro
 }
 
 pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
-    if is_magic_non_consume(file, &MAGIC_ZIRCONIA)? {
-        return Err(Error::unsupported(UNSUPPORTED));
-    };
+    check_zirconia(file)?;
 
     if !is_magic(file, &MAGIC_IMPM)? {
         return Err(Error::invalid(INVALID));
@@ -244,6 +242,18 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
     Ok(samples)
 }
+
+fn check_zirconia(file: &mut impl ReadSeek) -> Result<(), Error> {
+    let magic = non_consume(file, |file| {
+        read_exact_const::<8>(file)
+    })?;
+
+    match magic == MAGIC_ZIRCONIA {
+        true => Err(Error::unsupported(UNSUPPORTED)),
+        false => Ok(()),
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::{fmt::fmt_it::parse_, interface::Module};
