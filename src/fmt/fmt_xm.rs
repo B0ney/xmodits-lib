@@ -154,7 +154,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
     let mut total_samples: u16 = 0;
     let file_size = file.size().expect("size of reader");
 
-    for _ in 0..ins_num {
+    'ins: for _ in 0..ins_num {
         let offset = file.seek_position()?;
 
         let mut header_size = file.read_u32_le()?;
@@ -177,7 +177,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
 
             // Break out of loop if it will lead to an eof error
             if (start_smp_hdr + total_smp_hdr_size + length as u64) > file_size {
-                break;
+                break 'ins;
             }
 
             let loop_start = file.read_u32_le()?;
