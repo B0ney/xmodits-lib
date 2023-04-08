@@ -128,8 +128,10 @@ pub struct Loop {
 }
 
 impl Loop {
-    pub fn new(start: u32, end: u32, mut kind: LoopType) -> Self {
-        if end < 2 && kind != LoopType::Off {
+    pub fn new(mut start: u32, mut end: u32, mut kind: LoopType) -> Self {
+        if end < 2 || end < start {
+            start = 0;
+            end = 0;
             kind = LoopType::Off;
         }
 
@@ -150,17 +152,27 @@ impl Loop {
         self.end
     }
 
+    // length of the loop
     pub fn len(&self) -> u32 {
-        if self.kind == LoopType::Off {
-            return 0;
+        match self.is_disabled() {
+            true => 0,
+            false => self.end - self.start,
         }
-
-        self.end - self.start
     }
 
     /// The type of loop
     pub fn kind(&self) -> LoopType {
         self.kind
+    }
+    
+    pub fn verify(mut self, size: Option<u64>) -> Self {
+        let Some(size) = size else {
+            return self;
+        };
+        if self.end as u64 > size {
+            self.kind = LoopType::Off;
+        }
+        self
     }
 }
 
@@ -282,6 +294,7 @@ use super::Error;
 //     Ok(())
 // }
 
+// TODO: perhaps add an additional check to see if the loop data points to invalid offsets?
 pub fn is_sample_valid(pointer: u32, length: u32, size: Option<u64>, compressed: bool) -> bool {
     let Some(size) = size else {
         return true;
