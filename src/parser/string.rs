@@ -71,7 +71,7 @@ fn is_garbage(buf: &[u8], threshold: usize) -> bool {
     let mut total_garbage: usize = 0;
 
     for i in buf {
-        if !is_printable_ascii(*i) {
+        if *i < b' ' {
             total_garbage += 1;
         }
         if total_garbage > threshold {
