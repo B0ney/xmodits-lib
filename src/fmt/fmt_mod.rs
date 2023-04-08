@@ -11,7 +11,7 @@ use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample, remove_in
 use crate::interface::Error;
 use crate::parser::{
     io::{is_magic_non_consume, non_consume, ByteReader, Container, ReadSeek},
-    string::read_str_checked,
+    string::read_str,
 };
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
@@ -89,7 +89,7 @@ impl Module for MOD {
 pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
     check_xpk(file)?;
 
-    let title = read_str_checked::<20>(file)?;
+    let title = read_str::<20>(file)?;
     let MODInfo { channels, samples } = get_mod_info(file)?;
     let mut samples = build_samples(file, samples as usize)?;
     file.skip_bytes(1)?; // song length
@@ -180,8 +180,7 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
     let mut invalid_score: u8 = 0;
 
     for i in 0..sample_number {
-        let name = read_str_checked::<22>(file)
-            .map_err(|_| Error::invalid("Not a valid MOD file"))?;
+        let name = read_str::<22>(file)?;
         
         let length = file.read_u16_be()? as u32 * 2;
         let finetune = file.read_u8()?;
