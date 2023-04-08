@@ -38,6 +38,7 @@ pub fn read_str_checked<const N: usize>(data: &mut impl ReadSeek) -> io::Result<
 
 /// Returns an owned string slice
 pub fn read_string(buf: &[u8]) -> Box<str> {
+    let buf = trim_null(buf);
     String::from_utf8_lossy(buf).into()
 }
 
@@ -51,7 +52,6 @@ pub fn read_string_checked(buf: &[u8]) -> std::io::Result<Box<str>> {
     const THRESHOLD: usize = 60;
 
     let threshold = errors(buf.len(), THRESHOLD);
-    let buf = trim_null(buf);
 
     if is_garbage(buf, threshold) {
         return Err(io_error("String contains too many non-readable data"));
