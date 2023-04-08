@@ -100,10 +100,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
     file.skip_bytes(4)?; // pseudo signature e.g "M!K!"
 
     // I still haven't figured out why I need to add 1
-    let highest = max(&patterns) as u16 + 1;
-    if highest > 127 + 1 {
-        return Err(Error::invalid("Not a valid MOD file"));
-    }
+    let highest = max(&patterns) + 1;
 
     file.skip_bytes(highest as i64 * channels as i64 * 256)?;
 
@@ -276,7 +273,7 @@ fn get_invalid_score(volume: u8, finetune: u8, loop_start: u32, loop_end: u32) -
 fn max(f: &[u8; 128]) -> u8 {
     let mut max: u8 = 0;
     for i in f {
-        if *i > max {
+        if *i > max && *i < 128 {
             max = *i;
         }
     }
