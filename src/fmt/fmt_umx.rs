@@ -140,7 +140,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
 
 fn name_table_above_64(file: &mut impl ReadSeek) -> Result<Box<str>, Error> {
     let length: usize = file.read_u8()? as usize;
-    Ok(read_string(&file.read_bytes(length)?)?)
+    Ok(read_string(&file.read_bytes(length)?))
 }
 
 fn name_table_below_64(file: &mut impl ReadSeek) -> Result<Box<str>, Error> {
@@ -153,7 +153,7 @@ fn name_table_below_64(file: &mut impl ReadSeek) -> Result<Box<str>, Error> {
         buffer.push(file.read_byte()?)
     }
 
-    Ok(read_string(&buffer)?)
+    Ok(read_string(&buffer))
 }
 
 fn read_compact_index(file: &mut impl ReadSeek) -> Result<i32, Error> {

@@ -27,16 +27,27 @@ pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
 
 /// Returns an owned string slice from a known size
 pub fn read_str<const N: usize>(data: &mut impl ReadSeek) -> io::Result<Box<str>> {
-    read_string(&read_exact_const::<N>(data)?)
+    Ok(read_string(&read_exact_const::<N>(data)?))
+}
+
+/// Returns an owned string slice from a known size.
+/// Checks if it contains too many non printable ascii data
+pub fn read_str_checked<const N: usize>(data: &mut impl ReadSeek) -> io::Result<Box<str>> {
+    read_string_checked(&read_exact_const::<N>(data)?)
+}
+
+/// Returns an owned string slice
+pub fn read_string(buf: &[u8]) -> Box<str> {
+    String::from_utf8_lossy(buf).into()
 }
 
 /// Returns an owned string slice
 ///
 /// Errors if the read string contains too much garbage data.
-/// 
+///
 /// Note:   
 /// For non-MOD formats, this is usually an indicator that there's a bug in the program.
-pub fn read_string(buf: &[u8]) -> std::io::Result<Box<str>> {
+pub fn read_string_checked(buf: &[u8]) -> std::io::Result<Box<str>> {
     const THRESHOLD: usize = 60;
 
     let threshold = errors(buf.len(), THRESHOLD);
@@ -46,7 +57,7 @@ pub fn read_string(buf: &[u8]) -> std::io::Result<Box<str>> {
         return Err(io_error("String contains too many non-readable data"));
     };
 
-    Ok(String::from_utf8_lossy(buf).into())
+    Ok(read_string(buf))
 }
 
 /// approximate the amount of errors before we consider it garbage
