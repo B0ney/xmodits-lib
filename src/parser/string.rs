@@ -34,7 +34,7 @@ pub fn read_str<const N: usize>(data: &mut impl ReadSeek) -> io::Result<Box<str>
 ///
 /// Errors if the buffer contains too much garbage data
 pub fn read_string(buf: &[u8]) -> std::io::Result<Box<str>> {
-    const THRESHOLD: usize = 50;
+    const THRESHOLD: usize = 80;
 
     let threshold = errors(buf.len(), THRESHOLD);
     let buf = trim_null(buf);
@@ -69,8 +69,7 @@ fn is_garbage(buf: &[u8], threshold: usize) -> bool {
 }
 
 fn is_printable_ascii(byte: u8) -> bool {
-    byte >= b' '
-    // (b' '..=b'~').contains(&byte)
+    (b' '..=b'~').contains(&byte)
 }
 
 /// trim trailing nulls from u8 slice
