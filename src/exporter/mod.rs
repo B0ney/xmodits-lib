@@ -71,12 +71,12 @@ impl std::fmt::Display for AudioFormat {
             f,
             "{}",
             match self {
-                Self::IFF => "8svx",
-                Self::WAV => "wav",
-                Self::RAW => "raw",
-                Self::AIFF => "aiff",
-                Self::ITS => "its",
-                Self::S3I => "s3i",
+                Self::IFF => "8SVX",
+                Self::WAV => "WAV",
+                Self::RAW => "RAW",
+                Self::AIFF => "AIFF",
+                Self::ITS => "ITS",
+                Self::S3I => "S3I",
             }
         )
     }
