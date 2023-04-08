@@ -21,6 +21,7 @@ use std::path::{Path, PathBuf};
 const NAME: &str = "Scream Tracker";
 
 const MAGIC_SCRM: [u8; 4] = *b"SCRM";
+const MAGIC_NUMBER: [u8; 1] = [0x10];
 const MAGIC_SAMPLE: [u8; 4] = *b"SCRS";
 const INVALID: &str = "Not a valid Scream Tracker module";
 
@@ -77,8 +78,9 @@ impl Module for S3M {
 
 pub fn parse_(file: &mut impl ReadSeek) -> Result<S3M, Error> {
     let title = read_str::<28>(file)?;
+    file.skip_bytes(1)?; // skip other magic
 
-    if !is_magic(file, &[0x1a, 0x10])? {
+    if !is_magic(file, &MAGIC_NUMBER)? {
         return Err(Error::invalid(INVALID));
     }
 
