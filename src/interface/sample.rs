@@ -311,15 +311,10 @@ pub fn is_sample_valid(pointer: u32, length: u32, size: Option<u64>, compressed:
     true
 }
 
-pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) -> Result<(), Error> {
-    use crate::parser::string::errors;
-
+pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) {
     if size.is_none() {
-        return Ok(());
+        return;
     };
-
-    let threshold: usize = errors(smp.len(), 50);
-    let mut errors: usize = 0;
 
     let is_not_valid =
         |smp: &mut Sample| !is_sample_valid(smp.pointer, smp.length, size, smp.compressed);
@@ -328,16 +323,10 @@ pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) -> Resul
     while i < smp.len() {
         if is_not_valid(&mut smp[i]) {
             let _ = smp.remove(i);
-            errors += 1;
-            if errors > threshold {
-                return Err(Error::invalid("Too many invalid samples"));
-            }
         } else {
             i += 1;
         }
     }
-
-    Ok(())
 }
 
 // #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
