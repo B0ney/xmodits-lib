@@ -28,6 +28,7 @@ const MAGIC_NUMBER: u8 = 0x1A;
 const MINIMUM_VERSION: u16 = 0x0104;
 
 const FLAG_BITS: u8 = 1 << 4;
+const FLAG_STEREO: u8 = 1 << 5;
 
 /// Fasttracker 2 Extended Module
 pub struct XM {
@@ -182,8 +183,6 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
 
             let loop_start = file.read_u32_le()?;
             let loop_length = file.read_u32_le()?;
-            let loop_end = loop_start.checked_add(loop_length).unwrap_or(0);
-
             file.skip_bytes(1)?; // volume
 
             let finetune = file.read_u8()? as i8;
@@ -199,10 +198,16 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
             let rate: u32 = (8363.0 * 2.0_f32.powf((4608.0 - period) / 768.0)) as u32;
 
             let depth = Depth::new(!flag.contains(FLAG_BITS), true, true);
+            let channel = Channel::new(flag.contains(FLAG_STEREO), false);
 
+            let loop_start = loop_start / (depth.bytes() as u32 * channel.channels() as u32);
+            let loop_length = loop_length / (depth.bytes() as u32 * channel.channels() as u32);
+            let loop_end = loop_start.checked_add(loop_length).unwrap_or(0);
+            
             let loop_kind = match flag & 0x3 {
                 0 => LoopType::Off,
                 1 => LoopType::Forward,
+                2 => LoopType::PingPong,
                 3 => LoopType::PingPong,
                 _ => LoopType::Off,
             };
@@ -215,7 +220,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
                     rate,
                     pointer: 0,
                     depth,
-                    channel: Channel::Mono,
+                    channel,
                     index_raw: total_samples,
                     compressed: false,
                     looping: Loop::new(loop_start, loop_end, loop_kind),
