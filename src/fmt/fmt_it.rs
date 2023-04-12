@@ -208,8 +208,8 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
         let compressed = flags.contains(FLAG_COMPRESSION);
         let depth = Depth::new(!flags.contains(FLAG_BITS_16), signed, signed);
-        // let channel = Channel::new(flags.contains(FLAG_STEREO), false);
-        let channel = Channel::new(false, false);
+        let channel = Channel::new(flags.contains(FLAG_STEREO), false);
+        // let channel = Channel::new(false, false);
         let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
 
         if !is_sample_valid(pointer, length, file.size(), compressed) {
