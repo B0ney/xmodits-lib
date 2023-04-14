@@ -6,16 +6,13 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::fmt::{formats::*, loader::identify_module, Format};
-use crate::interface::Error;
-use crate::interface::Module;
-use crate::interface::Sample;
+use crate::info;
+use crate::interface::{Error, Module};
 use crate::parser::{
     bytes::magic_header,
     io::{is_magic, ByteReader, Container, ReadSeek},
     string::read_string,
 };
-use crate::info;
-use std::borrow::Cow;
 
 const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
 
@@ -26,31 +23,13 @@ struct Private;
 /// "Abandon all hope ye who try to parse this file format." - Tim Sweeney, Unreal Packages
 pub struct UMX(Private);
 
-impl Module for UMX {
-    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+impl UMX {
+    pub fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
         info!("Loading Unreal package");
         parse_(data)
     }
-    fn matches_format(buf: &[u8]) -> bool {
+    pub fn matches_format(buf: &[u8]) -> bool {
         magic_header(&MAGIC_UPKG, buf)
-    }
-    fn name(&self) -> &str {
-        unimplemented!()
-    }
-    fn format(&self) -> &str {
-        unimplemented!()
-    }
-    fn pcm(&self, _: &Sample) -> Result<Cow<[u8]>, Error> {
-        unimplemented!()
-    }
-    fn samples(&self) -> &[Sample] {
-        unimplemented!()
-    }
-    fn set_source(self: Box<Self>, _: std::path::PathBuf) -> Box<dyn Module> {
-        unimplemented!()
-    }
-    fn source(&self) -> Option<&std::path::Path> {
-        unimplemented!()
     }
 }
 
@@ -75,6 +54,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     file.set_seek_pos(name_offset as u64)?;
 
     let mut contains_music: bool = false;
+
     let get_name_entry = match version {
         v if v < 64 => name_table_below_64,
         _ => name_table_above_64,
@@ -223,9 +203,11 @@ mod tests {
     #[test]
     fn table() {
         let mut a = BufReader::new(File::open("./modules/Mayhem.umx").unwrap());
-        match parse_(&mut a){
-            Ok(_) =>(),
-            Err(e) => {dbg!(e);},
+        match parse_(&mut a) {
+            Ok(_) => (),
+            Err(e) => {
+                dbg!(e);
+            }
         };
     }
 }

@@ -16,7 +16,7 @@ pub trait ReadSeek: Read + Seek {
 
 /// An abstract trait used for parsing.
 ///
-/// I found that parsing with Byteorder a little annoying so... Here's 200+ loc :D
+/// I found parsing with Byteorder a little annoying so... Here's 200+ loc :D
 pub trait ByteReader {
     /// Return size of underlying reader
     fn size(&self) -> Option<u64>;
@@ -57,9 +57,6 @@ pub trait ByteReader {
     fn seek_position(&mut self) -> io::Result<u64>;
     fn read_bytes(&mut self, bytes: usize) -> io::Result<Vec<u8>>;
     fn load_to_memory(&mut self) -> io::Result<Vec<u8>>;
-    // /// Read exactly N bytes into an N sized array.
-    // ///
-    // fn read_bytes_const<const N: usize>(&mut self) -> io::Result<[u8;N]>;
 }
 
 impl<T: ReadSeek> ByteReader for T {
@@ -112,12 +109,6 @@ impl<T: ReadSeek> ByteReader for T {
             Ok(buf)
         })
     }
-
-    // fn read_bytes_const<const N: usize>(&mut self) -> io::Result<[u8;N]> {
-    //     let mut buf = [0u8; N];
-    //     self.read_exact(&mut buf)?;
-    //     Ok(buf)
-    // }
 }
 
 /// A function that lets you do a [ByteReader] operation without affecting the inner cursor.

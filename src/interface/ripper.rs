@@ -77,9 +77,9 @@ impl Ripper {
         let extract_samples = |(index, smp): (usize, &Sample)| -> Result<(), Error> {
             let path = directory.join((self.namer_func)(smp, &context, index));
             let pcm = module.pcm(smp)?;
+            
             // Only create the file if we can obtain the pcm to prevent artifacts
             let mut file = fs::File::create(path)?;
-
             self.format.write(smp, pcm, &mut file)
         };
 
