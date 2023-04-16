@@ -16,6 +16,8 @@ use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNa
 use crate::interface::{Error, Module, Sample};
 use crate::{error, maybe_par_iter};
 
+use super::errors::ExtractionError;
+
 /// Struct to rip samples from a module
 ///
 /// Requires a sample namer and an audio format
@@ -77,16 +79,18 @@ impl Ripper {
         let extract_samples = |(index, smp): (usize, &Sample)| -> Result<(), Error> {
             let path = directory.join((self.namer_func)(smp, &context, index));
             let pcm = module.pcm(smp)?;
-            
+
             // Only create the file if we can obtain the pcm to prevent artifacts
             let mut file = fs::File::create(path)?;
             self.format.write(smp, pcm, &mut file)
         };
 
-        let errors: Vec<Error> = maybe_par_iter!(module.samples())
+        let errors: Vec<ExtractionError> = maybe_par_iter!(module.samples())
             .enumerate()
-            .map(extract_samples)
-            .filter_map(|f| f.err())
+            .map(|(idx, smp)| (extract_samples((idx, smp)), smp))
+            .map(|(result, smp)| result.map_err(|error| (smp.index_raw(), error)))
+            .filter_map(|result| result.err())
+            .map(ExtractionError::new)
             .collect();
 
         match errors.len() {

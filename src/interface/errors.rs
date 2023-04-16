@@ -14,13 +14,10 @@ pub enum Error {
     #[error("{0}")]
     Io(#[from] std::io::Error),
 
-    #[error("Not all of the samples could be extracted: {0:?}")]
-    PartialExtraction(Vec<Error>),
+    #[error("{0}")]
+    FailedRip(FailedExtraction),
 
-    #[error("Could not rip from this module {0:?}")]
-    TotalExtraction(Vec<Error>),
-
-    #[error("Failed to extract: {0}")]
+    #[error("{0}")]
     Extraction(String),
 
     #[error("Unsupported module: {0}")]
@@ -29,17 +26,13 @@ pub enum Error {
     #[error("Invalid Module: {0}")]
     InvalidModule(String),
 
-    // InvalidModule {
-    //     expected: String,
-    //     got: String,
-    // },
     #[error("The module doesn't contain any samples")]
     EmptyModule,
 
     #[error("The sample could not be extracted to the desired format: {0}")]
     AudioFormat(String),
 
-    #[error("The sample metadata points to an invalid offset. The module might be corrupted/invalid or there's a bug in the program.")]
+    #[error("Sample with internal index {}, points to an invalid offset. The module might be corrupted/invalid or there's a bug in the program.", raw_index)]
     BadSample {
         raw_index: u16,
         pointer: u32,
@@ -58,13 +51,13 @@ impl From<Error> for Result<(), Error> {
 
 impl Error {
     /// Not all of the samples could be extracted
-    pub fn partial_extraction(errors: Vec<Error>) -> Result<(), Self> {
-        Err(Self::PartialExtraction(errors))
+    pub fn partial_extraction(errors: Vec<ExtractionError>) -> Result<(), Self> {
+        Err(Self::FailedRip(FailedExtraction::Partial(errors)))
     }
 
     /// Could not extract anything
-    pub fn extraction_failure(error: Vec<Error>) -> Result<(), Self> {
-        Err(Self::TotalExtraction(error))
+    pub fn extraction_failure(errors: Vec<ExtractionError>) -> Result<(), Self> {
+        Err(Self::FailedRip(FailedExtraction::Total(errors)))
     }
 
     /// The sample could not be extracted to the desired format
@@ -81,12 +74,7 @@ impl Error {
     pub fn invalid(error: &str) -> Self {
         Self::InvalidModule(error.into())
     }
-    // pub fn invalid(got: &str, expected: &str) -> Self {
-    //     Self::InvalidModule {
-    //         expected: expected.into(),
-    //         got: got.into(),
-    //     }
-    // }
+
     /// The module appears to be valid, but it is unsupported
     pub fn unsupported(error: &str) -> Self {
         Self::UnsupportedModule(error.into())
@@ -99,5 +87,52 @@ impl Error {
             pointer: smp.pointer,
             length: smp.length,
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct ExtractionError {
+    raw_index: usize,
+    reason: Error,
+}
+
+impl ExtractionError {
+    pub fn new((raw_index, reason): (usize, Error)) -> Self {
+        Self { raw_index, reason }
+    }
+}
+
+#[derive(Debug)]
+pub enum FailedExtraction {
+    Partial(Vec<ExtractionError>),
+    Total(Vec<ExtractionError>),
+}
+
+impl FailedExtraction {
+    pub fn inner(&self) -> &[ExtractionError] {
+        match self {
+            Self::Partial(errors) | 
+            Self::Total(errors) => errors,
+        }
+    }
+}
+
+impl std::fmt::Display for FailedExtraction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use std::fmt::Write;
+
+        let error: &str = match self {
+            Self::Partial(..) => "Not all of the samples could be extracted",
+            Self::Total(..) => "None of the samples could be extracted",
+        };
+
+        let mut buf = String::new();
+
+        for error in self.inner().iter() {
+            let _ = buf.write_fmt(format_args!("internal index: {}\n", error.raw_index));
+            let _ = buf.write_fmt(format_args!("reason: {}\n\n", error.reason));
+        }
+
+        write!(f, "{}: \n{}", error, buf)
     }
 }
