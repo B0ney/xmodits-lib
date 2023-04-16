@@ -134,7 +134,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
     }
 
     let mut samples = build(file, insnum)?;
-    remove_invalid_samples(&mut samples, file.size());
+    remove_invalid_samples(&mut samples, file.size())?;
 
     let inner = file.load_to_memory()?.into();
 

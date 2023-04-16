@@ -311,9 +311,9 @@ pub fn is_sample_valid(pointer: u32, length: u32, size: Option<u64>, compressed:
     true
 }
 
-pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) {
+pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) -> Result<(), Error>{
     if size.is_none() {
-        return;
+        return Ok(());
     };
 
     let is_not_valid =
@@ -326,6 +326,11 @@ pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) {
         } else {
             i += 1;
         }
+    }
+
+    match smp.is_empty() {
+        true => Err(Error::invalid("Module doesn't have any valid samples.")),
+        false => Ok(()),
     }
 }
 

@@ -109,7 +109,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
         file.skip_bytes(smp.length as i64)?;
     }
 
-    remove_invalid_samples(&mut samples, file.size());
+    remove_invalid_samples(&mut samples, file.size())?;
 
     let inner = file.load_to_memory()?.into();
 
