@@ -31,9 +31,14 @@ impl AudioTrait for Wav {
         const SMPL: [u8; 4] = *b"smpl";
         const WAV_SCS: [u8; 4] = 16_u32.to_le_bytes();
         const WAV_TYPE: [u8; 2] = 1_u16.to_le_bytes();
+        const SMPL_CHUNK_SIZE: u32 = 36 + 24;
 
         // To avoid nasty bugs in future, explicitly cast the types.
-        let size: u32 = HEADER_SIZE - 8 + pcm.len() as u32;
+        let mut size: u32 = HEADER_SIZE - 8 + pcm.len() as u32;
+
+        if !smp.looping.is_disabled() {
+            size += SMPL_CHUNK_SIZE;
+        }
 
         let pcm_len: u32 = pcm.len() as u32;
         let frequency: u32 = smp.rate as u32;
@@ -84,7 +89,6 @@ impl AudioTrait for Wav {
         if !smp.looping.is_disabled() {
             const ZERO: [u8; 4] = [0u8; 4];
 
-            let chunk_size: u32 = 36 + 24;
             let period: u32 = (1_000_000_000.0 / frequency as f64).round() as u32;
             let midi_note: u32 = 60;
             let midi_pitch: u32 = 1;
@@ -100,7 +104,7 @@ impl AudioTrait for Wav {
             };
         
             write(&SMPL)?;
-            write(&chunk_size.to_le_bytes())?;
+            write(&SMPL_CHUNK_SIZE.to_le_bytes())?;
             write(&ZERO)?; // manufacturer
             write(&ZERO)?; // product
             write(&period.to_le_bytes())?;
