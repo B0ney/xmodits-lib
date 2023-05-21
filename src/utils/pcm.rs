@@ -69,10 +69,10 @@ fn _flip_sign_16_bit_ref_mut(pcm_16_bit: &mut [u16]) {
 #[inline]
 #[allow(unused_mut)]
 pub fn to_be_16(mut pcm: Vec<u8>) -> Vec<u8> {
-    if cfg!(target_endian = "little") {
-        align_u16(&mut pcm);
-        _to_be_16(cast_slice_mut(&mut pcm));
-    }
+    // if cfg!(target_endian = "little") {
+    align_u16(&mut pcm);
+    _to_be_16(cast_slice_mut(&mut pcm));
+    // }
     pcm
 }
 
@@ -132,16 +132,14 @@ fn interleave<T: Copy>(buf: &[T]) -> impl Iterator<Item = T> + '_ {
 ///
 /// LRLRLRLRLR -> LLLLLRRRRR
 #[inline]
-fn deinterleave<T: Copy>(buf: &[T]) -> (
-    impl Iterator<Item = T> + '_,
-    impl Iterator<Item = T> + '_,
-)
-{
+fn deinterleave<T: Copy>(
+    buf: &[T],
+) -> (impl Iterator<Item = T> + '_, impl Iterator<Item = T> + '_) {
     // assert!(buf.len() % 2 == 0, "Interleaved data must have an even number of samples");
 
     (
         buf.iter().step_by(2).copied(),
-        buf.iter().skip(1).step_by(2).copied()
+        buf.iter().skip(1).step_by(2).copied(),
     )
 }
 

@@ -56,10 +56,11 @@ pub trait PCMFormatter {
 
 impl PCMFormatter for Cow<'_, [u8]> {
     fn to_be_16(self) -> Self {
-        match cfg!(target_endian = "little") {
-            true => to_be_16(self.into_owned()).into(),
-            false => self,
-        }
+        to_be_16(self.into_owned()).into()
+        // match cfg!(target_endian = "little") {
+        //     true => to_be_16(self.into_owned()).into(),
+        //     false => self,
+        // }
     }
 
     fn to_le_16(self) -> Self {
