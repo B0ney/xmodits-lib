@@ -241,6 +241,9 @@ where
 {
     let size = data.size();
     if is_magic_non_consume(data, b"FORM")? {
+        return Err(Error::unsupported(
+            "IFF MOD files are not yet supported",
+        ))
         // todo!("protracker 3.6")
     };
 
