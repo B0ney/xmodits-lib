@@ -71,10 +71,9 @@ impl AudioTrait for Wav {
             on native systems, it will do nothing.
         */
         let pcm = match smp.depth {
-            Depth::U8 => pcm,
-            Depth::I16 => pcm.to_le_16(),
+            Depth::U8 | Depth::I16 => pcm,
             Depth::I8 => pcm.flip_sign_8(),
-            Depth::U16 => pcm.flip_sign_16().to_le_16(),
+            Depth::U16 => pcm.flip_sign_16(),
         };
 
         match smp.channel {
