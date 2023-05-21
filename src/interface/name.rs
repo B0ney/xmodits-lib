@@ -162,12 +162,14 @@ pub fn source_name(path: Option<&Path>) -> Option<Cow<str>> {
 
 /// Calculate the number of digits for a given ``usize``
 ///
-/// panics for values over 999 as it is unlikely for a module to contain 1000 samples.
+/// panics for values over 99,999 as it is unlikely for a module to contain that many samples.
 fn digits(n: usize) -> u8 {
     match n {
         n if n < 10 => 1,
         n if n < 100 => 2,
         n if n < 1_000 => 3,
-        _ => unimplemented!("A module with 1000 samples???"),
+        n if n < 10_000 => 4,
+        n if n < 100_000 => 5,
+        _ => unimplemented!("A module with over 99,999 samples???"),
     }
 }
