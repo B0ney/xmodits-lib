@@ -3,13 +3,14 @@ use std::{borrow::Cow, usize};
 use crate::interface::{sample::Depth, Sample};
 use bytemuck::{cast_slice, Pod};
 use dasp::sample::Sample as SampleConverter;
+use arrayvec::ArrayVec;
 
 pub struct RawSample<'a> {
     pub smp: &'a Sample,
     pub pcm: Cow<'a, [u8]>, // todo own cow or reference it?
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct SampleBuffer {
     pub rate: u32,
     pub buf: Vec<Vec<f32>>,
@@ -84,12 +85,12 @@ where
         .collect()
 }
 
-pub struct FramesIter<'a, const N: usize> {
+pub struct FramesIter<'a> {
     frame: usize,
     sample_buffer: &'a SampleBuffer,
 }
 
-impl<'a, const N: usize> FramesIter<'a, N> {
+impl<'a> FramesIter<'a> {
     pub fn new(sample_buffer: &'a SampleBuffer) -> Self {
         assert!(
             !sample_buffer.buf.is_empty(),
@@ -103,33 +104,24 @@ impl<'a, const N: usize> FramesIter<'a, N> {
     }
 }
 
-impl<const N: usize> Iterator for FramesIter<'_, N> {
-    type Item = [f32; N];
+impl Iterator for FramesIter<'_> {
+    type Item = ArrayVec<f32, 2>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let buffer = &self.sample_buffer.buf;
-        let channels = std::cmp::min(buffer.len(), N);
-
-        let mut next_frame = [0.0_f32; N];
+        let mut next_frame = ArrayVec::new();
 
         if self.frame >= buffer[0].len() {
             return None;
         }
 
-        for channel in 0..channels {
-            next_frame[channel] = *buffer[channel].get(self.frame).unwrap_or(&0.0);
+        for channel in buffer {
+            let sample = *channel.get(self.frame).unwrap_or(&0.0);
+            next_frame.push(sample);
         }
 
         self.frame += 1;
 
         Some(next_frame)
     }
-}
-
-#[test]
-fn test() {
-    // let buffer = SampleBuffer::default();
-    // for frame in FramesIter::<2>::new(&buffer) {
-
-    // }
 }

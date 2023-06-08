@@ -1,13 +1,10 @@
-// use dasp::signal::interpolate::;
-
 use std::path::Path;
 
-use dasp::{interpolate::sinc::Sinc, ring_buffer, signal, Sample, Signal};
 use rubato::{
-    FftFixedIn, InterpolationParameters, InterpolationType, Resampler, SincFixedIn, WindowFunction,
+    InterpolationParameters, InterpolationType, Resampler, SincFixedIn, WindowFunction,
 };
 
-use super::SampleBuffer;
+use super::{RawSample, SampleBuffer};
 use crate::dsp::sample::FramesIter;
 use hound::{WavReader, WavSpec, WavWriter};
 
@@ -16,20 +13,22 @@ pub fn resample(sample: &mut SampleBuffer, target_rate: u32) {
         return;
     }
 
-    let mut resampler = FftFixedIn::<f32>::new(
-        sample.rate as usize,
-        target_rate as usize,
+    let mut resampler = SincFixedIn::<f32>::new(
+        target_rate as f64 / sample.rate as f64,
+        2.0,
+        InterpolationParameters {
+            sinc_len: 256,
+            f_cutoff: 0.95,
+            interpolation: InterpolationType::Linear,
+            oversampling_factor: 256,
+            window: WindowFunction::BlackmanHarris2,
+        },
         sample.duration(),
-        256,
         sample.channels(),
     )
     .unwrap();
 
-    let mut new_buffer: Vec<Vec<f32>> = resampler.output_buffer_allocate();
-
-    resampler
-        .process_into_buffer(&sample.buf, &mut new_buffer, None)
-        .unwrap();
+    let new_buffer = resampler.process(&sample.buf, None).unwrap();
 
     sample.buf = new_buffer;
     sample.rate = target_rate;
@@ -59,9 +58,26 @@ fn dump_to_wav(sample: &SampleBuffer, path: impl AsRef<Path>) {
         sample_format: hound::SampleFormat::Float,
     };
     let mut writer = hound::WavWriter::create(path, spec).unwrap();
-    for frame in FramesIter::<2>::new(sample) {
-        for sample in frame {
-            writer.write_sample(sample).unwrap();
+    for frame in FramesIter::new(sample) {
+        for sample in frame.iter() {
+            writer.write_sample(*sample).unwrap();
         }
     }
+}
+
+#[test]
+fn test_s() {
+    let mut file = std::fs::File::open("./modules/space_debris.mod").unwrap();
+    let module = crate::fmt::loader::load_module(&mut file).unwrap();
+    let smp_1 = &module.samples()[0];
+    let pcm = module.pcm(smp_1).unwrap();
+    let mut sample: SampleBuffer = RawSample::from((smp_1, pcm)).into();
+
+    dbg!(sample.duration());
+    dbg!(sample.channels());
+
+    dump_to_wav(&sample, "original.wav");
+    resample(&mut sample, 44100);
+    dbg!(sample.duration());
+    dump_to_wav(&sample, "original_upscaled.wav");
 }

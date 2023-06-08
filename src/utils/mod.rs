@@ -7,4 +7,3 @@
 
 pub mod deltadecode;
 pub mod pcm;
-pub mod resampler;
