@@ -164,6 +164,9 @@ impl LoopData {
             loop_type: loop_info.kind(),
         }
     }
+    pub fn is_disabled(&self) -> bool {
+        self.loop_type == LoopType::Off
+    }
 }
 
 pub struct FramesIter<'a> {
