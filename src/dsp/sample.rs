@@ -1,12 +1,37 @@
-use std::{borrow::Cow, usize};
-
 use crate::interface::{sample::Depth, Sample};
 use bytemuck::{cast_slice, Pod};
 use dasp::sample::Sample as SampleConverter;
 
 pub struct RawSample<'a> {
     pub smp: &'a Sample,
-    pub pcm: Cow<'a, [u8]>, // todo own cow or reference it?
+    pub pcm: Vec<u8>, // needs to be an owned vec to avoid alignment issues when casting
+}
+
+impl<'a> RawSample<'a> {
+    pub fn new(smp: &'a Sample, pcm: impl Into<Vec<u8>>) -> Self {
+        Self {
+            smp,
+            pcm: pcm.into(),
+        }
+    }
+}
+
+impl<'a, V> From<(&'a Sample, V)> for RawSample<'a>
+where
+    V: Into<Vec<u8>>,
+{
+    fn from((smp, pcm): (&'a Sample, V)) -> Self {
+        Self {
+            smp,
+            pcm: pcm.into(),
+        }
+    }
+}
+
+impl Into<SampleBuffer> for RawSample<'_> {
+    fn into(self) -> SampleBuffer {
+        convert_raw_sample(&self)
+    }
 }
 
 #[derive(Default, Clone)]
@@ -43,39 +68,26 @@ impl SampleBuffer {
     }
 }
 
-impl Into<SampleBuffer> for RawSample<'_> {
-    fn into(self) -> SampleBuffer {
-        convert_raw_sample(&self)
-    }
-}
-
-impl<'a> From<(&'a Sample, Cow<'a, [u8]>)> for RawSample<'a> {
-    fn from((smp, pcm): (&'a Sample, Cow<'a, [u8]>)) -> Self {
-        Self { smp, pcm }
-    }
-}
-
 fn convert_raw_sample(raw_smp: &RawSample) -> SampleBuffer {
-    let pcm = &raw_smp.pcm;
+    let pcm = raw_smp.pcm.as_ref();
     let channels = raw_smp.smp.channels() as usize;
     let rate = raw_smp.smp.rate;
 
     let buf = match raw_smp.smp.depth {
         Depth::I8 => convert_buffer::<i8>(&pcm, channels),
         Depth::U8 => convert_buffer::<u8>(&pcm, channels),
-        Depth::I16 => convert_buffer::<i16>(align(pcm), channels),
-        Depth::U16 => convert_buffer::<u16>(align(pcm), channels),
+        Depth::I16 => convert_buffer::<i16>(align(&pcm), channels),
+        Depth::U16 => convert_buffer::<u16>(align(&pcm), channels),
     };
 
     SampleBuffer { rate, buf }
 }
 
 fn align(pcm: &[u8]) -> &[u8] {
-    let len = pcm.len();
-    match len % 2 == 0 {
-        true => pcm,
-        false => &pcm[..len - 1]
+    if pcm.len() % 2 != 0 {
+        return &pcm[..pcm.len() - 1];
     }
+    pcm
 }
 
 fn convert_buffer<T>(pcm: &[u8], channels: usize) -> Vec<Vec<f32>>
@@ -157,20 +169,17 @@ impl SampleFrame {
         }
     }
 
-    pub fn to_stereo(self) -> Self {
-        match self {
-            SampleFrame::Empty => Self::Stereo([0.0, 0.0]),
-            SampleFrame::Mono([left]) => Self::Stereo([left, left]),
-            SampleFrame::Stereo(frame) => Self::Stereo(frame),
-        }
+    pub fn to_stereo(mut self) -> Self {
+        self = Self::Stereo(self.get_stereo_frame());
+        self
     }
 
-    pub fn get_stereo_frame(&self) -> [f32; 2] {
-        let stereo = self.to_stereo();
-        match stereo {
-            Self::Stereo(frame) => frame,
-            _ => unreachable!()
-        }
+    pub fn get_stereo_frame(self) -> [f32; 2] {
+        match self {
+            SampleFrame::Empty => [0.0, 0.0],
+            SampleFrame::Mono([left]) => [left, left],
+            SampleFrame::Stereo(frame) => frame,
+        }  
     }
 }
 
