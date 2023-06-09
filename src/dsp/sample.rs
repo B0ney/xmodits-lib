@@ -63,11 +63,19 @@ fn convert_raw_sample(raw_smp: &RawSample) -> SampleBuffer {
     let buf = match raw_smp.smp.depth {
         Depth::I8 => convert_buffer::<i8>(&pcm, channels),
         Depth::U8 => convert_buffer::<u8>(&pcm, channels),
-        Depth::I16 => convert_buffer::<i16>(&pcm, channels),
-        Depth::U16 => convert_buffer::<u16>(&pcm, channels),
+        Depth::I16 => convert_buffer::<i16>(align(pcm), channels),
+        Depth::U16 => convert_buffer::<u16>(align(pcm), channels),
     };
 
     SampleBuffer { rate, buf }
+}
+
+fn align(pcm: &[u8]) -> &[u8] {
+    let len = pcm.len();
+    match len % 2 == 0 {
+        true => pcm,
+        false => &pcm[..len - 1]
+    }
 }
 
 fn convert_buffer<T>(pcm: &[u8], channels: usize) -> Vec<Vec<f32>>
