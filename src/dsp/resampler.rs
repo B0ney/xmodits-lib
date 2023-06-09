@@ -34,22 +34,6 @@ pub fn resample(sample: &mut SampleBuffer, target_rate: u32) {
     sample.rate = target_rate;
 }
 
-#[test]
-fn test() {
-    let freq: f32 = 440.0;
-    let sine_wave: Vec<f32> = (0..8000)
-        .map(|i| 0.25 * f32::sin(i as f32 * 2.0 * freq))
-        .collect();
-
-    let mut sample = SampleBuffer {
-        rate: 8000,
-        buf: vec![sine_wave.clone(), sine_wave.clone()],
-    };
-    dump_to_wav(&sample, "original.wav");
-    resample(&mut sample, 44100);
-    dump_to_wav(&sample, "original_upscaled.wav");
-}
-
 fn dump_to_wav(sample: &SampleBuffer, path: impl AsRef<Path>) {
     let spec = hound::WavSpec {
         channels: sample.channels() as u16,
@@ -67,11 +51,11 @@ fn dump_to_wav(sample: &SampleBuffer, path: impl AsRef<Path>) {
 
 #[test]
 fn test_s() {
-    let mut file = std::fs::File::open("./modules/space_debris.mod").unwrap();
+    let mut file = std::fs::File::open("./modules/delamour_edit.it").unwrap();
     let module = crate::fmt::loader::load_module(&mut file).unwrap();
-    let smp_1 = &module.samples()[0];
+    let smp_1 = &module.samples()[1];
     let pcm = module.pcm(smp_1).unwrap();
-    let mut sample: SampleBuffer = RawSample::from((smp_1, pcm)).into();
+    let mut sample: SampleBuffer = RawSample::new(smp_1, pcm).into();
 
     dbg!(sample.duration());
     dbg!(sample.channels());

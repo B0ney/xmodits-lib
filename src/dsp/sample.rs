@@ -1,4 +1,7 @@
-use crate::interface::{sample::Depth, Sample};
+use crate::interface::{
+    sample::{Depth, Loop, LoopType},
+    Sample,
+};
 use bytemuck::{cast_slice, Pod};
 use dasp::sample::Sample as SampleConverter;
 
@@ -34,9 +37,12 @@ impl Into<SampleBuffer> for RawSample<'_> {
     }
 }
 
+// todo: Include normalized loop points
 #[derive(Default, Clone)]
 pub struct SampleBuffer {
     pub rate: u32,
+    rate_original: u32,
+    pub loop_data: LoopData,
     pub buf: Vec<Vec<f32>>,
 }
 
@@ -47,6 +53,7 @@ impl SampleBuffer {
         };
         chn.len()
     }
+
     pub fn channels(&self) -> usize {
         self.buf.len()
     }
@@ -66,6 +73,22 @@ impl SampleBuffer {
 
         Some(next_frame)
     }
+
+    pub fn rate_original(&self) -> u32 {
+        self.rate_original
+    }
+
+    pub fn start(&self) -> usize {
+        (self.loop_data.start * self.duration() as f32) as usize
+    }
+
+    pub fn end(&self) -> usize {
+        (self.loop_data.end * self.duration() as f32) as usize
+    }
+
+    pub fn loop_type(&self) -> LoopType {
+        self.loop_data.loop_type
+    }
 }
 
 fn convert_raw_sample(raw_smp: &RawSample) -> SampleBuffer {
@@ -80,7 +103,12 @@ fn convert_raw_sample(raw_smp: &RawSample) -> SampleBuffer {
         Depth::U16 => convert_buffer::<u16>(align(&pcm), channels),
     };
 
-    SampleBuffer { rate, buf }
+    SampleBuffer {
+        rate,
+        buf,
+        rate_original: rate,
+        loop_data: LoopData::new(raw_smp.smp.looping, raw_smp.smp.length as usize),
+    }
 }
 
 fn align(pcm: &[u8]) -> &[u8] {
@@ -118,6 +146,24 @@ where
         .copied()
         .map(SampleConverter::to_float_sample)
         .collect()
+}
+
+/// Normalized loop point
+#[derive(Default, Clone)]
+pub struct LoopData {
+    pub start: f32,
+    pub end: f32,
+    pub loop_type: LoopType,
+}
+
+impl LoopData {
+    pub fn new(loop_info: Loop, smp_len: usize) -> Self {
+        Self {
+            start: loop_info.start() as f32 / smp_len as f32,
+            end: loop_info.end() as f32 / smp_len as f32,
+            loop_type: loop_info.kind(),
+        }
+    }
 }
 
 pub struct FramesIter<'a> {
@@ -179,7 +225,7 @@ impl SampleFrame {
             SampleFrame::Empty => [0.0, 0.0],
             SampleFrame::Mono([left]) => [left, left],
             SampleFrame::Stereo(frame) => frame,
-        }  
+        }
     }
 }
 

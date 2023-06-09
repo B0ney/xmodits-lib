@@ -117,7 +117,7 @@ impl PartialEq for Sample {
 }
 
 /// Sample looping information
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct Loop {
     /// sample loop start
     start: u32,
