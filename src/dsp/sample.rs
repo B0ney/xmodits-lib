@@ -149,7 +149,7 @@ where
 }
 
 /// Normalized loop point
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct LoopData {
     pub start: f32,
     pub end: f32,
