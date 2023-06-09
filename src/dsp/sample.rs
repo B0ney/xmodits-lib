@@ -149,15 +149,15 @@ impl SampleFrame {
         }
     }
 
-    fn to_stereo(self) -> Self {
+    pub fn to_stereo(self) -> Self {
         match self {
             SampleFrame::Empty => Self::Stereo([0.0, 0.0]),
             SampleFrame::Mono([left]) => Self::Stereo([left, left]),
             SampleFrame::Stereo(frame) => Self::Stereo(frame),
         }
     }
-    
-    fn get_stereo_frame(&self) -> [f32; 2] {
+
+    pub fn get_stereo_frame(&self) -> [f32; 2] {
         let stereo = self.to_stereo();
         match stereo {
             Self::Stereo(frame) => frame,
