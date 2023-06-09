@@ -3,7 +3,6 @@ use std::{borrow::Cow, usize};
 use crate::interface::{sample::Depth, Sample};
 use bytemuck::{cast_slice, Pod};
 use dasp::sample::Sample as SampleConverter;
-use arrayvec::ArrayVec;
 
 pub struct RawSample<'a> {
     pub smp: &'a Sample,
@@ -25,6 +24,22 @@ impl SampleBuffer {
     }
     pub fn channels(&self) -> usize {
         self.buf.len()
+    }
+
+    pub fn frame(&self, frame: usize) -> Option<SampleFrame> {
+        let buffer = &self.buf;
+        let mut next_frame = SampleFrame::new();
+
+        if frame >= buffer[0].len() {
+            return None;
+        }
+
+        for channel in buffer {
+            let sample = *channel.get(frame).unwrap_or(&0.0);
+            next_frame.push(sample);
+        }
+
+        Some(next_frame)
     }
 }
 
@@ -105,23 +120,50 @@ impl<'a> FramesIter<'a> {
 }
 
 impl Iterator for FramesIter<'_> {
-    type Item = ArrayVec<f32, 2>;
+    type Item = SampleFrame;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let buffer = &self.sample_buffer.buf;
-        let mut next_frame = ArrayVec::new();
-
-        if self.frame >= buffer[0].len() {
-            return None;
-        }
-
-        for channel in buffer {
-            let sample = *channel.get(self.frame).unwrap_or(&0.0);
-            next_frame.push(sample);
-        }
-
+        let result = self.sample_buffer.frame(self.frame);
         self.frame += 1;
+        result
+    }
+}
 
-        Some(next_frame)
+#[derive(Debug, Clone, Copy)]
+pub enum SampleFrame {
+    Empty,
+    Mono([f32; 1]),
+    Stereo([f32; 2]),
+}
+
+impl SampleFrame {
+    pub fn new() -> Self {
+        Self::Empty
+    }
+
+    pub fn push(&mut self, sample: f32) {
+        match self {
+            SampleFrame::Mono([left]) => *self = Self::Stereo([*left, sample]),
+            SampleFrame::Stereo(_) => (),
+            SampleFrame::Empty => *self = Self::Mono([sample]),
+        }
+    }
+
+    fn to_stereo(self) -> Self {
+        match self {
+            SampleFrame::Empty => Self::Stereo([0.0, 0.0]),
+            SampleFrame::Mono([left]) => Self::Stereo([left, left]),
+            SampleFrame::Stereo(frame) => Self::Stereo(frame),
+        }
+    }
+}
+
+impl AsRef<[f32]> for SampleFrame {
+    fn as_ref(&self) -> &[f32] {
+        match self {
+            SampleFrame::Empty => &[],
+            SampleFrame::Mono(mono) => mono,
+            SampleFrame::Stereo(stereo) => stereo,
+        }
     }
 }

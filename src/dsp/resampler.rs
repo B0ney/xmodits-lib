@@ -59,7 +59,7 @@ fn dump_to_wav(sample: &SampleBuffer, path: impl AsRef<Path>) {
     };
     let mut writer = hound::WavWriter::create(path, spec).unwrap();
     for frame in FramesIter::new(sample) {
-        for sample in frame.iter() {
+        for sample in frame.as_ref().iter() {
             writer.write_sample(*sample).unwrap();
         }
     }
