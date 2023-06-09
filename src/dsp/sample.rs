@@ -156,6 +156,14 @@ impl SampleFrame {
             SampleFrame::Stereo(frame) => Self::Stereo(frame),
         }
     }
+    
+    fn get_stereo_frame(&self) -> [f32; 2] {
+        let stereo = self.to_stereo();
+        match stereo {
+            Self::Stereo(frame) => frame,
+            _ => unreachable!()
+        }
+    }
 }
 
 impl AsRef<[f32]> for SampleFrame {
