@@ -107,6 +107,10 @@ impl Sample {
     pub fn channels(&self) -> u16 {
         self.channel.channels()
     }
+    /// Length of the sample in frames
+    pub fn length_frames(&self) -> usize {
+        self.length as usize / self.bytes() as usize / self.channels() as usize
+    }
 }
 
 /// We consider two samples that point to the same region to be equal

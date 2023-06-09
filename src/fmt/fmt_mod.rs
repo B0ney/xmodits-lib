@@ -194,17 +194,17 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
         invalid_score += get_invalid_score(
             volume, 
             finetune, 
-            loop_start, 
+            loop_start,
             loop_end
         );
 
-        // // Make sure loop points don't overflow
+        // Make sure loop points don't overflow
         if (loop_len > 2) && (loop_end > length) && ((loop_start / 2) <= length) {
             loop_start /= 2;
             loop_end = loop_start + loop_len;
         }
 
-        let loop_kind = match loop_start == loop_end {
+        let loop_kind = match loop_start == loop_end || loop_len <= 2 && length > 2 {
             true  => LoopType::Off,
             false => LoopType::Forward,
         };

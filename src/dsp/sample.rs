@@ -107,7 +107,7 @@ fn convert_raw_sample(raw_smp: &RawSample) -> SampleBuffer {
         rate,
         buf,
         rate_original: rate,
-        loop_data: LoopData::new(raw_smp.smp.looping, raw_smp.smp.length as usize),
+        loop_data: LoopData::new(raw_smp.smp.looping, raw_smp.smp.length_frames()),
     }
 }
 
