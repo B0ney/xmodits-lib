@@ -10,7 +10,7 @@ use std::borrow::Cow;
 use crate::parser::to_str_os;
 
 /// Tracker module sample
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Sample {
     /// Raw sample filename. Not all formats support this.
     pub filename: Option<Box<str>>,
