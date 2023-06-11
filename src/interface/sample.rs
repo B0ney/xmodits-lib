@@ -10,7 +10,7 @@ use std::borrow::Cow;
 use crate::parser::to_str_os;
 
 /// Tracker module sample
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Hash)]
 pub struct Sample {
     /// Raw sample filename. Not all formats support this.
     pub filename: Option<Box<str>>,
@@ -121,7 +121,7 @@ impl PartialEq for Sample {
 }
 
 /// Sample looping information
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, Hash)]
 pub struct Loop {
     /// sample loop start
     start: u32,
@@ -180,7 +180,7 @@ impl Loop {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LoopType {
     #[default]
     Off,
@@ -189,7 +189,7 @@ pub enum LoopType {
     PingPong,
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Channel {
     #[default]
     Mono,
@@ -225,7 +225,7 @@ impl Channel {
 }
 
 /// Type of sample bit depth
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, Hash)]
 pub enum Depth {
     /// Signed 8 bit
     I8,
