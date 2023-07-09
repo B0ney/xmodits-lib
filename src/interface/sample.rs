@@ -58,7 +58,7 @@ impl Sample {
     }
     /// Display Sample's name from its raw buffer
     pub fn name(&self) -> &str {
-        &self.name
+        self.name.trim()
     }
     /// Prettify Sample's name
     /// We need to make sure that the name is os_friendly and doesn't have any trailing whitespace.
