@@ -3,7 +3,7 @@ use crate::interface::{
     Sample,
 };
 use bytemuck::{cast_slice, Pod};
-use dasp::sample::Sample as SampleConverter;
+use dasp::sample::{FromSample, Sample as SampleConverter};
 
 pub struct RawSample<'a> {
     pub smp: &'a Sample,
@@ -37,7 +37,6 @@ impl Into<SampleBuffer> for RawSample<'_> {
     }
 }
 
-// todo: Include normalized loop points
 #[derive(Default, Clone)]
 pub struct SampleBuffer {
     pub rate: u32,
@@ -146,6 +145,48 @@ where
         .copied()
         .map(SampleConverter::to_float_sample)
         .collect()
+}
+
+pub fn convert_planar<S>(sample_buffer: &SampleBuffer) -> Vec<u8>
+where
+    S: FromSample<f32> + Pod,
+{
+    let buffer_size: usize =
+        sample_buffer.duration() * sample_buffer.channels() * std::mem::size_of::<S>();
+
+    let mut buffer: Vec<u8> = Vec::with_capacity(buffer_size);
+
+    for channel in &sample_buffer.buf {
+        for sample in channel {
+            let converted_sample = sample.to_sample::<S>();
+            buffer.extend_from_slice(cast_slice(&[converted_sample]))
+        }
+    }
+
+    buffer
+}
+
+pub fn convert_interleaved<S>(sample_buffer: &SampleBuffer) -> Vec<u8>
+where
+    S: FromSample<f32> + Pod,
+{
+    let buffer_size: usize =
+        sample_buffer.duration() * sample_buffer.channels() * std::mem::size_of::<S>();
+
+    let mut buffer: Vec<u8> = Vec::with_capacity(buffer_size);
+
+    for frame in 0..sample_buffer.duration() {
+        for channel in &sample_buffer.buf {
+            let sample = *channel
+                .get(frame)
+                .expect("channels should have the same number of samples");
+                // .unwrap_or(&0.0);
+            let converted_sample = sample.to_sample::<S>();
+            buffer.extend_from_slice(cast_slice(&[converted_sample]))
+        }
+    }
+
+    buffer
 }
 
 /// Normalized loop point
