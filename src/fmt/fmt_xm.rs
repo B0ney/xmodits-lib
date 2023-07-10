@@ -16,7 +16,7 @@ use crate::parser::{
     io::{is_magic, ByteReader, ReadSeek},
     string::read_str,
 };
-use crate::utils::deltadecode::{delta_decode_u16, delta_decode_u8};
+use crate::dsp::deltadecode::{delta_decode_u16, delta_decode_u8};
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 

@@ -11,7 +11,6 @@ pub mod exporter;
 pub mod fmt;
 pub mod interface;
 pub mod parser;
-pub mod utils;
 pub mod dsp;
 #[macro_use]
 pub mod macros;
