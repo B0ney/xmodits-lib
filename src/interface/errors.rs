@@ -97,7 +97,7 @@ pub struct ExtractionError {
 }
 
 impl ExtractionError {
-    pub fn new((raw_index, reason): (usize, Error)) -> Self {
+    pub fn new(raw_index: usize, reason: Error) -> Self {
         Self { raw_index, reason }
     }
 }
@@ -117,6 +117,7 @@ impl FailedExtraction {
     }
 }
 
+/// TODO: needs to be better formtted
 impl std::fmt::Display for FailedExtraction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use std::fmt::Write;
