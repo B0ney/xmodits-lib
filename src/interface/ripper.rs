@@ -14,7 +14,7 @@ use crate::exporter::AudioFormat;
 use crate::interface::audio::{AudioTrait, DynAudioTrait};
 use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
 use crate::interface::{Error, Module, Sample};
-use crate::{error, maybe_par_iter};
+use crate::error;
 
 use super::errors::ExtractionError;
 
@@ -57,7 +57,7 @@ impl Ripper {
         self.namer_func = namer;
     }
 
-    /// Rip samples concurrently to a directory
+    /// Rip samples to a directory
     pub fn rip_to_dir(
         &self,
         directory: impl AsRef<Path>,
@@ -76,22 +76,22 @@ impl Ripper {
 
         let context = build_context(module, &self.format);
 
-        let extract_samples = |(index, smp): (usize, &Sample)| -> Result<(), Error> {
-            let path = directory.join((self.namer_func)(smp, &context, index));
+        let extract_samples = |index:usize, smp: &Sample| -> Result<(), Error> {
+            let sample_path = directory.join((self.namer_func)(smp, &context, index));
             let pcm = module.pcm(smp)?;
 
             // Only create the file if we can obtain the pcm to prevent artifacts
-            let mut file = fs::File::create(path)?;
+            let mut file = fs::File::create(sample_path)?;
             self.format.write(smp, pcm, &mut file)
         };
 
-        let errors: Vec<ExtractionError> = maybe_par_iter!(module.samples())
-            .enumerate()
-            .map(|(idx, smp)| (extract_samples((idx, smp)), smp))
-            .map(|(result, smp)| result.map_err(|error| (smp.index_raw(), error)))
-            .filter_map(|result| result.err())
-            .map(ExtractionError::new)
-            .collect();
+        let mut errors = Vec::new();
+
+        for (index, sample) in module.samples().iter().enumerate() {
+            if let Err(error) = extract_samples(index, sample) {
+                errors.push(ExtractionError::new(sample.index_raw(), error))
+            }
+        }
 
         match errors.len() {
             0 => Ok(()),
@@ -99,20 +99,6 @@ impl Ripper {
             _ => Error::partial_extraction(errors),
         }
     }
-
-    // // extract a particular sample to a writer object.
-    // // This should be used for extracting a sample to memory
-    // pub fn rip_to_writer(
-    //     &self,
-    //     module: &dyn Module,
-    //     writer: &mut dyn Write,
-    //     index: usize,
-    // ) -> Result<(), Error> {
-    //     todo!()
-    //     // let metadata = module.samples().get(index).ok_or_else(|| todo!())?; // todo
-    //     // let pcm = module.pcm(metadata)?;
-    //     // self.format.write(metadata, pcm, writer)
-    // }
 }
 
 pub fn build_context<'a>(module: &'a dyn Module, audio_format: &'a DynAudioTrait) -> Context<'a> {

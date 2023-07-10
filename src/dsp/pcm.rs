@@ -187,7 +187,7 @@ fn _deinterleave_16_bit(pcm: &[u16]) -> (Vec<u16>, Vec<u16>) {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::pcm::align_u16;
+    use crate::dsp::pcm::align_u16;
 
     use super::_interleave_16_bit;
     use super::deinterleave;

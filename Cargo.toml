@@ -18,7 +18,6 @@ dasp = { version = "0.11.0", features = ["signal"] }
 rubato = "0.12.0"
 
 log = { version = "0.4.17", optional = true }
-rayon = { version = "1.6.1", optional = true }
 serde = { version = "1.0.152", features = ["derive"] , optional = true }
 
 [dev-dependencies]
