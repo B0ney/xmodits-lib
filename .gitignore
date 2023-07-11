@@ -5,6 +5,7 @@
 *.wav
 *.aiff
 *.its
+*.s3i
 *.raw
 *.8svx
 *.iff
