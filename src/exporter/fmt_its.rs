@@ -8,9 +8,19 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
+use crate::interface::sample::{Loop, LoopType};
 use crate::interface::{Error, Sample};
 
+const FLAG_BITS_16: u8 = 1 << 1;
+const FLAG_STEREO: u8 = 1 << 2;
+const FLAG_LOOP: u8 = 1 << 4;
+const FLAG_SUSTAIN: u8 = 1 << 5;
+const FLAG_PINGPONG: u8 = 1 << 6;
+const FLAG_PINGPONG_SUSTAIN: u8 = 1 << 7;
+
 /// Impulse tracker sample
+///
+/// TODO: impulse tracker only supports stereo samples, add more parameters?
 #[derive(Clone, Copy)]
 pub struct Its;
 
@@ -22,34 +32,103 @@ impl AudioTrait for Its {
     #[allow(clippy::unnecessary_cast)]
     fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
         const HEADER: [u8; 4] = *b"IMPS";
-        const SAMPLE_PTR: [u8; 4] = 0x50_u32.to_le_bytes();
-        const PLACE_HOLDER: [u8; 4] = [0, 0, 0, 0];
+        const SAMPLE_PTR: u32 = 0x50;
+        const SAMPLE_FLAG: u8 = 0b_0000_000_1;
+        const CVT: u8 = 0;
 
-        let flags: u8 = 0; // TODO
-        let length = smp.length as u32; // TODO: check if lengh is in bytes or samples
+        const ZERO_U32: [u8; 4] = [0, 0, 0, 0];
+        const ZERO_U8: [u8; 1] = [0];
+        const VOL: [u8; 1] = [64];
+        
+        // TODO
+        let mut filename = [0u8; 12];
+        let mut name = [0u8; 26];
+
+        fill(&mut name);
+
+
+        name[25] = 0;
+
+        let flags = SAMPLE_FLAG 
+            | (!smp.is_8_bit() as u8) << 1
+            // TODO: impulse tracker does not support stereo samples
+            | (smp.is_stereo() as u8) << 2
+            | (!smp.looping.is_disabled() as u8) << 4
+            // TODO: improve looping parameters, check assumptions
+            | match smp.looping.kind() {
+                LoopType::Backward => FLAG_SUSTAIN,
+                LoopType::PingPong => FLAG_PINGPONG,
+                LoopType::Forward | _ => 0,
+            };
+
+        let cvt = CVT
+            | (smp.depth.is_signed() as u8);    
+
+        let length = smp.length_frames() as u32;
         let c5speed = smp.rate as u32;
+        let loop_start: u32 = smp.looping.start();
+        let loop_end: u32 = smp.looping.end();
 
         writer.write_all(&HEADER)?;
-        writer.write_all(&[0u8; 12])?; // filename
-        writer.write_all(&[0])?; // zero
-        writer.write_all(&[0])?; // global volume
+        // writer.write_all(&[0u8; 12])?; // filename
+        writer.write_all(&*b"testing this")?; // dos filename
+        writer.write_all(&ZERO_U8)?; // zero
+        writer.write_all(&VOL)?; // global volume
         writer.write_all(&[flags])?; // flags
-        writer.write_all(&[0])?; // vol
-        writer.write_all(&[20; 26])?; // name
-        writer.write_all(&[0])?; // cvt
-        writer.write_all(&[0])?; // dfp
+        writer.write_all(&VOL)?; // vol
+        writer.write_all(&name)?; // name
+        writer.write_all(&[cvt])?; // cvt
+        writer.write_all(&ZERO_U8)?; // dfp
         writer.write_all(&length.to_le_bytes())?; // length
-        writer.write_all(&PLACE_HOLDER)?; // loop begin
-        writer.write_all(&PLACE_HOLDER)?; // loop end
+        writer.write_all(&loop_start.to_le_bytes())?; // loop begin
+        writer.write_all(&loop_end.to_le_bytes())?; // loop end
         writer.write_all(&c5speed.to_le_bytes())?; // c5speed
-        writer.write_all(&PLACE_HOLDER)?; // susloopbegin
-        writer.write_all(&PLACE_HOLDER)?; // susloopend
-        writer.write_all(&SAMPLE_PTR)?; // sample pointer
-        writer.write_all(&[0])?; // vis
-        writer.write_all(&[0])?; // vid
-        writer.write_all(&[0])?; // vir
-        writer.write_all(&[0])?; // vit
+        writer.write_all(&ZERO_U32)?; // susloopbegin
+        writer.write_all(&ZERO_U32)?; // susloopend
+        writer.write_all(&SAMPLE_PTR.to_le_bytes())?; // sample pointer
+        writer.write_all(&ZERO_U8)?; // vis
+        writer.write_all(&ZERO_U8)?; // vid
+        writer.write_all(&ZERO_U8)?; // vir
+        writer.write_all(&ZERO_U8)?; // vit
 
         Ok(writer.write_all(&pcm)?)
+    }
+}
+
+fn fill_name(buf: &mut [u8]) {}
+
+fn fill<const T: usize>(buf: &mut [u8; T]) {
+    
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        interface::{
+            sample::{Channel, Depth},
+            Sample,
+        },
+        AudioTrait,
+    };
+
+    use super::Its;
+
+    #[test]
+    fn out_raw() {
+        let sample = Sample {
+            filename: Some("e".into()),
+            name: "e".into(),
+            length: 338,
+            rate: 44100,
+            pointer: 0,
+            depth: Depth::U16,
+            channel: Channel::Mono,
+            ..Default::default()
+        };
+
+        let mut file = std::fs::File::create("path.its").unwrap();
+        let raw: &[u8] = include_bytes!("../../modules/A110PLUS.raw");
+
+        Its.write(&sample, raw.into(), &mut file).unwrap()
     }
 }
