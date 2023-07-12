@@ -48,7 +48,7 @@ impl Module for XM {
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(delta_decode(smp)(self.inner.get_owned_slice(smp)?).into())
+        Ok(delta_decode(smp, self.inner.get_owned_slice(smp)?).into())
     }
 
     fn samples(&self) -> &[Sample] {
@@ -75,13 +75,31 @@ impl Module for XM {
 }
 
 #[inline]
-pub fn delta_decode(smp: &Sample) -> impl Fn(Vec<u8>) -> Vec<u8> {
+pub fn delta_decode(smp: &Sample, buf: Vec<u8>) -> Vec<u8> {
     info!("Delta decoding sample with raw index: {}", smp.index_raw());
-
-    match smp.is_8_bit() {
+    
+    let delta_decode = match smp.is_8_bit() {
         true => delta_decode_u8,
         false => delta_decode_u16,
+    };
+
+    if smp.is_stereo() {
+        // Stereo xm samples are delta encoded per channel.
+        // Delta decode each channel separately
+        let half = buf.len() / 2;
+        
+        let mut left = buf;
+        let right = left.split_off(half);
+
+        // re-join stereo data
+        let mut decoded = delta_decode(left);
+        decoded.append(&mut delta_decode(right));
+        
+
+        return decoded;
     }
+
+    delta_decode(buf)
 }
 
 pub fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
