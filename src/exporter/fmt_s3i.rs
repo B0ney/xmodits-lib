@@ -8,7 +8,10 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
+use crate::interface::sample::Depth;
 use crate::interface::{Error, Sample};
+
+use super::helper::PCMFormatter;
 
 const MAX_SIZE: usize = 64 * 1024;
 
@@ -57,6 +60,19 @@ impl AudioTrait for S3i {
         writer.write_all(&[0u8; 28])?; // sample name
         writer.write_all(&SCRI)?; // scri (or scrs)
 
+        let pcm = match smp.is_signed() {
+            true => flip_sign(pcm, smp.depth),
+            false => pcm,
+        };
+
         Ok(writer.write_all(&pcm)?)
+    }
+}
+
+
+fn flip_sign(pcm: Cow<[u8]>, depth: Depth) -> Cow<[u8]>{
+    match depth.is_8_bit() {
+        true => pcm.flip_sign_8(),
+        false => pcm.flip_sign_16(),
     }
 }
