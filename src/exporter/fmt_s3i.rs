@@ -8,7 +8,7 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
-use crate::interface::sample::Depth;
+use crate::interface::sample::{Depth, to_ascii_array};
 use crate::interface::{Error, Sample};
 
 use super::helper::PCMFormatter;
@@ -30,7 +30,8 @@ impl AudioTrait for S3i {
         const SCRI: [u8; 4] = *b"SCRI";
         const PCM: [u8; 1] = [1];
 
-        let filename: [u8; 12] = [0;12];
+        let filename: [u8; 12] = to_ascii_array(smp.filename.as_deref().unwrap_or_default());
+        let name: [u8; 28] = to_ascii_array(smp.name());
         let memseg: [u8; 3] = [0; 3];
 
         let flags: u8 = 0
@@ -40,7 +41,6 @@ impl AudioTrait for S3i {
 
         let loop_start: u32 = smp.looping.start();
         let loop_end: u32 = smp.looping.end();
-
 
         writer.write_all(&PCM)?; // type
         writer.write_all(&filename)?; // dos filename
@@ -57,7 +57,7 @@ impl AudioTrait for S3i {
         writer.write_all(&[0u8; 2])?; // dummy
         writer.write_all(&[0u8; 2])?; // dummy
         writer.write_all(&[0u8; 4])?; // dummy
-        writer.write_all(&[0u8; 28])?; // sample name
+        writer.write_all(&name)?; // sample name
         writer.write_all(&SCRI)?; // scri (or scrs)
 
         let pcm = match smp.is_signed() {

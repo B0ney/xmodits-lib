@@ -8,7 +8,7 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
-use crate::interface::sample::{Loop, LoopType};
+use crate::interface::sample::{LoopType, to_ascii_array};
 use crate::interface::{Error, Sample};
 
 const FLAG_BITS_16: u8 = 1 << 1;
@@ -35,24 +35,16 @@ impl AudioTrait for Its {
         const SAMPLE_PTR: u32 = 0x50;
         const SAMPLE_FLAG: u8 = 0b_0000_000_1;
         const CVT: u8 = 0;
-
-        const ZERO_U32: [u8; 4] = [0, 0, 0, 0];
-        const ZERO_U8: [u8; 1] = [0];
+        const ZERO_U32: [u8; 4] = 0_u32.to_le_bytes();
+        const ZERO_U8: [u8; 1] = 0_u8.to_le_bytes();
         const VOL: [u8; 1] = [64];
         
-        // TODO
-        let mut filename = [0u8; 12];
-        let mut name = [0u8; 26];
-
-        fill(&mut name);
-
-
-        name[25] = 0;
+        let filename: [u8; 12] = to_ascii_array(smp.filename.as_deref().unwrap_or_default());
+        let name: [u8; 26] = to_ascii_array(smp.name());
 
         let flags = SAMPLE_FLAG 
             | (!smp.is_8_bit() as u8) << 1
-            // TODO: impulse tracker does not support stereo samples
-            | (smp.is_stereo() as u8) << 2
+            | (smp.is_stereo() as u8) << 2 // TODO: impulse tracker does not support stereo samples
             | (!smp.looping.is_disabled() as u8) << 4
             // TODO: improve looping parameters, check assumptions
             | match smp.looping.kind() {
@@ -69,9 +61,8 @@ impl AudioTrait for Its {
         let loop_start: u32 = smp.looping.start();
         let loop_end: u32 = smp.looping.end();
 
-        writer.write_all(&HEADER)?;
-        // writer.write_all(&[0u8; 12])?; // filename
-        writer.write_all(&*b"testing this")?; // dos filename
+        writer.write_all(&HEADER)?; // IMPS
+        writer.write_all(&filename)?; // dos filename
         writer.write_all(&ZERO_U8)?; // zero
         writer.write_all(&VOL)?; // global volume
         writer.write_all(&[flags])?; // flags
@@ -93,12 +84,6 @@ impl AudioTrait for Its {
 
         Ok(writer.write_all(&pcm)?)
     }
-}
-
-fn fill_name(buf: &mut [u8]) {}
-
-fn fill<const T: usize>(buf: &mut [u8; T]) {
-    
 }
 
 #[cfg(test)]
