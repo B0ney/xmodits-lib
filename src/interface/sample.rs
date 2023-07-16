@@ -146,12 +146,12 @@ impl Loop {
         self.kind == LoopType::Off
     }
 
-    /// sample loop start
+    /// sample loop start in samples
     pub fn start(&self) -> u32 {
         self.start
     }
 
-    /// sample loop end
+    /// sample loop end in samples
     pub fn end(&self) -> u32 {
         self.end
     }
@@ -336,6 +336,39 @@ pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) -> Resul
         true => Err(Error::invalid("Module doesn't have any valid samples.")),
         false => Ok(()),
     }
+}
+
+/// Helper function to create a null-terminated array of ascii chars from a string slice
+/// 
+/// # Panics 
+/// Will panic if if the length is less than 2
+pub fn to_ascii_array<const T: usize>(str: impl AsRef<str>) -> [u8; T]
+{
+    assert!(T >= 2, "ASCII array must have at least 2 elements");
+
+    use ascii::{ToAsciiChar, AsciiChar};
+    
+    let mut buf = [0u8; T];
+    let length = buf.len() - 1;
+
+    let mut ascii_bytes_iter = str
+        .as_ref()
+        .chars()
+        .filter_map(|char| 
+            char
+                .to_ascii_char()
+                .map(AsciiChar::as_byte)
+                .ok()
+            );
+
+    for byte in buf.iter_mut().take(length) {
+        let Some(char) = ascii_bytes_iter.next() else {
+            break
+        };
+        *byte = char;
+    }
+    
+    buf
 }
 
 // #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
