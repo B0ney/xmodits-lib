@@ -12,7 +12,7 @@ use crate::interface::audio::AudioTrait;
 use crate::interface::sample::{Depth, Sample};
 use crate::interface::Error;
 
-const CAPPED_SAMPLE_RATE: u16 = 22100;
+const CAPPED_SAMPLE_RATE: u16 = 22050;
 
 #[derive(Clone, Copy)]
 pub struct Iff;
