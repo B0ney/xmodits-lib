@@ -8,12 +8,14 @@
 use crate::interface::audio::AudioTrait;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-pub mod fmt_aiff;
-pub mod fmt_iff;
-pub mod fmt_its;
-pub mod fmt_raw;
-pub mod fmt_s3i;
-pub mod fmt_wav;
+
+mod fmt_aiff;
+mod fmt_iff;
+mod fmt_its;
+mod fmt_raw;
+mod fmt_s3i;
+mod fmt_wav;
+
 mod helper;
 
 /// Possible formats to store the pcm
@@ -31,7 +33,7 @@ pub enum AudioFormat {
     AIFF,
     /// Impulse Tracker Sample
     ITS,
-    /// Scream Tracker 3 Instrument
+    /// Scream Tracker 3 Instrument, only supports 64KiB samples
     S3I,
     /// Raw PCM
     /// This will lose information about the sample.
@@ -40,9 +42,12 @@ pub enum AudioFormat {
 
 impl AudioFormat {
     pub const ALL: [Self; 6] = [
-        Self::WAV, Self::IFF, 
-        Self::AIFF, Self::ITS, 
-        Self::S3I, Self::RAW
+        Self::WAV,
+        Self::IFF,
+        Self::AIFF,
+        Self::ITS,
+        Self::S3I,
+        Self::RAW,
     ];
     /// Returns an AudioTrait object.
     ///

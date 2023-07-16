@@ -7,7 +7,7 @@
 
 use crate::info;
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{Channel, Depth, Loop, LoopType, Sample, remove_invalid_samples};
+use crate::interface::sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::{
     io::{is_magic_non_consume, non_consume, ByteReader, Container, ReadSeek},
@@ -82,7 +82,7 @@ impl Module for MOD {
     }
 
     fn source(&self) -> Option<&Path> {
-       self.source.as_deref()
+        self.source.as_deref()
     }
 }
 
@@ -137,7 +137,7 @@ struct MODInfo {
 impl MODInfo {
     pub fn generate(magic: [u8; 4]) -> Self {
         let mut samples = 31;
-        
+
         // https://github.com/Konstanty/libmodplug/blob/master/src/load_mod.cpp#L208-L224
         #[rustfmt::skip]
         let advanced = |magic: [u8; 4]| -> Option<u8> {
@@ -164,17 +164,14 @@ impl MODInfo {
                     samples = 15;
                     4
                 }
-            }
+            },
         };
 
-        Self {
-            channels,
-            samples
-        }
+        Self { channels, samples }
     }
 }
 
-#[rustfmt::skip] 
+#[rustfmt::skip]
 fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<Sample>, Error> {
     let mut samples: Vec<Sample> = Vec::new();
     let mut invalid_score: u8 = 0;
@@ -241,9 +238,7 @@ where
 {
     let size = data.size();
     if is_magic_non_consume(data, b"FORM")? {
-        return Err(Error::unsupported(
-            "IFF MOD files are not yet supported",
-        ))
+        return Err(Error::unsupported("IFF MOD files are not yet supported"));
         // todo!("protracker 3.6")
     };
 
@@ -262,7 +257,7 @@ fn check_xpk(data: &mut impl ReadSeek) -> Result<(), Error> {
 /// https://github.com/OpenMPT/openmpt/blob/d75cd3eaf299ee84c484ff66ec5836a084738351/soundlib/Load_mod.cpp#L314
 /// 
 /// Compute a "rating" of this sample header by counting invalid header data to ultimately reject garbage files.
-#[rustfmt::skip] 
+#[rustfmt::skip]
 fn get_invalid_score(volume: u8, finetune: u8, loop_start: u32, loop_end: u32) -> u8 {
     (volume > 64) as u8 + 
     (finetune > 15) as u8 +

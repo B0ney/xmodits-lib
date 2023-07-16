@@ -22,9 +22,9 @@ impl AudioTrait for Iff {
         "8svx"
     }
 
-    /// The frequency can only be stored as a ``u16``, 
+    /// The frequency can only be stored as a ``u16``,
     /// The frequency will be capped at CAPPED_SAMPLE_RATE by down sampling them.
-    /// 
+    ///
     /// TODO: How should stereo samples be handled?
     /// * Collapse to mono by mixing
     /// * Only choose one channel
@@ -46,7 +46,7 @@ impl AudioTrait for Iff {
         let frequency: u16 = match smp.rate {
             rate if rate <= CAPPED_SAMPLE_RATE as u32 => rate as u16,
             _ => {
-                // TODO: Resampling can alter the length of the pcm, 
+                // TODO: Resampling can alter the length of the pcm,
                 // make sure we don't use the length provided by smp
                 pcm = crate::dsp::resample_raw((smp, pcm), CAPPED_SAMPLE_RATE as u32).into();
                 CAPPED_SAMPLE_RATE

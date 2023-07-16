@@ -5,6 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::dsp::deltadecode::{delta_decode_u16, delta_decode_u8};
 use crate::info;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample};
@@ -16,7 +17,6 @@ use crate::parser::{
     io::{is_magic, ByteReader, ReadSeek},
     string::read_str,
 };
-use crate::dsp::deltadecode::{delta_decode_u16, delta_decode_u8};
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
@@ -77,7 +77,7 @@ impl Module for XM {
 #[inline]
 pub fn delta_decode(smp: &Sample, buf: Vec<u8>) -> Vec<u8> {
     info!("Delta decoding sample with raw index: {}", smp.index_raw());
-    
+
     let delta_decode = match smp.is_8_bit() {
         true => delta_decode_u8,
         false => delta_decode_u16,
@@ -87,14 +87,13 @@ pub fn delta_decode(smp: &Sample, buf: Vec<u8>) -> Vec<u8> {
         // Stereo xm samples are delta encoded per channel.
         // Delta decode each channel separately
         let half = buf.len() / 2;
-        
+
         let mut left = buf;
         let right = left.split_off(half);
 
         // re-join stereo data
         let mut decoded = delta_decode(left);
         decoded.append(&mut delta_decode(right));
-        
 
         return decoded;
     }
@@ -221,7 +220,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
             let loop_start = loop_start / (depth.bytes() as u32 * channel.channels() as u32);
             let loop_length = loop_length / (depth.bytes() as u32 * channel.channels() as u32);
             let loop_end = loop_start.checked_add(loop_length).unwrap_or(0);
-            
+
             let loop_kind = match flag & 0x3 {
                 0 => LoopType::Off,
                 1 => LoopType::Forward,

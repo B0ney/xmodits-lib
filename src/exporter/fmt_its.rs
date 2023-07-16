@@ -8,7 +8,7 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
-use crate::interface::sample::{LoopType, to_ascii_array};
+use crate::interface::sample::{to_ascii_array, LoopType};
 use crate::interface::{Error, Sample};
 
 const FLAG_BITS_16: u8 = 1 << 1;
@@ -38,11 +38,11 @@ impl AudioTrait for Its {
         const ZERO_U32: [u8; 4] = 0_u32.to_le_bytes();
         const ZERO_U8: [u8; 1] = 0_u8.to_le_bytes();
         const VOL: [u8; 1] = [64];
-        
+
         let filename: [u8; 12] = to_ascii_array(smp.filename.as_deref().unwrap_or_default());
         let name: [u8; 26] = to_ascii_array(smp.name());
 
-        let flags = SAMPLE_FLAG 
+        let flags = SAMPLE_FLAG
             | (!smp.is_8_bit() as u8) << 1
             | (smp.is_stereo() as u8) << 2 // TODO: impulse tracker does not support stereo samples
             | (!smp.looping.is_disabled() as u8) << 4
@@ -53,8 +53,7 @@ impl AudioTrait for Its {
                 LoopType::Forward | _ => 0,
             };
 
-        let cvt = CVT
-            | (smp.depth.is_signed() as u8);    
+        let cvt = CVT | (smp.depth.is_signed() as u8);
 
         let length = smp.length_frames() as u32;
         let c5speed = smp.rate as u32;

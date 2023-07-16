@@ -7,6 +7,7 @@
 
 use crate::interface::{Error, Module};
 use crate::parser::io::{non_consume, ReadSeek};
+
 pub mod formats {
     pub use crate::fmt::fmt_it::IT;
     pub use crate::fmt::fmt_mod::MOD;

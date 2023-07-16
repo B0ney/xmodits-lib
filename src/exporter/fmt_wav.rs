@@ -101,7 +101,7 @@ impl AudioTrait for Wav {
                 LoopType::Backward => 2,
                 LoopType::PingPong => 1,
             };
-        
+
             write(&SMPL)?;
             write(&SMPL_CHUNK_SIZE.to_le_bytes())?;
             write(&ZERO)?; // manufacturer
@@ -120,7 +120,7 @@ impl AudioTrait for Wav {
             write(&ZERO)?; // fraction
             write(&ZERO)?; // repeats
         }
-        
+
         Ok(())
     }
 }

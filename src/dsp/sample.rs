@@ -180,7 +180,6 @@ where
             let sample = *channel
                 .get(frame)
                 .expect("channels should have the same number of samples");
-                // .unwrap_or(&0.0);
             let converted_sample = sample.to_sample::<S>();
             buffer.extend_from_slice(cast_slice(&[converted_sample]))
         }

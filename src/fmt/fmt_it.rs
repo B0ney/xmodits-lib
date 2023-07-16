@@ -244,9 +244,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 }
 
 fn check_zirconia(file: &mut impl ReadSeek) -> Result<(), Error> {
-    let magic = non_consume(file, |file| {
-        read_exact_const::<8>(file)
-    })?;
+    let magic = non_consume(file, |file| read_exact_const::<8>(file))?;
 
     match magic == MAGIC_ZIRCONIA {
         true => Err(Error::unsupported(UNSUPPORTED)),

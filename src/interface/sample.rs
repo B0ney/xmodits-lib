@@ -168,7 +168,7 @@ impl Loop {
     pub fn kind(&self) -> LoopType {
         self.kind
     }
-    
+
     pub fn verify(mut self, size: Option<u64>) -> Self {
         let Some(size) = size else {
             return self;
@@ -315,7 +315,7 @@ pub fn is_sample_valid(pointer: u32, length: u32, size: Option<u64>, compressed:
     true
 }
 
-pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) -> Result<(), Error>{
+pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) -> Result<(), Error> {
     if size.is_none() {
         return Ok(());
     };
@@ -339,27 +339,21 @@ pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) -> Resul
 }
 
 /// Helper function to create a null-terminated array of ascii chars from a string slice
-/// 
-/// # Panics 
+///
+/// # Panics
 /// Will panic if if the length is less than 2
-pub fn to_ascii_array<const T: usize>(str: impl AsRef<str>) -> [u8; T]
-{
+pub fn to_ascii_array<const T: usize>(str: impl AsRef<str>) -> [u8; T] {
     assert!(T >= 2, "ASCII array must have at least 2 elements");
 
-    use ascii::{ToAsciiChar, AsciiChar};
-    
+    use ascii::{AsciiChar, ToAsciiChar};
+
     let mut buf = [0u8; T];
     let length = buf.len() - 1;
 
     let mut ascii_bytes_iter = str
         .as_ref()
         .chars()
-        .filter_map(|char| 
-            char
-                .to_ascii_char()
-                .map(AsciiChar::as_byte)
-                .ok()
-            );
+        .filter_map(|char| char.to_ascii_char().map(AsciiChar::as_byte).ok());
 
     for byte in buf.iter_mut().take(length) {
         let Some(char) = ascii_bytes_iter.next() else {
@@ -367,7 +361,7 @@ pub fn to_ascii_array<const T: usize>(str: impl AsRef<str>) -> [u8; T]
         };
         *byte = char;
     }
-    
+
     buf
 }
 

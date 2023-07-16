@@ -6,16 +6,16 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Rust implementation for decompressing compressed Impulse Tracker samples
-//! 
-//! Algorithm for sample decompression: 
+//!
+//! Algorithm for sample decompression:
 //!     https://github.com/nicolasgramlich/AndEngineMODPlayerExtension/blob/master/jni/loaders/itsex.c
-//! 
+//!
 //! Bitreading:
 //!     https://github.com/Konstanty/libmodplug/blob/master/src/load_it.cpp#L1183
 
+use crate::error;
 use crate::interface::Error;
 use crate::parser::bytes::le_u16 as _le_u16;
-use crate::error;
 use bytemuck::cast_slice;
 
 #[rustfmt::skip] 
@@ -107,7 +107,7 @@ pub fn decompress_8_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8>
         while blkpos < blklen {
 
             if width > 9 {
-                error!("Could not fully decompress this sample because it has an invalid bit width: {}. (Should be < 18)", width);
+                error!("Could not fully decompress this sample because it has an invalid bit width: {}. (Should be < 10)", width);
                 // return Ok(dest_buf);
                 return Err(Error::Extraction(format!("Could not decompress this Impulse Tracker sample because it has an invalid bit width '{}' (Should be < 10)", width)));
             };

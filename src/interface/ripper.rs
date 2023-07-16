@@ -10,11 +10,11 @@ use rayon::prelude::*;
 // use std::io::{self, Write};
 use std::{fs, path::Path};
 
+use crate::error;
 use crate::exporter::AudioFormat;
 use crate::interface::audio::{AudioTrait, DynAudioTrait};
 use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
 use crate::interface::{Error, Module, Sample};
-use crate::error;
 
 use super::errors::ExtractionError;
 
@@ -76,7 +76,7 @@ impl Ripper {
 
         let context = build_context(module, &self.format);
 
-        let extract_samples = |index:usize, smp: &Sample| -> Result<(), Error> {
+        let extract_samples = |index: usize, smp: &Sample| -> Result<(), Error> {
             let sample_path = directory.join((self.namer_func)(smp, &context, index));
             let pcm = module.pcm(smp)?;
 

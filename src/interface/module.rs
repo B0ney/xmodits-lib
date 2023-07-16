@@ -8,7 +8,7 @@
 use crate::interface::{sample::Sample, Error};
 use crate::parser::io::ReadSeek;
 use std::borrow::Cow;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
 /// A barebones representation of a tracker module.
 ///

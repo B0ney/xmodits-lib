@@ -53,7 +53,7 @@ pub fn read_string_checked(buf: &[u8]) -> std::io::Result<Box<str>> {
 
     let buf = trim_null(buf);
     let threshold = errors(buf.len(), THRESHOLD);
-    
+
     if is_garbage(buf, threshold) {
         return Err(io_error("String contains too many non-readable data"));
     };

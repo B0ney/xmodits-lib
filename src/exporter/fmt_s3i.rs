@@ -8,7 +8,7 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
-use crate::interface::sample::{Depth, to_ascii_array};
+use crate::interface::sample::{to_ascii_array, Depth};
 use crate::interface::{Error, Sample};
 
 use super::helper::PCMFormatter;
@@ -69,8 +69,7 @@ impl AudioTrait for S3i {
     }
 }
 
-
-fn flip_sign(pcm: Cow<[u8]>, depth: Depth) -> Cow<[u8]>{
+fn flip_sign(pcm: Cow<[u8]>, depth: Depth) -> Cow<[u8]> {
     match depth.is_8_bit() {
         true => pcm.flip_sign_8(),
         false => pcm.flip_sign_16(),

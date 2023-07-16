@@ -7,12 +7,12 @@
 
 #![forbid(unsafe_code)]
 pub mod common;
+pub mod dsp;
 pub mod exporter;
 pub mod fmt;
 pub mod interface;
-pub mod parser;
-pub mod dsp;
 pub(crate) mod log;
+pub mod parser;
 
 pub use crate::fmt::loader::{identify_module, Format};
 pub use crate::interface::audio::AudioTrait;
