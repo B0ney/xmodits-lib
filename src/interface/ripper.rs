@@ -78,11 +78,24 @@ impl Ripper {
 
         let extract_samples = |index: usize, smp: &Sample| -> Result<(), Error> {
             let sample_path = directory.join((self.namer_func)(smp, &context, index));
+        
+            // Only create the file AFTER we have obtained the pcm to prevent artifacts.
             let pcm = module.pcm(smp)?;
 
-            // Only create the file if we can obtain the pcm to prevent artifacts
-            let mut file = fs::File::create(sample_path)?;
-            self.format.write(smp, pcm, &mut file)
+            let mut file = fs::File::options()
+                .create_new(true)
+                .write(true)
+                .open(&sample_path)?;
+
+            let result = self.format.write(smp, pcm, &mut file);
+
+            // If we can't write the pcm in its specific format,
+            // delete the file so that it won't leave empty artifacts
+            if result.is_err() {
+                let _ = fs::remove_file(sample_path);
+            }
+
+            result
         };
 
         let mut errors = Vec::new();
