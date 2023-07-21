@@ -8,7 +8,8 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
-use crate::interface::sample::{to_ascii_array, Depth};
+use crate::interface::sample::Depth;
+use crate::parser::string::to_ascii_array;
 use crate::interface::{Error, Sample};
 
 use super::helper::PCMFormatter;
@@ -35,9 +36,9 @@ impl AudioTrait for S3i {
         let memseg: [u8; 3] = [0; 3];
 
         let flags: u8 = 0
-            | (!smp.looping.is_disabled() as u8) << 1
-            | (smp.is_stereo() as u8) << 2
-            | (!smp.is_8_bit() as u8) << 4;
+            | (!smp.looping.is_disabled() as u8) << 0
+            | (smp.is_stereo() as u8) << 1
+            | (!smp.is_8_bit() as u8) << 2;
 
         let loop_start: u32 = smp.looping.start();
         let loop_end: u32 = smp.looping.end();
@@ -45,7 +46,7 @@ impl AudioTrait for S3i {
         writer.write_all(&PCM)?; // type
         writer.write_all(&filename)?; // dos filename
         writer.write_all(&memseg)?; // memseg
-        writer.write_all(&smp.length.to_le_bytes())?; // todo
+        writer.write_all(&smp.length.to_le_bytes())?;
         writer.write_all(&loop_start.to_le_bytes())?;
         writer.write_all(&loop_end.to_le_bytes())?;
         writer.write_all(&[64u8])?; // volume

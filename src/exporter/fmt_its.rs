@@ -8,7 +8,8 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
-use crate::interface::sample::{to_ascii_array, LoopType};
+use crate::interface::sample::LoopType;
+use crate::parser::string::to_ascii_array;
 use crate::interface::{Error, Sample};
 
 const FLAG_BITS_16: u8 = 1 << 1;
