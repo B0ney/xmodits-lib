@@ -9,12 +9,12 @@ use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
 use crate::interface::sample::Depth;
-use crate::parser::string::to_ascii_array;
 use crate::interface::{Error, Sample};
+use crate::parser::string::to_ascii_array;
 
 use super::helper::PCMFormatter;
 
-const MAX_SIZE: usize = 64 * 1024;
+const MAX_SIZE: u32 = (64 * 1024) - 1;
 
 /// Scream Tracker 3 Instrument
 #[derive(Clone, Copy)]
@@ -25,12 +25,24 @@ impl AudioTrait for S3i {
         "s3i"
     }
 
-    /// Note: st3 only supports 64kb samples
+    /// Note: scream tracker 3 only supports 64kb samples
+    /// Schismtracker treats s3i differently than openmpt
+    /// 
+    /// TODO:
+    /// * Is the sample length in frames or bytes?
+    /// * Are the sample loop points in frames or bytes?
     #[allow(clippy::unnecessary_cast)]
     fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
         const SCRI: [u8; 4] = *b"SCRI";
         const PCM: [u8; 1] = [1];
 
+        // if smp.length > MAX_SIZE {
+        //     return Err(Error::audio_format(
+        //         "Could not save sample as .s3i - file is larger than 64KiB",
+        //     ));
+        // }
+
+        let length: u32 = smp.length_frames() as u32;
         let filename: [u8; 12] = to_ascii_array(smp.filename.as_deref().unwrap_or_default());
         let name: [u8; 28] = to_ascii_array(smp.name());
         let memseg: [u8; 3] = [0; 3];
@@ -46,7 +58,7 @@ impl AudioTrait for S3i {
         writer.write_all(&PCM)?; // type
         writer.write_all(&filename)?; // dos filename
         writer.write_all(&memseg)?; // memseg
-        writer.write_all(&smp.length.to_le_bytes())?;
+        writer.write_all(&length.to_le_bytes())?;
         writer.write_all(&loop_start.to_le_bytes())?;
         writer.write_all(&loop_end.to_le_bytes())?;
         writer.write_all(&[64u8])?; // volume

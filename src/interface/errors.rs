@@ -88,6 +88,10 @@ impl Error {
             length: smp.length,
         }
     }
+
+    pub fn audio_format(error: &str) -> Self {
+        Self::AudioFormat(error.into())
+    }
 }
 
 #[derive(Debug)]
