@@ -15,6 +15,7 @@ mod fmt_its;
 mod fmt_raw;
 mod fmt_s3i;
 mod fmt_wav;
+mod fmt_xi;
 
 mod helper;
 
@@ -35,18 +36,21 @@ pub enum AudioFormat {
     ITS,
     /// Scream Tracker 3 Instrument, only supports 64KiB samples
     S3I,
+    /// Fast Tracker 2 Instrument
+    XI,
     /// Raw PCM
     /// This will lose information about the sample.
     RAW,
 }
 
 impl AudioFormat {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::WAV,
         Self::IFF,
         Self::AIFF,
         Self::ITS,
         Self::S3I,
+        Self::XI,
         Self::RAW,
     ];
     /// Returns an AudioTrait object.
@@ -59,6 +63,7 @@ impl AudioFormat {
             Self::IFF => Box::new(fmt_iff::Iff),
             Self::ITS => Box::new(fmt_its::Its),
             Self::S3I => Box::new(fmt_s3i::S3i),
+            Self::XI => Box::new(fmt_xi::Xi),
             Self::RAW => Box::new(fmt_raw::Raw),
         }
     }
@@ -82,6 +87,7 @@ impl std::fmt::Display for AudioFormat {
                 Self::AIFF => "AIFF",
                 Self::ITS => "ITS",
                 Self::S3I => "S3I",
+                Self::XI => "XI",
             }
         )
     }
