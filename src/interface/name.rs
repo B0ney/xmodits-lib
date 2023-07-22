@@ -132,7 +132,7 @@ impl SampleNamer {
             };
 
             let prefix: Cow<str> = match self.prefix_source {
-                true => match source_name(ctx.source_path) {
+                true => match source_name(ctx.source_path, true) { // todo
                     Some(prefix) => format!("{prefix} - ").into(),
                     None => "".into(),
                 },
@@ -149,15 +149,15 @@ impl SampleNamer {
     }
 }
 
-pub fn source_name(path: Option<&Path>) -> Option<Cow<str>> {
-    let path = path?;
-    let str: Cow<str> = path
-        .file_name()?
-        .to_str()?
-        .split_terminator('.')
-        .next()?
-        .into();
-    str.into()
+pub fn source_name(path: Option<&Path>, with_file_extension: bool) -> Option<Cow<str>> {
+    let filename = path?.file_name()?.to_str()?;
+
+    let prefix: Cow<str> = match with_file_extension {
+        true => filename.replace('.', "_").into(),
+        false => filename.split_terminator('.').next()?.into(),
+    };
+
+    prefix.into()
 }
 
 /// Calculate the number of digits for a given ``usize``
