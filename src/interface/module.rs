@@ -6,7 +6,6 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::interface::{sample::Sample, Error};
-use crate::parser::io::ReadSeek;
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
@@ -39,9 +38,10 @@ pub trait Module: Send + Sync {
 
     fn load_path(path: &Path) -> Result<Box<dyn Module>, Error>
     where
-        Self: Sized {
-            Self::load(std::fs::read(path)?)
-        }
+        Self: Sized,
+    {
+        Self::load(std::fs::read(path)?)
+    }
 
     /// Obtain readable pcm data.
     ///

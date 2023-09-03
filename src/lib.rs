@@ -14,12 +14,15 @@ pub mod interface;
 pub(crate) mod log;
 pub mod parser;
 
-pub use crate::fmt::loader::{identify_module, Format};
-pub use crate::interface::audio::AudioTrait;
+pub use crate::fmt::loader::{identify_module, load_module, Format};
 pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
+pub use interface::{Error, Module, Sample};
 
-pub mod traits {
-    pub use crate::interface::name::SampleNamerTrait;
-    pub use crate::interface::Module;
-    pub use crate::parser::io::{ByteReader, ReadSeek};
+pub use interface::ripper::Ripper;
+pub use crate::interface::audio::AudioTrait;
+
+pub mod sample_naming {
+    pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
 }
+
+pub use common::{SUPPORTED_EXTENSIONS, extract as rip_module};

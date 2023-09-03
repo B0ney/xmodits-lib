@@ -5,8 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::parser::io::{io_error, read_exact_const};
-use crate::traits::ReadSeek;
+use crate::parser::io::{io_error, read_exact_const, ReadSeek};
 use std::{borrow::Cow, io};
 
 const FORBIDDEN_CHARS: &[char] = &[
@@ -140,7 +139,7 @@ pub fn to_ascii_array<const T: usize>(str: impl AsRef<str>) -> [u8; T] {
 
     for byte in buf.iter_mut().take(length) {
         let Some(char) = ascii_bytes_iter.next() else {
-            break
+            break;
         };
         *byte = char;
     }
