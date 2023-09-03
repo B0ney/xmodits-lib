@@ -28,14 +28,13 @@ pub trait Module: Send + Sync {
     where
         Self: Sized;
 
-    /// Load tracker module from a reader
-    /// The implementation should keep hold of the reader object,
-    /// but it is possible to load everything into a Vec<u8>
+    /// Load tracker module from raw bytes
     /// This function should not panic.
     fn load(data: Vec<u8>) -> Result<Box<dyn Module>, Error>
     where
         Self: Sized;
 
+    /// Load tracker module from a path
     fn load_path(path: &Path) -> Result<Box<dyn Module>, Error>
     where
         Self: Sized,

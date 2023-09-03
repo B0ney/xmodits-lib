@@ -68,8 +68,7 @@ impl Module for MOD {
 
     fn load(data: Vec<u8>) -> Result<Box<dyn Module>, Error> {
         info!("Loading Amiga ProTracker Module");
-        let mut data = Cursor::new(data);
-        let mut data = check_iff(&mut data)?;
+        let mut data = check_iff(&mut Cursor::new(data))?;
         Ok(Box::new(parse_(&mut data)?))
     }
 
@@ -234,17 +233,15 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
     Ok(samples)
 }
 
-fn check_iff<R>(data: &mut R) -> Result<Container<&mut R>, Error>
-where
-    R: ReadSeek,
+fn check_iff(data: &mut Cursor<Vec<u8>>) -> Result<Cursor<Vec<u8>>, Error>
 {
-    let size = data.len();
+    // let size = data.len();
     if is_magic_non_consume(data, b"FORM")? {
         return Err(Error::unsupported("IFF MOD files are not yet supported"));
         // todo!("protracker 3.6")
     };
 
-    Ok(Container::new(data, size))
+    Ok(std::mem::take(data))
 }
 
 fn check_xpk(data: &mut impl ReadSeek) -> Result<(), Error> {

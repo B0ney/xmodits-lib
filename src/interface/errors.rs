@@ -108,7 +108,9 @@ impl ExtractionError {
 
 #[derive(Debug)]
 pub enum FailedExtraction {
+    /// Not all of the samples could be extracted
     Partial(Vec<ExtractionError>),
+    /// None of the samples could be extracted
     Total(Vec<ExtractionError>),
 }
 

@@ -25,4 +25,4 @@ pub mod sample_naming {
     pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
 }
 
-pub use common::{SUPPORTED_EXTENSIONS, extract as rip_module};
+pub use common::{SUPPORTED_EXTENSIONS, extract};
