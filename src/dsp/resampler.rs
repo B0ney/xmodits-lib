@@ -1,6 +1,7 @@
+use dasp::{interpolate::Interpolator, Signal};
 use rubato::Resampler;
 
-use crate::dsp::sample;
+use crate::dsp::sample::{self, FramesIter};
 use crate::interface::sample::Depth;
 
 use super::{RawSample, SampleBuffer};
@@ -10,21 +11,37 @@ pub fn resample(sample: &mut SampleBuffer, target_rate: u32) {
         return;
     }
 
-    let mut resampler = rubato::SincFixedIn::<f32>::new(
-        target_rate as f64 / sample.rate as f64,
-        2.0,
-        rubato::InterpolationParameters {
-            sinc_len: 256,
-            f_cutoff: 0.95,
-            interpolation: rubato::InterpolationType::Linear,
-            oversampling_factor: 256,
-            window: rubato::WindowFunction::BlackmanHarris2,
-        },
+    // let mut resampler = rubato::SincFixedIn::<f32>::new(
+    //     target_rate as f64 / sample.rate as f64,
+    //     2.0,
+    //     rubato::InterpolationParameters {
+    //         sinc_len: 256,
+    //         f_cutoff: 0.95,
+    //         interpolation: rubato::InterpolationType::Linear,
+    //         oversampling_factor: 256,
+    //         window: rubato::WindowFunction::BlackmanHarris2,
+    //     },
+    //     sample.duration(),
+    //     sample.channels(),
+    // )
+    // .unwrap();
+
+    let mut resampler = rubato::FftFixedIn::<f32>::new(
+        dbg!(sample.rate as usize),
+        dbg!(target_rate as usize),
         sample.duration(),
+        2,
         sample.channels(),
     )
     .unwrap();
+    // use dasp::signal::interpolate::{Converter};
+    // use dasp::interpolate::linear;
+    // use dasp::{signal, Signal};
 
+    // // Converter::from_hz_to_hz(f32, , sample.rate, target_rate);
+    // let linear: linear::Linear<f32> = linear::Linear::new(0.0_f32, 0.0);
+    // let new_signal = signal::from_iter(FramesIter::new(&sample));
+    
     let new_buffer = resampler.process(&sample.buf, None).unwrap();
 
     sample.buf = new_buffer;
@@ -44,6 +61,8 @@ where
 
     // TODO: Is this too slow?
     resample(&mut sample_buffer, target_rate);
+
+    assert!(sample_buffer.duration() != 0, "Resampling should not yield empty frames. This is a bug");
 
     match interleaved {
         true => convert_interleaved(depth, &sample_buffer),
@@ -89,20 +108,20 @@ mod test {
         }
     }
 
-    #[test]
-    fn test_s() {
-        let mut file = std::fs::File::open("./modules/delamour_edit.it").unwrap();
-        let module = crate::fmt::loader::load_module(&mut file).unwrap();
-        let smp_1 = &module.samples()[1];
-        let pcm = module.pcm(smp_1).unwrap();
-        let mut sample: SampleBuffer = RawSample::new(smp_1, pcm).into();
+    // #[test]
+    // fn test_s() {
+    //     let mut file = std::fs::File::open("./modules/delamour_edit.it").unwrap();
+    //     let module = crate::fmt::loader::load_module(&mut file).unwrap();
+    //     let smp_1 = &module.samples()[1];
+    //     let pcm = module.pcm(smp_1).unwrap();
+    //     let mut sample: SampleBuffer = RawSample::new(smp_1, pcm).into();
 
-        dbg!(sample.duration());
-        dbg!(sample.channels());
+    //     dbg!(sample.duration());
+    //     dbg!(sample.channels());
 
-        dump_to_wav(&sample, "original.wav");
-        resample(&mut sample, 44100);
-        dbg!(sample.duration());
-        dump_to_wav(&sample, "original_upscaled.wav");
-    }
+    //     dump_to_wav(&sample, "original.wav");
+    //     resample(&mut sample, 44100);
+    //     dbg!(sample.duration());
+    //     dump_to_wav(&sample, "original_upscaled.wav");
+    // }
 }
