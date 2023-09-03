@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::{Error, parser::io::io_error};
+use crate::{parser::io::io_error, Error};
 
 pub fn does_not_exist(path: &Path) -> Error {
     Error::Io(io_error(&format!(

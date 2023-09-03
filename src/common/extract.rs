@@ -46,7 +46,7 @@ pub fn create_folder_name(path: impl AsRef<Path>) -> Option<PathBuf> {
         .as_ref()
         .file_name()?
         .to_str()
-        .and_then(|f| Some(f.replace('.', "_")))?;
+        .map(|f| f.replace('.', "_"))?;
 
     Some(PathBuf::new().join(dir_name))
 }

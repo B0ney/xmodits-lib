@@ -78,7 +78,7 @@ impl Ripper {
 
         let extract_samples = |index: usize, smp: &Sample| -> Result<(), Error> {
             let sample_path = directory.join((self.namer_func)(smp, &context, index));
-        
+
             // Only create the file AFTER we have obtained the pcm to prevent artifacts.
             let pcm = module.pcm(smp)?;
 

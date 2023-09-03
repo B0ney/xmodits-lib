@@ -18,11 +18,11 @@ pub use crate::fmt::loader::{identify_module, load_module, Format};
 pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
 pub use interface::{Error, Module, Sample};
 
-pub use interface::ripper::Ripper;
 pub use crate::interface::audio::AudioTrait;
+pub use interface::ripper::Ripper;
 
 pub mod sample_naming {
     pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
 }
 
-pub use common::{SUPPORTED_EXTENSIONS, extract};
+pub use common::{extract, SUPPORTED_EXTENSIONS};

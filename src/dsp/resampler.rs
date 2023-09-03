@@ -41,7 +41,7 @@ pub fn resample(sample: &mut SampleBuffer, target_rate: u32) {
     // // Converter::from_hz_to_hz(f32, , sample.rate, target_rate);
     // let linear: linear::Linear<f32> = linear::Linear::new(0.0_f32, 0.0);
     // let new_signal = signal::from_iter(FramesIter::new(&sample));
-    
+
     let new_buffer = resampler.process(&sample.buf, None).unwrap();
 
     sample.buf = new_buffer;
@@ -62,7 +62,10 @@ where
     // TODO: Is this too slow?
     resample(&mut sample_buffer, target_rate);
 
-    assert!(sample_buffer.duration() != 0, "Resampling should not yield empty frames. This is a bug");
+    assert!(
+        sample_buffer.duration() != 0,
+        "Resampling should not yield empty frames. This is a bug"
+    );
 
     match interleaved {
         true => convert_interleaved(depth, &sample_buffer),
@@ -72,19 +75,19 @@ where
 
 fn convert_planar(depth: Depth, sample_buffer: &SampleBuffer) -> Vec<u8> {
     match depth {
-        Depth::I8 => sample::convert_planar::<i8>(&sample_buffer),
-        Depth::U8 => sample::convert_planar::<u8>(&sample_buffer),
-        Depth::I16 => sample::convert_planar::<i16>(&sample_buffer),
-        Depth::U16 => sample::convert_planar::<u16>(&sample_buffer),
+        Depth::I8 => sample::convert_planar::<i8>(sample_buffer),
+        Depth::U8 => sample::convert_planar::<u8>(sample_buffer),
+        Depth::I16 => sample::convert_planar::<i16>(sample_buffer),
+        Depth::U16 => sample::convert_planar::<u16>(sample_buffer),
     }
 }
 
 fn convert_interleaved(depth: Depth, sample_buffer: &SampleBuffer) -> Vec<u8> {
     match depth {
-        Depth::I8 => sample::convert_interleaved::<i8>(&sample_buffer),
-        Depth::U8 => sample::convert_interleaved::<u8>(&sample_buffer),
-        Depth::I16 => sample::convert_interleaved::<i16>(&sample_buffer),
-        Depth::U16 => sample::convert_interleaved::<u16>(&sample_buffer),
+        Depth::I8 => sample::convert_interleaved::<i8>(sample_buffer),
+        Depth::U8 => sample::convert_interleaved::<u8>(sample_buffer),
+        Depth::I16 => sample::convert_interleaved::<i16>(sample_buffer),
+        Depth::U16 => sample::convert_interleaved::<u16>(sample_buffer),
     }
 }
 

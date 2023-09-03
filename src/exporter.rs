@@ -104,7 +104,11 @@ impl std::str::FromStr for AudioFormat {
             "ITS" | "its" => Self::ITS,
             "S3I" | "s3i" => Self::S3I,
             "RAW" | "raw" => Self::RAW,
-            extension => return Err(format!("unknown format \"{extension}\", make sure there aren't any typos"))
+            extension => {
+                return Err(format!(
+                    "unknown format \"{extension}\", make sure there aren't any typos"
+                ))
+            }
         };
         Ok(result)
     }

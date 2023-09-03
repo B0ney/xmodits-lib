@@ -117,8 +117,7 @@ pub enum FailedExtraction {
 impl FailedExtraction {
     pub fn inner(&self) -> &[ExtractionError] {
         match self {
-            Self::Partial(errors) | 
-            Self::Total(errors) => errors,
+            Self::Partial(errors) | Self::Total(errors) => errors,
         }
     }
 }

@@ -27,7 +27,7 @@ impl AudioTrait for S3i {
 
     /// Note: scream tracker 3 only supports 64kb samples
     /// Schismtracker treats s3i differently than openmpt
-    /// 
+    ///
     /// TODO:
     /// * Is the sample length in frames or bytes?
     /// * Are the sample loop points in frames or bytes?

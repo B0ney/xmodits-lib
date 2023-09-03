@@ -1,21 +1,24 @@
-use crate::interface::{
-    sample::{Depth, Loop, LoopType},
-    Sample,
-};
+use crate::interface::sample::{Depth, Loop, LoopType, Sample};
+
 use bytemuck::{cast_slice, Pod};
 use dasp::sample::{FromSample, Sample as SampleConverter};
 
+use super::pcm::align_u16;
+
 pub struct RawSample<'a> {
     pub smp: &'a Sample,
-    pub pcm: Vec<u8>, // needs to be an owned vec to avoid alignment issues when casting
+    pcm: Vec<u8>, // needs to be an owned vec to avoid alignment issues when casting
 }
 
 impl<'a> RawSample<'a> {
     pub fn new(smp: &'a Sample, pcm: impl Into<Vec<u8>>) -> Self {
-        Self {
-            smp,
-            pcm: pcm.into(),
+        let mut pcm = pcm.into();
+
+        if !smp.is_8_bit() {
+            align_u16(&mut pcm);
         }
+
+        Self { smp, pcm }
     }
 }
 
@@ -24,16 +27,13 @@ where
     V: Into<Vec<u8>>,
 {
     fn from((smp, pcm): (&'a Sample, V)) -> Self {
-        Self {
-            smp,
-            pcm: pcm.into(),
-        }
+        Self::new(smp, pcm)
     }
 }
 
-impl Into<SampleBuffer> for RawSample<'_> {
-    fn into(self) -> SampleBuffer {
-        convert_raw_sample(&self)
+impl From<RawSample<'_>> for SampleBuffer {
+    fn from(val: RawSample<'_>) -> Self {
+        convert_raw_sample(&val)
     }
 }
 
@@ -96,10 +96,10 @@ fn convert_raw_sample(raw_smp: &RawSample) -> SampleBuffer {
     let rate = raw_smp.smp.rate;
 
     let buf = match raw_smp.smp.depth {
-        Depth::I8 => convert_buffer::<i8>(&pcm, channels),
-        Depth::U8 => convert_buffer::<u8>(&pcm, channels),
-        Depth::I16 => convert_buffer::<i16>(align(&pcm), channels),
-        Depth::U16 => convert_buffer::<u16>(align(&pcm), channels),
+        Depth::I8 => convert_buffer::<i8>(pcm, channels),
+        Depth::U8 => convert_buffer::<u8>(pcm, channels),
+        Depth::I16 => convert_buffer::<i16>(align(pcm), channels),
+        Depth::U16 => convert_buffer::<u16>(align(pcm), channels),
     };
 
     SampleBuffer {
@@ -147,6 +147,7 @@ where
         .collect()
 }
 
+#[inline]
 pub fn convert_planar<S>(sample_buffer: &SampleBuffer) -> Vec<u8>
 where
     S: FromSample<f32> + Pod,
@@ -155,6 +156,11 @@ where
         sample_buffer.duration() * sample_buffer.channels() * std::mem::size_of::<S>();
 
     let mut buffer: Vec<u8> = Vec::with_capacity(buffer_size);
+
+    // // sanity check
+    // if std::mem::size_of::<S>() % 2 == 0 {
+    //     align_u16(&mut buffer);
+    // }
 
     for channel in &sample_buffer.buf {
         for sample in channel {

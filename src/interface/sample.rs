@@ -338,7 +338,6 @@ pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) -> Resul
     }
 }
 
-
 // #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 // pub enum PcmType {
 //     /// Samples are stored as PCM values

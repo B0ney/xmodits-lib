@@ -29,7 +29,7 @@ pub enum Format {
 }
 
 /// load a module
-pub fn load_module(data: Vec<u8>)-> Result<Box<dyn Module>, Error> {
+pub fn load_module(data: Vec<u8>) -> Result<Box<dyn Module>, Error> {
     let module = match identify_module(&mut Cursor::new(&data))? {
         Format::IT => IT::load(data)?,
         Format::XM => XM::load(data)?,

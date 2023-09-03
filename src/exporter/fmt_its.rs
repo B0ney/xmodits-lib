@@ -9,8 +9,8 @@ use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
 use crate::interface::sample::LoopType;
-use crate::parser::string::to_ascii_array;
 use crate::interface::{Error, Sample};
+use crate::parser::string::to_ascii_array;
 
 const FLAG_BITS_16: u8 = 1 << 1;
 const FLAG_STEREO: u8 = 1 << 2;
@@ -34,7 +34,7 @@ impl AudioTrait for Its {
     fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
         const HEADER: [u8; 4] = *b"IMPS";
         const SAMPLE_PTR: u32 = 0x50;
-        const SAMPLE_FLAG: u8 = 0b_0000_000_1;
+        const SAMPLE_FLAG: u8 = 0b_0000_0001;
         const CVT: u8 = 0;
         const ZERO_U32: [u8; 4] = 0_u32.to_le_bytes();
         const ZERO_U8: [u8; 1] = 0_u8.to_le_bytes();
@@ -51,7 +51,7 @@ impl AudioTrait for Its {
             | match smp.looping.kind() {
                 LoopType::Backward => FLAG_SUSTAIN,
                 LoopType::PingPong => FLAG_PINGPONG,
-                LoopType::Forward | _ => 0,
+                _ => 0,
             };
 
         let cvt = CVT | (smp.depth.is_signed() as u8);

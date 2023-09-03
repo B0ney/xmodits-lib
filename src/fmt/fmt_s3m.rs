@@ -55,7 +55,7 @@ impl Module for S3M {
         &self.samples
     }
 
-    fn load(data: Vec<u8>)-> Result<Box<dyn Module>, Error> {
+    fn load(data: Vec<u8>) -> Result<Box<dyn Module>, Error> {
         info!("Loading Scream Tracker 3 Module");
         Ok(Box::new(parse_(&mut Cursor::new(data))?))
     }

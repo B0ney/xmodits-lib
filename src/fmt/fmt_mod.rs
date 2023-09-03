@@ -146,8 +146,8 @@ impl MODInfo {
                 m if m[..3] == *b"FLT" && (b'4'..=b'9').contains(&m[3]) => Some(m[3] - b'0'),
                 m if m[..3] == *b"TDZ" && (b'4'..=b'9').contains(&m[3]) => Some(m[3] - b'0'),
                 m if m[1..] == *b"CHN" && (b'2'..=b'9').contains(&m[0]) => Some(m[0] - b'0'),
-                m if (m[0] == b'1' && m[2..] == *b"CH") && (b'0'..=b'9').contains(&m[1]) => Some(m[1] - b'0' + 10),
-                m if (m[0] == b'2' && m[2..] == *b"CH") && (b'0'..=b'9').contains(&m[1]) => Some(m[1] - b'0' + 20),
+                m if (m[0] == b'1' && m[2..] == *b"CH") && m[1].is_ascii_digit() => Some(m[1] - b'0' + 10),
+                m if (m[0] == b'2' && m[2..] == *b"CH") && m[1].is_ascii_digit() => Some(m[1] - b'0' + 20),
                 m if (m[0] == b'3' && m[2..] == *b"CH") && (b'0'..=b'2').contains(&m[1]) => Some(m[1] - b'0' + 30),
                 _ => None,
             }
@@ -233,8 +233,7 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
     Ok(samples)
 }
 
-fn check_iff(data: &mut Cursor<Vec<u8>>) -> Result<Cursor<Vec<u8>>, Error>
-{
+fn check_iff(data: &mut Cursor<Vec<u8>>) -> Result<Cursor<Vec<u8>>, Error> {
     // let size = data.len();
     if is_magic_non_consume(data, b"FORM")? {
         return Err(Error::unsupported("IFF MOD files are not yet supported"));

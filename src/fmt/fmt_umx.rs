@@ -12,7 +12,7 @@ use crate::info;
 use crate::interface::{Error, Module};
 use crate::parser::{
     bytes::magic_header,
-    io::{is_magic, ByteReader, Container, ReadSeek},
+    io::{is_magic, ByteReader, ReadSeek},
     string::read_string,
 };
 
@@ -101,7 +101,7 @@ pub fn parse_(file: &mut Cursor<Vec<u8>>) -> Result<Box<dyn Module>, Error> {
 
     let _ = read_compact_index(file)?; // obj size field
     let inner_size = read_compact_index(file)? as u64;
-  
+
     let start_pos = file.position() as usize;
 
     let file: Vec<u8> = std::mem::take(file)
