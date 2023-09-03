@@ -17,6 +17,7 @@ use crate::parser::{
 };
 use crate::{info, warn};
 use std::borrow::Cow;
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 const NAME: &str = "Impulse Tracker";
@@ -83,9 +84,9 @@ impl Module for IT {
         &self.samples
     }
 
-    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+    fn load(data: Vec<u8>) -> Result<Box<dyn Module>, Error> {
         info!("Loading Impulse Tracker Module");
-        Ok(Box::new(parse_(data)?))
+        Ok(Box::new(parse_(&mut Cursor::new(data))?))
     }
 
     fn matches_format(buf: &[u8]) -> bool {
@@ -115,7 +116,7 @@ fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Erro
     }
 }
 
-pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
+pub fn parse_(file: &mut Cursor<Vec<u8>>) -> Result<IT, Error> {
     check_zirconia(file)?;
 
     if !is_magic(file, &MAGIC_IMPM)? {
@@ -212,7 +213,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         // let channel = Channel::new(false, false);
         let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
 
-        if !is_sample_valid(pointer, length, file.size(), compressed) {
+        if !is_sample_valid(pointer, length, file.len(), compressed) {
             info!("Skipping invalid sample at index: {}...", index_raw + 1);
             continue;
         }

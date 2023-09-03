@@ -14,6 +14,7 @@ use crate::parser::{
     string::read_str,
 };
 use std::borrow::Cow;
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 /*
@@ -65,9 +66,10 @@ impl Module for MOD {
         &self.samples
     }
 
-    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+    fn load(data: Vec<u8>) -> Result<Box<dyn Module>, Error> {
         info!("Loading Amiga ProTracker Module");
-        let mut data = check_iff(data)?;
+        let mut data = Cursor::new(data);
+        let mut data = check_iff(&mut data)?;
         Ok(Box::new(parse_(&mut data)?))
     }
 
@@ -109,7 +111,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
         file.skip_bytes(smp.length as i64)?;
     }
 
-    remove_invalid_samples(&mut samples, file.size())?;
+    remove_invalid_samples(&mut samples, file.len())?;
 
     let inner = file.load_to_memory()?.into();
 
@@ -236,7 +238,7 @@ fn check_iff<R>(data: &mut R) -> Result<Container<&mut R>, Error>
 where
     R: ReadSeek,
 {
-    let size = data.size();
+    let size = data.len();
     if is_magic_non_consume(data, b"FORM")? {
         return Err(Error::unsupported("IFF MOD files are not yet supported"));
         // todo!("protracker 3.6")

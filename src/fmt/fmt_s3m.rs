@@ -16,6 +16,7 @@ use crate::parser::{
     string::read_str,
 };
 use std::borrow::Cow;
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 const NAME: &str = "Scream Tracker";
@@ -54,9 +55,9 @@ impl Module for S3M {
         &self.samples
     }
 
-    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+    fn load(data: Vec<u8>)-> Result<Box<dyn Module>, Error> {
         info!("Loading Scream Tracker 3 Module");
-        Ok(Box::new(parse_(data)?))
+        Ok(Box::new(parse_(&mut Cursor::new(data))?))
     }
 
     fn matches_format(buf: &[u8]) -> bool {
@@ -155,7 +156,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         let channel = Channel::new(flags.contains(FLAG_STEREO), false);
         let length = length * channel.channels() as u32 * depth.bytes() as u32;
 
-        if !is_sample_valid(pointer, length, file.size(), false) {
+        if !is_sample_valid(pointer, length, file.len(), false) {
             info!("Skipping invalid sample at index: {}...", index_raw + 1);
             continue;
         }

@@ -33,9 +33,15 @@ pub trait Module: Send + Sync {
     /// The implementation should keep hold of the reader object,
     /// but it is possible to load everything into a Vec<u8>
     /// This function should not panic.
-    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error>
+    fn load(data: Vec<u8>) -> Result<Box<dyn Module>, Error>
     where
         Self: Sized;
+
+    fn load_path(path: &Path) -> Result<Box<dyn Module>, Error>
+    where
+        Self: Sized {
+            Self::load(std::fs::read(path)?)
+        }
 
     /// Obtain readable pcm data.
     ///

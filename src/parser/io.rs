@@ -11,7 +11,7 @@ use std::io::{self, BufReader, Cursor, Read, Seek, SeekFrom};
 ///
 /// TODO: make size ``u64`` instead of ``Option<u64>``?
 pub trait ReadSeek: Read + Seek {
-    fn size(&self) -> Option<u64>;
+    fn len(&self) -> Option<u64>;
 }
 
 /// An abstract trait used for parsing.
@@ -97,13 +97,13 @@ impl<T: ReadSeek> ByteReader for T {
     }
 
     fn size(&self) -> Option<u64> {
-        T::size(self)
+        T::len(self)
     }
 
     fn load_to_memory(&mut self) -> io::Result<Vec<u8>> {
         non_consume(self, |f| {
             f.rewind()?;
-            let size = f.size().unwrap_or_default();
+            let size = f.len().unwrap_or_default();
             let mut buf = Vec::with_capacity(size as usize);
             f.read_to_end(&mut buf)?;
             Ok(buf)
@@ -158,13 +158,13 @@ impl<T> ReadSeek for Cursor<T>
 where
     T: AsRef<[u8]>,
 {
-    fn size(&self) -> Option<u64> {
+    fn len(&self) -> Option<u64> {
         Some(self.get_ref().as_ref().len() as u64)
     }
 }
 
 impl ReadSeek for std::fs::File {
-    fn size(&self) -> Option<u64> {
+    fn len(&self) -> Option<u64> {
         match self.metadata() {
             Ok(x) => Some(x.len()),
             _ => None,
@@ -173,13 +173,13 @@ impl ReadSeek for std::fs::File {
 }
 
 impl<T: ReadSeek> ReadSeek for BufReader<T> {
-    fn size(&self) -> Option<u64> {
-        self.get_ref().size()
+    fn len(&self) -> Option<u64> {
+        self.get_ref().len()
     }
 }
 
 impl<R: io::Read + Seek> ReadSeek for Container<R> {
-    fn size(&self) -> Option<u64> {
+    fn len(&self) -> Option<u64> {
         self.size
     }
 }

@@ -5,6 +5,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use std::io::Cursor;
+
 use crate::fmt::{formats::*, loader::identify_module, Format};
 use crate::info;
 use crate::interface::{Error, Module};
@@ -24,16 +26,16 @@ struct Private;
 pub struct UMX(Private);
 
 impl UMX {
-    pub fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+    pub fn load(data: Vec<u8>) -> Result<Box<dyn Module>, Error> {
         info!("Loading Unreal package");
-        parse_(data)
+        parse_(&mut Cursor::new(data))
     }
     pub fn matches_format(buf: &[u8]) -> bool {
         magic_header(&MAGIC_UPKG, buf)
     }
 }
 
-pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+pub fn parse_(file: &mut Cursor<Vec<u8>>) -> Result<Box<dyn Module>, Error> {
     if !is_magic(file, &MAGIC_UPKG)? {
         return Err(Error::invalid("Not a valid Unreal package"));
     }
@@ -98,17 +100,17 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     }
 
     let _ = read_compact_index(file)?; // obj size field
-    let _inner_size = read_compact_index(file)? as u64;
+    let inner_size = read_compact_index(file)? as u64;
+  
+    let start_pos = file.position() as usize;
 
-    let size = file.size();
-
-    // store the reader into a Container struct
-    // so that seeking is relative to this current offset
-    let mut file = Container::new(file, size);
-    let file = &mut file;
+    let file: Vec<u8> = std::mem::take(file)
+        .into_inner()
+        .drain(start_pos..(start_pos + inner_size as usize))
+        .collect(); // remove umx header + tables
 
     // done to prevent overflow compile error
-    let module: Box<dyn Module> = match identify_module(file)? {
+    let module: Box<dyn Module> = match identify_module(&mut Cursor::new(&file))? {
         Format::IT => IT::load(file)?,
         Format::XM => XM::load(file)?,
         Format::S3M => S3M::load(file)?,
@@ -201,13 +203,11 @@ mod tests {
         }
     }
     #[test]
-    fn table() {
-        let mut a = BufReader::new(File::open("./modules/Mayhem.umx").unwrap());
-        match parse_(&mut a) {
-            Ok(_) => (),
-            Err(e) => {
-                dbg!(e);
-            }
-        };
+    fn drain() {
+        let mut a = vec![1, 2, 3, 4];
+        let mut a: Vec<u8> = a.drain(1..(1 + 2)).collect();
+
+        // let _ = a.drain(..1);
+        dbg!(a);
     }
 }

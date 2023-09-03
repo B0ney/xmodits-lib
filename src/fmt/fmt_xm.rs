@@ -18,6 +18,7 @@ use crate::parser::{
     string::read_str,
 };
 use std::borrow::Cow;
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 const NAME: &str = "Extended Module";
@@ -55,9 +56,9 @@ impl Module for XM {
         &self.samples
     }
 
-    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+    fn load(data: Vec<u8>) -> Result<Box<dyn Module>, Error> {
         info!("Loading Extended Module");
-        Ok(Box::new(parse_(data)?))
+        Ok(Box::new(parse_(&mut Cursor::new(data))?))
     }
 
     fn matches_format(buf: &[u8]) -> bool {
@@ -140,7 +141,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
     file.set_seek_pos(60 + header_size as u64)?;
 
     for _ in 0..patnum {
-        let header_size = file.read_u32_le()?;
+        let _ = file.read_u32_le()?;
         file.skip_bytes(3)?; // pattern length, packing type, number of rows in pattern
 
         let data_size = file.read_u16_le()? as i64;
@@ -151,7 +152,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {
     }
 
     let mut samples = build(file, insnum)?;
-    remove_invalid_samples(&mut samples, file.size())?;
+    remove_invalid_samples(&mut samples, file.len())?;
 
     let inner = file.load_to_memory()?.into();
 
@@ -170,7 +171,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
     let mut samples: Vec<Sample> = Vec::new();
     let mut staging_samples: Vec<Sample> = Vec::new();
     let mut total_samples: u16 = 0;
-    let file_size = file.size().expect("size of reader");
+    let file_size = file.len().expect("size of reader");
 
     'ins: for _ in 0..ins_num {
         let offset = file.seek_position()?;

@@ -1,7 +1,7 @@
 [package]
 name = "xmodits-lib"
 authors = ["B0ney <https://github.com/B0ney>"]
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
 description = "XMODITS core library"
 repository = "https://github.com/B0ney/xmodits-lib"
@@ -15,8 +15,8 @@ bytemuck = "1.13.0"
 extended = "0.1.0"
 ascii = "1.1.0"
 
-dasp = { version = "0.11.0", features = ["signal"] }
-rubato = "0.12.0"
+dasp = { version = "0.11.0", features = ["signal", "interpolate","interpolate-linear"] }
+rubato = "0.14.1"
 
 log = { version = "0.4.17", optional = true }
 serde = { version = "1.0.152", features = ["derive"] , optional = true }

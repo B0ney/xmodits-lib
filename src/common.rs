@@ -16,9 +16,7 @@ use std::path::{Path, PathBuf};
 const MAX_SIZE_BYTES: u64 = 48 * 1024 * 1024;
 const BUFFER_SIZE: usize = 16 * 1024; // 16KiB Buffering
 
-pub const SUPPORTED_EXTENSIONS: &[&str] = &[
-    "it", "xm", "s3m", "mod", "umx", "mptm"
-];
+pub const SUPPORTED_EXTENSIONS: &[&str] = &["it", "xm", "s3m", "mod", "umx", "mptm"];
 
 /// Extract a module from a path to a destination
 pub fn extract<A, B>(
@@ -39,8 +37,9 @@ where
         return Err(too_large(MAX_SIZE_BYTES));
     }
 
-    let mut data = BufReader::with_capacity(BUFFER_SIZE, File::open(file)?);
-    let module = load_module(&mut data)?.set_source(file.into());
+    // let mut data = BufReader::with_capacity(BUFFER_SIZE, File::open(file)?);
+    let data = std::fs::read(file)?;
+    let module = load_module(data)?.set_source(file.into());
 
     if !destination.is_dir() {
         return Err(does_not_exist(destination));
@@ -67,8 +66,10 @@ fn get_destination<'a>(
     let destination: PathBuf = destination.join(module_name);
 
     match destination.exists() {
-        true => if !is_dir_empty(&destination)? {
-            return Err(not_empty(&destination));
+        true => {
+            if !is_dir_empty(&destination)? {
+                return Err(not_empty(&destination));
+            }
         }
         false => std::fs::create_dir(&destination)?,
     }
@@ -123,19 +124,20 @@ fn no_filename() -> Error {
 #[cfg(test)]
 #[allow(unused)]
 mod tests {
-    
+
     use std::{
-        fs::File,
+        fs::{File, self},
         io::{BufReader, Cursor},
         sync::Arc,
     };
 
     use crate::{
+        error,
         exporter::AudioFormat,
         fmt::loader::load_module,
         info,
         interface::{name::SampleNamer, ripper::Ripper},
-        trace, warn, error,
+        trace, warn,
     };
 
     use super::{create_folder_name, extract};
@@ -149,39 +151,36 @@ mod tests {
     pub fn test8() {
         env_logger::init();
         let mut ripper = Ripper::default();
-        // ripper.change_format(AudioFormat::IFF.into());
-        // ripper.change_namer(SampleNamer {
-        //     prefix_source: true,
-        //     ..Default::default()
-        // }.into());
-        // let a: Vec<std::path::PathBuf> = std::fs::read_dir("./modules")
-        //     .unwrap()
-        //     .filter_map(|res| res.map(|e| e.path()).ok())
-        //     .filter(|f| f.is_file())
-        //     .collect();
-        // let mut file = std::fs::File::open("./modules/bug/s_dou.it").unwrap();
-        // let module = load_module(&mut file).unwrap();
-        // // info!("dfs");
-        // for i in  module.samples() {
-        //     info!("{:#?}", i);
-        // }
-        // log::info!("s");
+        ripper.change_format(AudioFormat::IFF.into());
+        ripper.change_namer(SampleNamer {
+            prefix_source: false,
+            // self_contained: false,
+            ..Default::default()
+        }.into());
 
-        match extract("./modules/bug/spn_noise.it", "./modules", &ripper, true) {
+        match extract(
+            "./modules/8svx_bug/vn-ddanc.it",
+            "./modules/vn-ddanc_it",
+            &ripper,
+            false,
+        ) {
             Ok(()) => (),
             Err(e) => {
-                dbg!(&e);
+                println!("{:#?}",&e);
                 error!("{:#?}", e)
-            },
+            }
         };
-        // for i in dbg!(a) {
-        //     info!("     {}",&i.display());
-        //     if let Err(e) = extract(i, "./modules", &ripper, true) {
-        //         error!("{}",e);
-        //         // panic!()
-        //     };
-        // }
 
         // // RUST_LOG=xmodits_lib cargo test --package xmodits-lib --lib -- common::tests::test8
+    }
+
+    #[test]
+    fn load() {
+        let mut file = fs::read("./modules/test/Deus Ex/Area51_music.umx").unwrap();
+        let module = load_module(file).unwrap();
+
+        for sample in module.samples() {
+            dbg!(sample);
+        }
     }
 }
