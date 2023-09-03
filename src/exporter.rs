@@ -92,3 +92,20 @@ impl std::fmt::Display for AudioFormat {
         )
     }
 }
+
+impl std::str::FromStr for AudioFormat {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let result = match s {
+            "WAV" | "wav" => Self::WAV,
+            "AIFF" | "aiff" => Self::AIFF,
+            "8SVX" | "8svx" => Self::IFF,
+            "ITS" | "its" => Self::ITS,
+            "S3I" | "s3i" => Self::S3I,
+            "RAW" | "raw" => Self::RAW,
+            extension => return Err(format!("unknown format \"{extension}\", make sure there aren't any typos"))
+        };
+        Ok(result)
+    }
+}

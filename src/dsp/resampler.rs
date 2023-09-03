@@ -27,8 +27,8 @@ pub fn resample(sample: &mut SampleBuffer, target_rate: u32) {
     // .unwrap();
 
     let mut resampler = rubato::FftFixedIn::<f32>::new(
-        dbg!(sample.rate as usize),
-        dbg!(target_rate as usize),
+        sample.rate as usize,
+        target_rate as usize,
         sample.duration(),
         2,
         sample.channels(),
