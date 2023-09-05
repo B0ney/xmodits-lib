@@ -1,3 +1,5 @@
+//! XMODITS Digital Signal Processing module
+//! 
 pub mod deltadecode;
 pub mod frames;
 pub mod pcm;

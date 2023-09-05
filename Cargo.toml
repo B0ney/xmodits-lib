@@ -15,7 +15,7 @@ bytemuck = "1.13.0"
 extended = "0.1.0"
 ascii = "1.1.0"
 
-dasp = { version = "0.11.0", features = ["signal", "interpolate","interpolate-linear"] }
+dasp = { version = "0.11.0", features = ["signal", "interpolate", "interpolate-linear"] }
 rubato = "0.14.1"
 
 log = { version = "0.4.17", optional = true }

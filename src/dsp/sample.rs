@@ -3,7 +3,8 @@ use crate::interface::sample::{Depth, Loop, LoopType, Sample};
 use bytemuck::{cast_slice, Pod};
 use dasp::sample::{FromSample, Sample as SampleConverter};
 
-use super::pcm::align_u16;
+use super::{pcm::align_u16, frames::SampleFrame};
+
 
 pub struct RawSample<'a> {
     pub smp: &'a Sample,
@@ -13,6 +14,8 @@ pub struct RawSample<'a> {
 impl<'a> RawSample<'a> {
     pub fn new(smp: &'a Sample, pcm: impl Into<Vec<u8>>) -> Self {
         let mut pcm = pcm.into();
+
+        assert!(!pcm.is_empty(), "raw sample cannot be empty");
 
         if !smp.is_8_bit() {
             align_u16(&mut pcm);
@@ -37,6 +40,7 @@ impl From<RawSample<'_>> for SampleBuffer {
     }
 }
 
+/// Used to make audio manipulation easier.
 #[derive(Default, Clone)]
 pub struct SampleBuffer {
     pub rate: u32,
@@ -95,6 +99,14 @@ fn convert_raw_sample(raw_smp: &RawSample) -> SampleBuffer {
     let channels = raw_smp.smp.channels() as usize;
     let rate = raw_smp.smp.rate;
 
+    #[inline]
+    fn align(pcm: &[u8]) -> &[u8] {
+        match pcm.len() % 2 != 0 {
+            true => &pcm[..pcm.len() - 1],
+            false => pcm,
+        }
+    }
+
     let buf = match raw_smp.smp.depth {
         Depth::I8 => convert_buffer::<i8>(pcm, channels),
         Depth::U8 => convert_buffer::<u8>(pcm, channels),
@@ -108,13 +120,6 @@ fn convert_raw_sample(raw_smp: &RawSample) -> SampleBuffer {
         rate_original: rate,
         loop_data: LoopData::new(raw_smp.smp.looping, raw_smp.smp.length_frames()),
     }
-}
-
-fn align(pcm: &[u8]) -> &[u8] {
-    if pcm.len() % 2 != 0 {
-        return &pcm[..pcm.len() - 1];
-    }
-    pcm
 }
 
 fn convert_buffer<T>(pcm: &[u8], channels: usize) -> Vec<Vec<f32>>
@@ -147,8 +152,11 @@ where
         .collect()
 }
 
+/// Convert [SampleBuffer] back into raw bytes where its channels are placed one after the other:
+/// 
+/// **LLLLRRRR** (planar form)
 #[inline]
-pub fn convert_planar<S>(sample_buffer: &SampleBuffer) -> Vec<u8>
+pub fn convert_to_planar<S>(sample_buffer: &SampleBuffer) -> Vec<u8>
 where
     S: FromSample<f32> + Pod,
 {
@@ -156,11 +164,6 @@ where
         sample_buffer.duration() * sample_buffer.channels() * std::mem::size_of::<S>();
 
     let mut buffer: Vec<u8> = Vec::with_capacity(buffer_size);
-
-    // // sanity check
-    // if std::mem::size_of::<S>() % 2 == 0 {
-    //     align_u16(&mut buffer);
-    // }
 
     for channel in &sample_buffer.buf {
         for sample in channel {
@@ -172,7 +175,14 @@ where
     buffer
 }
 
-pub fn convert_interleaved<S>(sample_buffer: &SampleBuffer) -> Vec<u8>
+/// Convert [SampleBuffer] back into raw bytes, where its channels are intertwined:
+/// 
+/// **LRLRLRLR** (interleaved)
+/// 
+/// Panics
+/// 
+/// Panics if the [SampleBuffer] has uneven channel lengths
+pub fn convert_to_interleaved<S>(sample_buffer: &SampleBuffer) -> Vec<u8>
 where
     S: FromSample<f32> + Pod,
 {
@@ -210,80 +220,8 @@ impl LoopData {
             loop_type: loop_info.kind(),
         }
     }
+
     pub fn is_disabled(&self) -> bool {
         self.loop_type == LoopType::Off
-    }
-}
-
-pub struct FramesIter<'a> {
-    frame: usize,
-    sample_buffer: &'a SampleBuffer,
-}
-
-impl<'a> FramesIter<'a> {
-    pub fn new(sample_buffer: &'a SampleBuffer) -> Self {
-        assert!(
-            !sample_buffer.buf.is_empty(),
-            "sample buffer cannot be empty"
-        );
-
-        Self {
-            frame: 0,
-            sample_buffer,
-        }
-    }
-}
-
-impl Iterator for FramesIter<'_> {
-    type Item = SampleFrame;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let result = self.sample_buffer.frame(self.frame);
-        self.frame += 1;
-        result
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum SampleFrame {
-    Empty,
-    Mono([f32; 1]),
-    Stereo([f32; 2]),
-}
-
-impl SampleFrame {
-    pub fn new() -> Self {
-        Self::Empty
-    }
-
-    pub fn push(&mut self, sample: f32) {
-        match self {
-            SampleFrame::Mono([left]) => *self = Self::Stereo([*left, sample]),
-            SampleFrame::Stereo(_) => (),
-            SampleFrame::Empty => *self = Self::Mono([sample]),
-        }
-    }
-
-    pub fn to_stereo(mut self) -> Self {
-        self = Self::Stereo(self.get_stereo_frame());
-        self
-    }
-
-    pub fn get_stereo_frame(self) -> [f32; 2] {
-        match self {
-            SampleFrame::Empty => [0.0, 0.0],
-            SampleFrame::Mono([left]) => [left, left],
-            SampleFrame::Stereo(frame) => frame,
-        }
-    }
-}
-
-impl AsRef<[f32]> for SampleFrame {
-    fn as_ref(&self) -> &[f32] {
-        match self {
-            SampleFrame::Empty => &[],
-            SampleFrame::Mono(mono) => mono,
-            SampleFrame::Stereo(stereo) => stereo,
-        }
     }
 }

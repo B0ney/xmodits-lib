@@ -1,9 +1,10 @@
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
 use crate::{load_module, Error, Ripper};
 
-use super::error::{does_not_exist, too_large};
-use super::info::{filesize, get_destination};
+use super::error::{does_not_exist, too_large, no_filename, not_empty};
+use super::info::{filesize, is_dir_empty};
 use super::MAX_SIZE_BYTES;
 
 /// Extract a module from a path to a destination
@@ -49,4 +50,31 @@ pub fn create_folder_name(path: impl AsRef<Path>) -> Option<PathBuf> {
         .map(|f| f.replace('.', "_"))?;
 
     Some(PathBuf::new().join(dir_name))
+}
+
+pub fn get_destination<'a>(
+    file: &Path,
+    destination: &'a Path,
+    self_contained: bool,
+) -> Result<Cow<'a, Path>, Error> {
+    if !self_contained {
+        return Ok(destination.into());
+    }
+
+    let Some(module_name) = create_folder_name(file) else {
+        return Err(no_filename());
+    };
+
+    let destination: PathBuf = destination.join(module_name);
+
+    match destination.exists() {
+        true => {
+            if !is_dir_empty(&destination)? {
+                return Err(not_empty(&destination));
+            }
+        }
+        false => std::fs::create_dir(&destination)?,
+    }
+
+    Ok(destination.into())
 }

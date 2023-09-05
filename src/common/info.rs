@@ -50,29 +50,4 @@ pub fn is_dir_empty(path: impl AsRef<Path>) -> Result<bool, Error> {
     Ok(read_dir(path.as_ref())?.next().is_none())
 }
 
-pub fn get_destination<'a>(
-    file: &Path,
-    destination: &'a Path,
-    self_contained: bool,
-) -> Result<Cow<'a, Path>, Error> {
-    if !self_contained {
-        return Ok(destination.into());
-    }
 
-    let Some(module_name) = create_folder_name(file) else {
-        return Err(no_filename());
-    };
-
-    let destination: PathBuf = destination.join(module_name);
-
-    match destination.exists() {
-        true => {
-            if !is_dir_empty(&destination)? {
-                return Err(not_empty(&destination));
-            }
-        }
-        false => std::fs::create_dir(&destination)?,
-    }
-
-    Ok(destination.into())
-}

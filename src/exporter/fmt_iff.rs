@@ -43,17 +43,17 @@ impl AudioTrait for Iff {
         const COMPRESSION: [u8; 1] = [0];
         const PROGRAM: [u8; 8] = *b"XMODITS "; // MUST HAVE AN EVEN LENGTH
 
-        let frequency: u16 = smp.rate as u16;
+        // let frequency: u16 = smp.rate as u16;
         // /// Buggy
-        // let frequency: u16 = match smp.rate {
-        //     rate if rate <= CAPPED_SAMPLE_RATE as u32 => rate as u16,
-        //     _ => {
-        //         // TODO: Resampling can alter the length of the pcm,
-        //         // make sure we don't use the length provided by smp
-        //         pcm = crate::dsp::resample_raw((smp, pcm), CAPPED_SAMPLE_RATE as u32).into();
-        //         CAPPED_SAMPLE_RATE
-        //     }
-        // };
+        let frequency: u16 = match smp.rate {
+            rate if rate <= CAPPED_SAMPLE_RATE as u32 => rate as u16,
+            _ => {
+                // TODO: Resampling can alter the length of the pcm,
+                // make sure we don't use the length provided by smp
+                pcm = crate::dsp::resample_raw((smp, pcm), CAPPED_SAMPLE_RATE as u32).into();
+                CAPPED_SAMPLE_RATE
+            }
+        };
 
         let pcm_len: u32 = pcm.len() as u32;
         let mut body_chunk_size: u32 = pcm_len;
