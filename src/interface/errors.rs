@@ -96,8 +96,8 @@ impl Error {
 
 #[derive(Debug)]
 pub struct ExtractionError {
-    raw_index: usize,
-    reason: Error,
+    pub raw_index: usize,
+    pub reason: Error,
 }
 
 impl ExtractionError {
@@ -115,7 +115,12 @@ pub enum FailedExtraction {
 }
 
 impl FailedExtraction {
-    pub fn inner(&self) -> &[ExtractionError] {
+    pub fn inner_ref(&self) -> &[ExtractionError] {
+        match self {
+            Self::Partial(errors) | Self::Total(errors) => errors,
+        }
+    }
+    pub fn inner(self) -> Vec<ExtractionError> {
         match self {
             Self::Partial(errors) | Self::Total(errors) => errors,
         }
@@ -134,7 +139,7 @@ impl std::fmt::Display for FailedExtraction {
 
         let mut buf = String::new();
 
-        for error in self.inner().iter() {
+        for error in self.inner_ref().iter() {
             let _ = buf.write_fmt(format_args!("internal index: {}\n", error.raw_index));
             let _ = buf.write_fmt(format_args!("reason: {}\n\n", error.reason));
         }
