@@ -28,7 +28,7 @@ impl Info {
             return Err(too_large(MAX_SIZE_BYTES));
         }
 
-        let module = load_module(fs::read(file)?)?;
+        let module = load_module(&mut fs::File::open(file)?)?;
         let total_sample_size: usize = module.samples().iter().map(|m| m.length as usize).sum();
 
         let info = Info {

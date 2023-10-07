@@ -122,8 +122,8 @@ mod test {
 
     #[test]
     fn test_s() {
-        let mut file = std::fs::read("./modules/delamour_edit.it").unwrap();
-        let module = crate::fmt::loader::load_module(file).unwrap();
+        let mut file = std::fs::File::open("./modules/delamour_edit.it").unwrap();
+        let module = crate::fmt::loader::load_module(&mut file).unwrap();
         let smp_1 = &module.samples()[3];
         let pcm = module.pcm(smp_1).unwrap();
         let mut sample: SampleBuffer = RawSample::new(smp_1, pcm).into();

@@ -29,8 +29,8 @@ pub enum Format {
 }
 
 /// load a module
-pub fn load_module(data: Vec<u8>) -> Result<Box<dyn Module>, Error> {
-    let module = match identify_module(&mut Cursor::new(&data))? {
+pub fn load_module(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+    let module = match identify_module(data)? {
         Format::IT => IT::load(data)?,
         Format::XM => XM::load(data)?,
         Format::S3M => S3M::load(data)?,

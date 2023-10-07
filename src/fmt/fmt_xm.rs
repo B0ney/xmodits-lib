@@ -56,9 +56,9 @@ impl Module for XM {
         &self.samples
     }
 
-    fn load(data: Vec<u8>) -> Result<Box<dyn Module>, Error> {
+    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
         info!("Loading Extended Module");
-        Ok(Box::new(parse_(&mut Cursor::new(data))?))
+        Ok(Box::new(parse_(data)?))
     }
 
     fn matches_format(buf: &[u8]) -> bool {

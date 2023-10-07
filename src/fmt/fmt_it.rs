@@ -84,9 +84,9 @@ impl Module for IT {
         &self.samples
     }
 
-    fn load(data: Vec<u8>) -> Result<Box<dyn Module>, Error> {
+    fn load(data: &mut impl ReadSeek ) -> Result<Box<dyn Module>, Error> {
         info!("Loading Impulse Tracker Module");
-        Ok(Box::new(parse_(&mut Cursor::new(data))?))
+        Ok(Box::new(parse_(data)?))
     }
 
     fn matches_format(buf: &[u8]) -> bool {
@@ -116,7 +116,7 @@ fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Erro
     }
 }
 
-pub fn parse_(file: &mut Cursor<Vec<u8>>) -> Result<IT, Error> {
+pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
     check_zirconia(file)?;
 
     if !is_magic(file, &MAGIC_IMPM)? {

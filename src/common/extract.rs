@@ -27,8 +27,8 @@ where
     }
 
     // let mut data = BufReader::with_capacity(BUFFER_SIZE, File::open(file)?);
-    let data = std::fs::read(file)?;
-    let module = load_module(data)?.set_source(file.into());
+    let mut data = std::fs::File::open(file)?;
+    let module = load_module(&mut data)?.set_source(file.into());
 
     if !destination.is_dir() {
         return Err(does_not_exist(destination));
