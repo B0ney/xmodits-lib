@@ -1,4 +1,3 @@
-use dasp::{interpolate::Interpolator, Signal};
 use rubato::Resampler;
 
 // use crate::dsp::sample::{self};
@@ -12,7 +11,6 @@ pub fn resample(sample: &mut SampleBuffer, target_rate: u32) {
         return;
     }
     
-    // BUG: if the resampling ratio is too low, it will yield nothing, would changing the mix_resample_ratio_relative help?
     let mut resampler = rubato::SincFixedOut::<f32>::new(
         target_rate as f64 / sample.rate as f64,
         7.0,
@@ -28,30 +26,7 @@ pub fn resample(sample: &mut SampleBuffer, target_rate: u32) {
     )
     .unwrap();
 
-    // let mut resampler = rubato::FftFixedIn::<f32>::new(
-    //     sample.rate as usize,
-    //     target_rate as usize,
-    //     sample.duration(),
-    //     8,
-    //     sample.channels(),
-    // )
-    // .unwrap();
-    // // use dasp::signal::interpolate::{Converter};
-    // use dasp::interpolate::linear;
-    // use dasp::{signal, Signal};
-
-    // // Converter::from_hz_to_hz(f32, , sample.rate, target_rate);
-    // let linear: linear::Linear<f32> = linear::Linear::new(0.0_f32, 0.0);
-    // let new_signal = signal::from_iter(FramesIter::new(&sample));
-    // let padding = vec![vec![0.0; sample.duration()]; sample.channels()];
-    // let new_buffer = resampler.process(&padding, None).unwrap();
-    // let new_buffer = resampler.process(&padding, None).unwrap();
-
-    // let new_buffer = resampler.process(&sample.buf, None).unwrap();
-    // let new_buffer = resampler.process(&padding, None).unwrap();
-
-
-    let new_buffer = resampler.process(&sample.buf, None).unwrap();
+    let new_buffer = resampler.process_partial(Some(&sample.buf), None).unwrap();
 
     sample.buf = new_buffer;
     sample.rate = target_rate;
