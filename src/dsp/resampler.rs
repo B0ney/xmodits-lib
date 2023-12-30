@@ -13,14 +13,14 @@ pub fn resample(sample: &mut SampleBuffer, target_rate: u32) {
     }
     
     // BUG: if the resampling ratio is too low, it will yield nothing, would changing the mix_resample_ratio_relative help?
-    let mut resampler = rubato::SincFixedIn::<f32>::new(
+    let mut resampler = rubato::SincFixedOut::<f32>::new(
         target_rate as f64 / sample.rate as f64,
         7.0,
         rubato::SincInterpolationParameters {
             sinc_len: 256,
             f_cutoff: 0.95,
             interpolation: rubato::SincInterpolationType::Linear,
-            oversampling_factor: 256,
+            oversampling_factor: 128,
             window: rubato::WindowFunction::BlackmanHarris2,
         },
         sample.duration(),
