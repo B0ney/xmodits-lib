@@ -6,6 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
+use crate::interface::audio_buffer::AudioBuffer;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -17,6 +18,7 @@ use crate::parser::{
 };
 use crate::{info, warn};
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
@@ -53,6 +55,7 @@ pub struct IT {
     title: Box<str>,
     source: Option<Box<Path>>,
     version: u16,
+    it215: HashMap<usize, bool>,
 }
 
 impl IT {
@@ -70,21 +73,32 @@ impl Module for IT {
         NAME
     }
 
-    fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(match smp.compressed {
+    fn pcm(&self, smp: &Sample) -> Result<AudioBuffer, Error> {
+        let buf = match smp.compressed {
             true => {
                 let compressed = self.inner.get_slice_trailing(smp)?;
-                decompress(smp)(compressed, smp.length, self.it215())?.into()
+                decompress(smp)(
+                    compressed,
+                    smp.length,
+                    self.it215
+                        .get(&(smp.index_raw as usize))
+                        .copied()
+                        .unwrap_or_default(),
+                    smp.is_stereo(),
+                )?
+                .into()
             }
             false => self.inner.get_slice(smp)?.into(),
-        })
+        };
+
+        Ok(AudioBuffer::new(smp, buf))
     }
 
     fn samples(&self) -> &[Sample] {
         &self.samples
     }
 
-    fn load(data: &mut impl ReadSeek ) -> Result<Box<dyn Module>, Error> {
+    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
         info!("Loading Impulse Tracker Module");
         Ok(Box::new(parse_(data)?))
     }
@@ -104,7 +118,7 @@ impl Module for IT {
 }
 
 #[inline]
-fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Error> {
+fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool, bool) -> Result<Vec<u8>, Error> {
     info!(
         "Decompressing Impulse Tracker sample with raw index: {}",
         smp.index_raw()
@@ -139,15 +153,16 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
         smp_ptrs.push(file.read_u32_le()?);
     }
 
-    let samples = build_samples(file, smp_ptrs)?.into();
+    let (samples, it215) = build_samples(file, smp_ptrs)?;
     let inner = file.load_to_memory()?.into();
 
     Ok(IT {
         title,
         inner,
-        samples,
+        samples: samples.into(),
         version,
         source: None,
+        it215,
     })
 }
 /*
@@ -162,9 +177,13 @@ bacter_vs_saga_musix_-_ocean_paradise.it
 also CVT_DELTA
 
 */
-fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>, Error> {
+fn build_samples(
+    file: &mut impl ReadSeek,
+    ptrs: Vec<u32>,
+) -> Result<(Vec<Sample>, HashMap<usize, bool>), Error> {
     let mut samples: Vec<Sample> = Vec::with_capacity(ptrs.len());
     info!("Building samples");
+    let mut it215: HashMap<usize, bool> = HashMap::new();
 
     for (index_raw, sample_header) in ptrs.into_iter().enumerate() {
         file.set_seek_pos(sample_header as u64)?;
@@ -205,6 +224,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
         if cvt.contains(CVT_DELTA) {
             warn!("{}", DELTA_PCM);
+            it215.insert(index_raw, true);
         }
 
         let compressed = flags.contains(FLAG_COMPRESSION);
@@ -241,7 +261,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         })
     }
 
-    Ok(samples)
+    Ok((samples, it215))
 }
 
 fn check_zirconia(file: &mut impl ReadSeek) -> Result<(), Error> {

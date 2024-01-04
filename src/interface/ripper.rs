@@ -87,7 +87,7 @@ impl Ripper {
                 .write(true)
                 .open(&sample_path)?;
 
-            let result = self.format.write(smp, pcm, &mut file);
+            let result = self.format.write(smp, &pcm, &mut file);
 
             // If we can't write the pcm in its specific format,
             // delete the file so that it won't leave empty artifacts

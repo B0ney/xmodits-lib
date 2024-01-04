@@ -8,6 +8,7 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
+use crate::interface::audio_buffer::AudioBuffer;
 use crate::interface::{Error, Sample};
 
 #[derive(Clone, Copy)]
@@ -19,7 +20,7 @@ impl AudioTrait for Raw {
     }
 
     // todo: does target endian have any affect here?
-    fn write(&self, _: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
-        Ok(writer.write_all(&pcm)?)
+    fn write(&self, _: &Sample, pcm: &AudioBuffer, writer: &mut dyn Write) -> Result<(), Error> {
+        Ok(writer.write_all(pcm.raw())?)
     }
 }

@@ -1,8 +1,8 @@
 use bytemuck::Pod;
 use dasp::sample::{conv::ToSample, FromSample};
-use std::{borrow::Cow, io, marker::PhantomData};
+use std::{borrow::Cow, io, marker::PhantomData, mem::align_of};
 
-use crate::Sample;
+use crate::{Error, Sample};
 
 use super::sample::Depth;
 
@@ -10,6 +10,12 @@ pub trait SampleConv:
     FromSample<i8> + FromSample<u8> + FromSample<i16> + FromSample<u16> + FromSample<f32> + Pod
 {
 }
+
+impl<T> SampleConv for T where
+    T: FromSample<i8> + FromSample<u8> + FromSample<i16> + FromSample<u16> + FromSample<f32> + Pod
+{
+}
+
 
 #[derive(Debug, Clone)]
 pub struct AudioBuffer {
@@ -19,26 +25,39 @@ pub struct AudioBuffer {
 }
 
 impl AudioBuffer {
-    pub fn write_raw(&self, out: &mut dyn io::Write) {
-        let _ = out.write_all(self.pcm.raw());
+    pub fn raw(&self) -> &[u8] {
+        self.pcm.raw()
     }
 
-    pub fn write_planar<S>(&self, out: &mut dyn io::Write)
+    pub fn write_raw(&self, out: &mut dyn io::Write) -> Result<(), Error> {
+        Ok(out.write_all(self.pcm.raw())?)
+    }
+
+    pub fn write_planar<S>(&self, out: &mut dyn io::Write) -> Result<(), Error>
     where
         S: SampleConv,
     {
         FramesIter::<S>::planar(self).write(out)
     }
 
-    pub fn write_interleaved<S>(&self, out: &mut dyn io::Write)
+    pub fn write_interleaved_converted<S>(&self, out: &mut dyn io::Write) -> Result<(), Error>
     where
         S: SampleConv,
     {
         FramesIter::<S>::interleaved(self).write(out)
     }
 
+    pub fn write_interleaved_raw(&self, out: &mut dyn io::Write) -> Result<(), Error> {
+        match &self.pcm {
+            Pcm::I8(_) => FramesIter::<i8>::interleaved(self).write(out),
+            Pcm::U8(_) => FramesIter::<u8>::interleaved(self).write(out),
+            Pcm::I16(_) => FramesIter::<i16>::interleaved(self).write(out),
+            Pcm::U16(_) => FramesIter::<u16>::interleaved(self).write(out),
+        }
+    }
+
     pub fn len(&self) -> usize {
-        self.pcm.len()
+        self.pcm.len_samples()
     }
 
     pub fn new(smp: &Sample, buf: Cow<[u8]>) -> Self {
@@ -80,11 +99,21 @@ impl Pcm {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.raw().len()
+    pub fn len_samples(&self) -> usize {
+        self.raw().len() / self.bytes()
+    }
+
+    pub fn bytes(&self) -> usize {
+        match self {
+            Pcm::I8(_) | Pcm::U8(_) => 1,
+            Pcm::I16(_) | Pcm::U16(_) => 2,
+        }
     }
 
     pub fn new(depth: Depth, buffer: &[u8]) -> Self {
+        let buffer = buffer.to_owned();
+        let buffer = &buffer;
+
         fn boxed_slice<T: Clone>(t: &[T]) -> Box<[T]> {
             t.to_vec().into_boxed_slice()
         }
@@ -133,13 +162,43 @@ impl<'a, S: SampleConv> FramesIter<'a, S> {
         }
     }
 
-    pub fn write(&mut self, out: &mut dyn io::Write)
+    pub fn write(&mut self, out: &mut dyn io::Write) -> Result<(), Error>
     where
         S: SampleConv,
     {
-        for sample in self.into_iter() {
-            let _ = out.write_all(bytemuck::cast_slice(&[sample]));
+        match self.interleaved {
+            true => self.write_inter(out),
+            false => {
+                for i in 0..self.buffer.len() {
+                    let sample = self.buffer.pcm.get_sample::<S>(i).unwrap();
+                    out.write_all(bytemuck::cast_slice(&[sample]))?;
+                };
+                Ok(())
+            },
         }
+
+    }
+
+    fn write_inter(&mut self, out: &mut dyn io::Write) -> Result<(), Error> 
+    where S: SampleConv {
+        use std::iter;
+
+        let half = self.buffer.len() / 2;
+        let left = (0..half);
+        let right = (half..self.buffer.len());
+
+        let offset = left
+            .zip(right)
+            .flat_map(|(l, r)| iter::once(l).chain(iter::once(r)));
+
+
+        for i  in offset {
+            let sample = self.buffer.pcm.get_sample::<S>(i).unwrap();
+            out.write_all(bytemuck::cast_slice(&[sample]))?;
+        }
+
+        Ok(())
+
     }
 }
 
@@ -152,7 +211,11 @@ impl<'a, S: SampleConv> Iterator for FramesIter<'a, S> {
                 let channels = self.buffer.channels as usize;
                 let chunk = (self.offset % channels) * (self.buffer.len() / channels);
                 let offset = chunk + (self.offset / channels);
+                // if channels == 2 {
+                //     dbg!(self.buffer.len());
 
+                //     dbg!(offset);
+                // }
                 self.buffer.pcm.get_sample(offset)
             }
             false => self.buffer.pcm.get_sample(self.offset),

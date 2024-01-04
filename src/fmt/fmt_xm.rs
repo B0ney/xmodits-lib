@@ -7,6 +7,7 @@
 
 use crate::dsp::deltadecode::{delta_decode_u16, delta_decode_u8};
 use crate::info;
+use crate::interface::audio_buffer::AudioBuffer;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -48,8 +49,9 @@ impl Module for XM {
         NAME
     }
 
-    fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(delta_decode(smp, self.inner.get_owned_slice(smp)?).into())
+    fn pcm(&self, smp: &Sample) -> Result<AudioBuffer, Error> {
+        let buf = delta_decode(smp, self.inner.get_owned_slice(smp)?).into();
+        Ok(AudioBuffer::new(smp, buf))
     }
 
     fn samples(&self) -> &[Sample] {

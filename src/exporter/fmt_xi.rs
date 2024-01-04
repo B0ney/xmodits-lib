@@ -2,6 +2,7 @@ use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
 use crate::interface::audio::AudioTrait;
+use crate::interface::audio_buffer::AudioBuffer;
 use crate::interface::sample::{Depth, Sample};
 use crate::interface::Error;
 
@@ -14,7 +15,7 @@ impl AudioTrait for Xi {
         "xi"
     }
 
-    fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
+    fn write(&self, smp: &Sample, pcm: &AudioBuffer, writer: &mut dyn Write) -> Result<(), Error> {
         todo!()
     }
 }

@@ -9,6 +9,7 @@ use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
 use crate::interface::audio::AudioTrait;
+use crate::interface::audio_buffer::AudioBuffer;
 use crate::interface::sample::{Depth, Sample};
 use crate::interface::Error;
 
@@ -29,7 +30,7 @@ impl AudioTrait for Iff {
     /// * Collapse to mono by mixing
     /// * Only choose one channel
     #[allow(clippy::unnecessary_cast)]
-    fn write(&self, smp: &Sample, mut pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
+    fn write(&self, smp: &Sample, mut pcm: &AudioBuffer, writer: &mut dyn Write) -> Result<(), Error> {
         const FORM: [u8; 4] = *b"FORM";
         const _8SVX: [u8; 4] = *b"8SVX";
         const VHDR: [u8; 4] = *b"VHDR";
@@ -43,17 +44,17 @@ impl AudioTrait for Iff {
         const COMPRESSION: [u8; 1] = [0];
         const PROGRAM: [u8; 8] = *b"XMODITS "; // MUST HAVE AN EVEN LENGTH
 
-        // let frequency: u16 = smp.rate as u16;
+        let frequency: u16 = smp.rate as u16;
         // /// Buggy
-        let frequency: u16 = match smp.rate {
-            rate if rate <= CAPPED_SAMPLE_RATE as u32 => rate as u16,
-            _ => {
-                // TODO: Resampling can alter the length of the pcm,
-                // make sure we don't use the length provided by smp
-                pcm = crate::dsp::resample_raw((smp, pcm), CAPPED_SAMPLE_RATE as u32).into();
-                CAPPED_SAMPLE_RATE
-            }
-        };
+        // let frequency: u16 = match smp.rate {
+        //     rate if rate <= CAPPED_SAMPLE_RATE as u32 => rate as u16,
+        //     _ => {
+        //         // TODO: Resampling can alter the length of the pcm,
+        //         // make sure we don't use the length provided by smp
+        //         pcm = crate::dsp::resample_raw((smp, pcm), CAPPED_SAMPLE_RATE as u32).into();
+        //         CAPPED_SAMPLE_RATE
+        //     }
+        // };
 
         let pcm_len: u32 = pcm.len() as u32;
         let mut body_chunk_size: u32 = pcm_len;
@@ -77,45 +78,46 @@ impl AudioTrait for Iff {
             loop_len = smp.looping.len();
         }
 
-        let mut write = |buf: &[u8]| writer.write_all(buf);
 
-        write(&FORM)?;
-        write(&form_chunk_size.to_be_bytes())?;
-        write(&_8SVX)?;
-        write(&VHDR)?;
-        write(&voice_chunk_size.to_be_bytes())?;
-        write(&loop_start.to_be_bytes())?; // samples in the high octave 1-shot part
-        write(&loop_len.to_be_bytes())?; // samples per low cycle
-        write(&ZERO)?; // samples per hi cycle
-        write(&frequency.to_be_bytes())?;
-        write(&OCTAVE)?;
-        write(&COMPRESSION)?;
-        write(&VOLUME)?;
+        writer.write_all(&FORM)?;
+        writer.write_all(&form_chunk_size.to_be_bytes())?;
+        writer.write_all(&_8SVX)?;
+        writer.write_all(&VHDR)?;
+        writer.write_all(&voice_chunk_size.to_be_bytes())?;
+        writer.write_all(&loop_start.to_be_bytes())?; // samples in the high octave 1-shot part
+        writer.write_all(&loop_len.to_be_bytes())?; // samples per low cycle
+        writer.write_all(&ZERO)?; // samples per hi cycle
+        writer.write_all(&frequency.to_be_bytes())?;
+        writer.write_all(&OCTAVE)?;
+        writer.write_all(&COMPRESSION)?;
+        writer.write_all(&VOLUME)?;
 
         // write(&NAME)?;
         // write(&name_data_len.to_be_bytes())?;
         // write(name_data.as_bytes())?;
 
-        write(&ANNO)?;
-        write(&anno_chunk_size.to_be_bytes())?;
-        write(&PROGRAM)?;
+        writer.write_all(&ANNO)?;
+        writer.write_all(&anno_chunk_size.to_be_bytes())?;
+        writer.write_all(&PROGRAM)?;
 
-        write(&BODY)?;
-        write(&body_chunk_size.to_be_bytes())?;
+        writer.write_all(&BODY)?;
+        writer.write_all(&body_chunk_size.to_be_bytes())?;
 
         // Only signed 8-bit samples are supported
         // Do any necessary processing to satisfy this.
-        match smp.depth {
-            Depth::I8 => write(&pcm),
-            Depth::U8 => write(&pcm.flip_sign_8()),
-            Depth::I16 => write(&pcm.reduce_bit_depth_16_to_8()),
-            Depth::U16 => write(&pcm.reduce_bit_depth_16_to_8().flip_sign_8()),
-        }?;
+        // match smp.depth {
+        //     Depth::I8 => writer.write_all(&pcm),
+        //     Depth::U8 => writer.write_all(&pcm.flip_sign_8()),
+        //     Depth::I16 => writer.write_all(&pcm.reduce_bit_depth_16_to_8()),
+        //     Depth::U16 => writer.write_all(&pcm.reduce_bit_depth_16_to_8().flip_sign_8()),
+        // }?;
+
+        pcm.write_planar::<u8>(writer)?;
 
         // write pad byte if length of pcm is odd
-        if pcm_len % 2 != 0 {
-            write(&[0])?;
-        };
+        // if pcm_len % 2 != 0 {
+        //     writer.write_all(&[0])?;
+        // };
 
         Ok(())
     }

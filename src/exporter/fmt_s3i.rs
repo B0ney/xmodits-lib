@@ -8,6 +8,7 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
+use crate::interface::audio_buffer::AudioBuffer;
 use crate::interface::sample::Depth;
 use crate::interface::{Error, Sample};
 use crate::parser::string::to_ascii_array;
@@ -32,7 +33,7 @@ impl AudioTrait for S3i {
     /// * Is the sample length in frames or bytes?
     /// * Are the sample loop points in frames or bytes?
     #[allow(clippy::unnecessary_cast)]
-    fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
+    fn write(&self, smp: &Sample, pcm: &AudioBuffer, writer: &mut dyn Write) -> Result<(), Error> {
         const SCRI: [u8; 4] = *b"SCRI";
         const PCM: [u8; 1] = [1];
 
@@ -73,12 +74,18 @@ impl AudioTrait for S3i {
         writer.write_all(&name)?; // sample name
         writer.write_all(&SCRI)?; // scri (or scrs)
 
-        let pcm = match smp.is_signed() {
-            true => flip_sign(pcm, smp.depth),
-            false => pcm,
-        };
+        // let pcm = match smp.is_signed() {
+        //     true => flip_sign(pcm, smp.depth),
+        //     false => pcm,
+        // };
 
-        Ok(writer.write_all(&pcm)?)
+        // match smp.depth {
+        //     Depth::U8 => pcm.write_interleaved::<u8>(writer),
+        //     Depth::I16 => pcm.write_interleaved::<u16>(writer),
+        //     Depth::I8 => pcm.write_interleaved::<u8>(writer),
+        //     Depth::U16 => pcm.write_interleaved::<u16>(writer),
+        // };
+        Ok(pcm.write_raw(writer)?)
     }
 }
 

@@ -38,7 +38,7 @@ impl<'a> BitReader<'a> {
         }
     }
 
-    fn read_next_block(&mut self) -> Result<(), Error> {
+    fn read_next_block(&mut self) -> Result<u16, Error> {
         // First 2 bytes combined to u16 (LE). Tells us size of compressed block.
         let block_size = le_u16(self.buf, self.block_offset)?;
 
@@ -50,7 +50,7 @@ impl<'a> BitReader<'a> {
         self.bitbuf = get_byte(self.buf, self.blk_index)? as u32;
         self.bitnum = 8;
         self.block_offset += block_size as usize + 2;
-        Ok(())
+        Ok(block_size)
     }
 
     fn read_bits_u16(&mut self, n: u8) -> Result<u16, Error> {
@@ -77,11 +77,16 @@ impl<'a> BitReader<'a> {
 
         Ok(value >> (32 - n))
     }
+
+    fn reset(&mut self) {
+        self.bitnum = 8;
+        self.bitbuf = 0;
+    }
 }
 
 #[inline(always)]
 #[rustfmt::skip] 
-pub fn decompress_8_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8>, Error> {
+pub fn decompress_8_bit(buf: &[u8], mut len: u32, it215: bool, stereo: bool) -> Result<Vec<u8>, Error> {
     let mut blklen: u16;                // uncompressed block length. Usually 0x8000 for 8-Bit samples
     let mut blkpos: u16;                // block position
     let mut sample_value: i8;           // decompressed sample value             (Note i8 for 8 bit samples)
@@ -95,14 +100,18 @@ pub fn decompress_8_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8>
     // Unpack data
     while len != 0 {
         // Read new block, reset variables
-        bitreader.read_next_block()?;
+        let compressed_size = bitreader.read_next_block()?;
+
+        if compressed_size == 0 {
+            continue;
+        }
 
         // Make sure block len won't exceed len.
         blklen = if len < 0x8000 { len as u16 } else { 0x8000 };
         blkpos = 0;
         width = 9;
-        d1 = 0; 
-        d2 = 0;
+        d1 = 0;
+        d2 = 0;      
 
         while blkpos < blklen {
 
@@ -179,7 +188,7 @@ pub fn decompress_8_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8>
 
 #[inline(always)]
 #[rustfmt::skip]
-pub fn decompress_16_bit(buf: &[u8], len: u32, it215: bool) -> Result<Vec<u8>, Error> {
+pub fn decompress_16_bit(buf: &[u8], len: u32, it215: bool, stereo: bool) -> Result<Vec<u8>, Error> {
     let mut len = len / 2;         // Length of uncompressed sample. We half this we're decompressing a &[u16] as a &[u8]
     let mut blklen: u16;                // uncompressed block length. Usually 0x4000 for 16-Bit samples
     let mut blkpos: u16;                // block position
@@ -193,21 +202,26 @@ pub fn decompress_16_bit(buf: &[u8], len: u32, it215: bool) -> Result<Vec<u8>, E
 
     while len != 0 {
         // Read new block, reset variables
-        bitreader.read_next_block()?;
+        let compressed_size = bitreader.read_next_block()?;
+
+        if compressed_size == 0 {
+            continue;
+        }
 
         // Make sure block len won't exceed len.
         blklen = if len < 0x4000 { len as u16 } else { 0x4000 };
         blkpos = 0;
         width = 17;
         d1 = 0; 
-        d2 = 0;
-        
+        d2 = 0;      
+
         while blkpos < blklen {
 
             if width > 17 {
                 error!("Could not fully decompress this sample because it has an invalid bit width: {}. (Should be < 18)", width);
                 // return Ok(dest_buf);
-                return Err(Error::Extraction(format!("Could not decompress this Impulse Tracker sample because it has an invalid bit width '{}' (Should be < 18)", width)));
+                // return Err(Error::Extraction(format!("Could not decompress this Impulse Tracker sample because it has an invalid bit width '{}' (Should be < 18)", width)));
+                break;
             }
 
             value = bitreader.read_bits_u32(width)?;

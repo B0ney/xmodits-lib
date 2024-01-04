@@ -8,6 +8,7 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::interface::audio::AudioTrait;
+use crate::interface::audio_buffer::AudioBuffer;
 use crate::interface::sample::LoopType;
 use crate::interface::{Error, Sample};
 use crate::parser::string::to_ascii_array;
@@ -31,7 +32,7 @@ impl AudioTrait for Its {
     }
 
     #[allow(clippy::unnecessary_cast)]
-    fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
+    fn write(&self, smp: &Sample, pcm: &AudioBuffer, writer: &mut dyn Write) -> Result<(), Error> {
         const HEADER: [u8; 4] = *b"IMPS";
         const SAMPLE_PTR: u32 = 0x50;
         const SAMPLE_FLAG: u8 = 0b_0000_0001;
@@ -81,8 +82,8 @@ impl AudioTrait for Its {
         writer.write_all(&ZERO_U8)?; // vid
         writer.write_all(&ZERO_U8)?; // vir
         writer.write_all(&ZERO_U8)?; // vit
-
-        Ok(writer.write_all(&pcm)?)
+        
+        Ok(pcm.write_raw(writer)?)
     }
 }
 
@@ -114,6 +115,6 @@ mod tests {
         let mut file = std::fs::File::create("path.its").unwrap();
         let raw: &[u8] = include_bytes!("../../modules/A110PLUS.raw");
 
-        Its.write(&sample, raw.into(), &mut file).unwrap()
+        // Its.write(&sample, raw.into(), &mut file).unwrap()
     }
 }

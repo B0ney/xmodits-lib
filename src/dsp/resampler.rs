@@ -101,7 +101,7 @@ mod test {
         let module = crate::fmt::loader::load_module(&mut file).unwrap();
         let smp_1 = &module.samples()[3];
         let pcm = module.pcm(smp_1).unwrap();
-        let mut sample: SampleBuffer = RawSample::new(smp_1, pcm).into();
+        let mut sample: SampleBuffer = RawSample::new(smp_1, pcm.pcm.raw().to_owned()).into();
 
         dbg!(sample.duration());
         dbg!(sample.channels());

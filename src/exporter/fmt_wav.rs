@@ -10,6 +10,7 @@ use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
 use crate::interface::audio::AudioTrait;
+use crate::interface::audio_buffer::AudioBuffer;
 use crate::interface::sample::{Channel, Depth, LoopType, Sample};
 use crate::interface::Error;
 
@@ -22,7 +23,7 @@ impl AudioTrait for Wav {
     }
 
     #[allow(clippy::unnecessary_cast)]
-    fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
+    fn write(&self, smp: &Sample, pcm: &AudioBuffer, writer: &mut dyn Write) -> Result<(), Error> {
         const HEADER_SIZE: u32 = 44;
         const RIFF: [u8; 4] = *b"RIFF";
         const WAVE: [u8; 4] = *b"WAVE";
@@ -48,21 +49,19 @@ impl AudioTrait for Wav {
         let block_align: u16 = channels * smp.depth.bytes() as u16;
         let bytes_sec: u32 = smp.rate * block_align as u32;
 
-        let mut write = |buf: &[u8]| writer.write_all(buf);
-
-        write(&RIFF)?;
-        write(&size.to_le_bytes())?;
-        write(&WAVE)?;
-        write(&FMT_)?;
-        write(&WAV_SCS)?;
-        write(&WAV_TYPE)?;
-        write(&channels.to_le_bytes())?;
-        write(&frequency.to_le_bytes())?;
-        write(&bytes_sec.to_le_bytes())?;
-        write(&block_align.to_le_bytes())?;
-        write(&sample_size.to_le_bytes())?;
-        write(&DATA)?;
-        write(&pcm_len.to_le_bytes())?; // size of chunk
+        writer.write_all(&RIFF)?;
+        writer.write_all(&size.to_le_bytes())?;
+        writer.write_all(&WAVE)?;
+        writer.write_all(&FMT_)?;
+        writer.write_all(&WAV_SCS)?;
+        writer.write_all(&WAV_TYPE)?;
+        writer.write_all(&channels.to_le_bytes())?;
+        writer.write_all(&frequency.to_le_bytes())?;
+        writer.write_all(&bytes_sec.to_le_bytes())?;
+        writer.write_all(&block_align.to_le_bytes())?;
+        writer.write_all(&sample_size.to_le_bytes())?;
+        writer.write_all(&DATA)?;
+        writer.write_all(&pcm_len.to_le_bytes())?; // size of chunk
 
         /*  Only signed 16 bit & unsigned 8 bit samples are supported.
             If not, flip the sign.
@@ -70,18 +69,25 @@ impl AudioTrait for Wav {
             We also make sure the pcm samples are stored in little endian,
             on native systems, it will do nothing.
         */
-        let pcm = match smp.depth {
-            Depth::U8 | Depth::I16 => pcm,
-            Depth::I8 => pcm.flip_sign_8(),
-            Depth::U16 => pcm.flip_sign_16(),
-        };
+        // let pcm = match smp.depth {
+        //     Depth::U8  Depth::I16 => pcm,
+        //     Depth::I8 => pcm.flip_sign_8(),
+        //     Depth::U16 => pcm.flip_sign_16(),
+        // };
 
-        match smp.channel {
-            Channel::Stereo { interleaved: false } => match smp.is_8_bit() {
-                true => write(&pcm.interleave_8()),
-                false => write(cast_slice(&pcm.interleave_16())),
-            },
-            _ => write(&pcm),
+        // match smp.channel {
+        //     Channel::Stereo { interleaved: false } => match smp.is_8_bit() {
+        //         true => writer.write_all(&pcm.interleave_8()),
+        //         false => writer.write_all(cast_slice(&pcm.interleave_16())),
+        //     },
+        //     _ => writer.write_all(&pcm),
+        // }?;
+
+
+        match smp.depth {
+            Depth::U8 | Depth::I16 => pcm.write_interleaved_raw(writer),
+            Depth::I8 => pcm.write_interleaved_converted::<u8>(writer),
+            Depth::U16 => pcm.write_interleaved_converted::<u16>(writer),
         }?;
 
         // Write smpl chunk
@@ -102,23 +108,23 @@ impl AudioTrait for Wav {
                 LoopType::PingPong => 1,
             };
 
-            write(&SMPL)?;
-            write(&SMPL_CHUNK_SIZE.to_le_bytes())?;
-            write(&ZERO)?; // manufacturer
-            write(&ZERO)?; // product
-            write(&period.to_le_bytes())?;
-            write(&midi_note.to_le_bytes())?;
-            write(&midi_pitch.to_le_bytes())?;
-            write(&ZERO)?; // SMPTE format
-            write(&ZERO)?; // SMPTE offset
-            write(&sample_loops.to_le_bytes())?;
-            write(&ZERO)?; // sample data
-            write(&ZERO)?; // unique ID of loop
-            write(&loop_type.to_le_bytes())?;
-            write(&loop_start.to_le_bytes())?;
-            write(&loop_end.to_le_bytes())?;
-            write(&ZERO)?; // fraction
-            write(&ZERO)?; // repeats
+            writer.write_all(&SMPL)?;
+            writer.write_all(&SMPL_CHUNK_SIZE.to_le_bytes())?;
+            writer.write_all(&ZERO)?; // manufacturer
+            writer.write_all(&ZERO)?; // product
+            writer.write_all(&period.to_le_bytes())?;
+            writer.write_all(&midi_note.to_le_bytes())?;
+            writer.write_all(&midi_pitch.to_le_bytes())?;
+            writer.write_all(&ZERO)?; // SMPTE format
+            writer.write_all(&ZERO)?; // SMPTE offset
+            writer.write_all(&sample_loops.to_le_bytes())?;
+            writer.write_all(&ZERO)?; // sample data
+            writer.write_all(&ZERO)?; // unique ID of loop
+            writer.write_all(&loop_type.to_le_bytes())?;
+            writer.write_all(&loop_start.to_le_bytes())?;
+            writer.write_all(&loop_end.to_le_bytes())?;
+            writer.write_all(&ZERO)?; // fraction
+            writer.write_all(&ZERO)?; // repeats
         }
 
         Ok(())

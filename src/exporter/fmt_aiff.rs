@@ -9,6 +9,7 @@ use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
 use crate::interface::audio::AudioTrait;
+use crate::interface::audio_buffer::AudioBuffer;
 use crate::interface::sample::{Channel, Depth, Sample};
 use crate::interface::Error;
 use bytemuck::cast_slice;
@@ -26,7 +27,7 @@ impl AudioTrait for Aiff {
     }
 
     #[allow(clippy::unnecessary_cast)]
-    fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
+    fn write(&self, smp: &Sample, pcm: &AudioBuffer, writer: &mut dyn Write) -> Result<(), Error> {
         const FORM: [u8; 4] = *b"FORM";
         const AIFF: [u8; 4] = *b"AIFF";
         const COMM: [u8; 4] = *b"COMM";
@@ -80,22 +81,25 @@ impl AudioTrait for Aiff {
         // The docs say the samples use 2's compliment
         // the samples here will be slightly different.
         // The samples are also stored in big endian
-        let pcm = match smp.depth {
-            Depth::I8 => pcm,
-            Depth::I16 => pcm.to_be_16(),
-            Depth::U8 => pcm.flip_sign_8(),
-            Depth::U16 => pcm.flip_sign_16().to_be_16(),
-        };
+        // let pcm = match smp.depth {
+        //     Depth::I8 => pcm,
+        //     Depth::I16 => pcm.to_be_16(),
+        //     Depth::U8 => pcm.flip_sign_8(),
+        //     Depth::U16 => pcm.flip_sign_16().to_be_16(),
+        // };
 
-        // Stereo samples are interleaved
-        match smp.channel {
-            Channel::Stereo { interleaved: false } => match smp.depth {
-                Depth::I8 | Depth::U8 => write(&pcm.interleave_8()),
-                Depth::I16 | Depth::U16 => write(cast_slice(&pcm.interleave_16())),
-            },
-            _ => write(&pcm),
-        }?;
 
-        Ok(())
+        // // Stereo samples are interleaved
+        // match smp.channel {
+        //     Channel::Stereo { interleaved: false } => match smp.depth {
+        //         Depth::I8 | Depth::U8 => write(&pcm.interleave_8()),
+        //         Depth::I16 | Depth::U16 => write(cast_slice(&pcm.interleave_16())),
+        //     },
+        //     _ => write(&pcm),
+        // }?;
+
+        todo!()
+
+        // Ok(())
     }
 }

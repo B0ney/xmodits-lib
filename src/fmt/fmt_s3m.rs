@@ -6,6 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::info;
+use crate::interface::audio_buffer::AudioBuffer;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -47,8 +48,9 @@ impl Module for S3M {
         NAME
     }
 
-    fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(self.inner.get_slice(smp)?.into())
+    fn pcm(&self, smp: &Sample) -> Result<AudioBuffer, Error> {
+        let buf = self.inner.get_slice(smp)?.into();
+        Ok(AudioBuffer::new(smp, buf))
     }
 
     fn samples(&self) -> &[Sample] {

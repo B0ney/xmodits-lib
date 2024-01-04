@@ -10,6 +10,8 @@ use crate::parser::io::ReadSeek;
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
+use super::audio_buffer::AudioBuffer;
+
 /// A barebones representation of a tracker module.
 ///
 /// Only has the information needed to extract samples
@@ -49,7 +51,7 @@ pub trait Module: Send + Sync {
     /// or an owned vec if any processing was done to make the pcm readable, e.g decompression.
     ///
     /// obtaining the pcm data should not cause side effects hence &self
-    fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error>;
+    fn pcm(&self, smp: &Sample) -> Result<AudioBuffer, Error>;
 
     /// List sample information.
     fn samples(&self) -> &[Sample];
