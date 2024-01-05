@@ -104,15 +104,7 @@ impl AudioTrait for Iff {
         writer.write_all(&body_chunk_size.to_be_bytes())?;
 
         // Only signed 8-bit samples are supported
-        // Do any necessary processing to satisfy this.
-        // match smp.depth {
-        //     Depth::I8 => writer.write_all(&pcm),
-        //     Depth::U8 => writer.write_all(&pcm.flip_sign_8()),
-        //     Depth::I16 => writer.write_all(&pcm.reduce_bit_depth_16_to_8()),
-        //     Depth::U16 => writer.write_all(&pcm.reduce_bit_depth_16_to_8().flip_sign_8()),
-        // }?;
-
-        pcm.write_planar::<u8>(writer)?;
+        pcm.write_planar_converted::<i8>(writer)?;
 
         // write pad byte if length of pcm is odd
         // if pcm_len % 2 != 0 {

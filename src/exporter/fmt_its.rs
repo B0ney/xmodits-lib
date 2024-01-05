@@ -21,8 +21,6 @@ const FLAG_PINGPONG: u8 = 1 << 6;
 const FLAG_PINGPONG_SUSTAIN: u8 = 1 << 7;
 
 /// Impulse tracker sample
-///
-/// TODO: impulse tracker only supports stereo samples, add more parameters?
 #[derive(Clone, Copy)]
 pub struct Its;
 
