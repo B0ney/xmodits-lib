@@ -7,6 +7,7 @@
 
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
+use std::io::{BufWriter, Write};
 // use std::io::{self, Write};
 use std::{fs, path::Path};
 
@@ -85,9 +86,11 @@ impl Ripper {
             let mut file = fs::File::options()
                 .create_new(true)
                 .write(true)
-                .open(&sample_path)?;
+                .open(&sample_path)
+                .map(BufWriter::new)?;
 
             let result = self.format.write(smp, pcm, &mut file);
+            file.flush()?;
 
             // If we can't write the pcm in its specific format,
             // delete the file so that it won't leave empty artifacts
