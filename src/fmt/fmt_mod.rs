@@ -225,8 +225,8 @@ fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<S
                 depth: Depth::I8,
                 channel: Channel::Mono,
                 index_raw: i as u16,
-                compressed: false,
                 looping: Loop::new(loop_start, loop_end, loop_kind),
+                ..Default::default()
             });
         }
     }

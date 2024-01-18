@@ -108,8 +108,8 @@ pub fn decompress_8_bit(buf: &[u8], mut len: u32, it215: bool) -> Result<Vec<u8>
 
             if width > 9 {
                 error!("Could not fully decompress this sample because it has an invalid bit width: {}. (Should be < 10)", width);
-                // return Ok(dest_buf);
-                return Err(Error::Extraction(format!("Could not decompress this Impulse Tracker sample because it has an invalid bit width '{}' (Should be < 10)", width)));
+                return Ok(dest_buf);
+                // return Err(Error::Extraction(format!("Could not decompress this Impulse Tracker sample because it has an invalid bit width '{}' (Should be < 10)", width)));
             };
 
             value = bitreader.read_bits_u16(width)?;
@@ -206,8 +206,8 @@ pub fn decompress_16_bit(buf: &[u8], len: u32, it215: bool) -> Result<Vec<u8>, E
 
             if width > 17 {
                 error!("Could not fully decompress this sample because it has an invalid bit width: {}. (Should be < 18)", width);
-                // return Ok(dest_buf);
-                return Err(Error::Extraction(format!("Could not decompress this Impulse Tracker sample because it has an invalid bit width '{}' (Should be < 18)", width)));
+                return Ok(dest_buf);
+                // return Err(Error::Extraction(format!("Could not decompress this Impulse Tracker sample because it has an invalid bit width '{}' (Should be < 18)", width)));
             }
 
             value = bitreader.read_bits_u32(width)?;

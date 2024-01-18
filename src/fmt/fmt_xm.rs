@@ -8,7 +8,7 @@
 use crate::dsp::deltadecode::{delta_decode_u16, delta_decode_u8};
 use crate::info;
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample};
+use crate::interface::sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample, PcmType};
 use crate::interface::Error;
 use crate::parser::io::{non_consume, read_exact_const};
 use crate::parser::{
@@ -18,7 +18,6 @@ use crate::parser::{
     string::read_str,
 };
 use std::borrow::Cow;
-use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 const NAME: &str = "Extended Module";
@@ -240,7 +239,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
                     depth,
                     channel,
                     index_raw: total_samples,
-                    compressed: false,
+                    pcm_type: PcmType::DELTA,
                     looping: Loop::new(loop_start, loop_end, loop_kind),
                 });
             }

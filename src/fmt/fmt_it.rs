@@ -7,7 +7,7 @@
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample};
+use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample, PcmType};
 use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
@@ -71,13 +71,15 @@ impl Module for IT {
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(match smp.compressed {
-            true => {
-                let compressed = self.inner.get_slice_trailing(smp)?;
-                decompress(smp)(compressed, smp.length, self.it215())?.into()
-            }
-            false => self.inner.get_slice(smp)?.into(),
-        })
+        let pcm = if smp.pcm_type.is_compressed() {
+            let compressed = self.inner.get_slice_trailing(smp)?;
+            let it215 = smp.pcm_type == PcmType::IT215;
+            decompress(smp)(compressed, smp.length, it215)?.into()
+        } else {
+            self.inner.get_slice(smp)?.into()
+        };
+        
+        Ok(pcm)
     }
 
     fn samples(&self) -> &[Sample] {
@@ -203,17 +205,27 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         let pointer = file.read_u32_le()?;
         let signed = cvt.contains(CVT_SIGNED);
 
-        if cvt.contains(CVT_DELTA) {
-            warn!("{}", DELTA_PCM);
-        }
 
-        let compressed = flags.contains(FLAG_COMPRESSION);
+        let pcm_type = if flags.contains(FLAG_COMPRESSION) {
+            match cvt.contains(CVT_DELTA) {
+                true => PcmType::IT215,
+                false => PcmType::IT214,
+            }
+        } else {
+            PcmType::PCM
+        };
+        
         let depth = Depth::new(!flags.contains(FLAG_BITS_16), signed, signed);
-        let channel = Channel::new(flags.contains(FLAG_STEREO), false);
-        // let channel = Channel::new(false, false);
+        
+        // FIXME: Decompressing it215 stereo samples is broken, so only take one channel
+        let stereo = match pcm_type == PcmType::IT215 {
+            true => false,
+            false => flags.contains(FLAG_STEREO),
+        };
+        let channel = Channel::new(stereo, false);
         let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
 
-        if !is_sample_valid(pointer, length, file.len(), compressed) {
+        if !is_sample_valid(pointer, length, file.len(), pcm_type.is_compressed()) {
             info!("Skipping invalid sample at index: {}...", index_raw + 1);
             continue;
         }
@@ -236,7 +248,7 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
             depth,
             channel,
             index_raw,
-            compressed,
+            pcm_type,
             looping: Loop::new(loop_start, loop_end, loop_kind),
         })
     }

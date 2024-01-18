@@ -33,13 +33,13 @@ pub struct Sample {
     /// Type of audio channel. Stereo / Mono
     pub channel: Channel,
 
-    /// An index representing its true postition inside a tracker module.
+    /// An index representing its true position inside a tracker module.
     ///
     /// You should call ```index_raw()``` instead as this value is zero indexed.
     pub index_raw: u16,
 
-    /// Is sample compressed?
-    pub compressed: bool,
+    /// Type of PCM
+    pub pcm_type: PcmType,
 
     /// Looping information
     pub looping: Loop,
@@ -320,8 +320,9 @@ pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) -> Resul
         return Ok(());
     };
 
-    let is_not_valid =
-        |smp: &mut Sample| !is_sample_valid(smp.pointer, smp.length, size, smp.compressed);
+    let is_not_valid = |smp: &mut Sample| {
+        !is_sample_valid(smp.pointer, smp.length, size, smp.pcm_type.is_compressed())
+    };
 
     let mut i = 0;
     while i < smp.len() {
@@ -338,18 +339,27 @@ pub fn remove_invalid_samples(smp: &mut Vec<Sample>, size: Option<u64>) -> Resul
     }
 }
 
-// #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-// pub enum PcmType {
-//     /// Samples are stored as PCM values
-//     #[default]
-//     PCM,
-//     /// Samples are stored as Delta Values,
-//     DELTA,
-//     /// Sample is compressed with Impulse Tracker v2.14
-//     IT214,
-//     /// Sample is compressed with Impulse Tracker v2.15
-//     IT215,
-// }
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PcmType {
+    /// Samples are stored as PCM values
+    #[default]
+    PCM,
+    /// Samples are stored as Delta Values,
+    DELTA,
+    /// Sample is compressed with Impulse Tracker v2.14
+    IT214,
+    /// Sample is compressed with Impulse Tracker v2.15
+    IT215,
+}
+
+impl PcmType {
+    pub fn is_compressed(&self) -> bool {
+        match self {
+            Self::IT214 | Self::IT215 => true,
+            _ => false,
+        }
+    }
+}
 
 #[cfg(test)]
 mod test {
