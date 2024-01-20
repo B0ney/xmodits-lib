@@ -86,14 +86,11 @@ impl<'a> BitReader<'a> {
 #[inline(always)]
 pub fn decompress_8_bit(buf: &[u8], len: u32, it215: bool, stereo: bool) -> Result<Vec<u8>, Error> {
     let mut out = Vec::with_capacity(len as usize);
-
+    let channels = (stereo as u32) + 1;
+    let offset = decompress_8_bit_inner(buf, len * channels, it215, &mut out)?;
     if stereo {
-        let offset = decompress_8_bit_inner(buf, len*2, it215, &mut out)?;
-        decompress_8_bit_inner(&buf[offset..], len*2, it215, &mut out)?;
-    } else {
-        decompress_8_bit_inner(buf, len, it215, &mut out)?;
-    };
-
+        decompress_8_bit_inner(&buf[offset..], len * channels, it215, &mut out)?;
+    }
     return Ok(out)
 }
 
@@ -196,14 +193,11 @@ pub fn decompress_8_bit_inner(buf: &[u8], mut len: u32, it215: bool, dest_buf: &
 #[inline(always)]
 pub fn decompress_16_bit(buf: &[u8], len: u32, it215: bool, stereo: bool) -> Result<Vec<u8>, Error> {
     let mut out = Vec::with_capacity(len as usize * 2);
-
+    let channels = (stereo as u32) + 1;
+    let offset = decompress_16_bit_inner(buf, len * channels, it215, &mut out)?;
     if stereo {
-        let offset = decompress_16_bit_inner(buf, len*2, it215, &mut out)?;
-        decompress_16_bit_inner(&buf[offset..], len*2, it215, &mut out)?;
-    } else {
-        decompress_16_bit_inner(buf, len, it215, &mut out)?;
-    };
-
+        decompress_16_bit_inner(&buf[offset..], len * channels, it215, &mut out)?;
+    }
     return Ok(out)
 }
 
