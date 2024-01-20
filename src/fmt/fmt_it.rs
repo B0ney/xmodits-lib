@@ -7,7 +7,7 @@
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample, PcmType};
+use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample};
 use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
@@ -74,11 +74,17 @@ impl Module for IT {
         let pcm = if smp.pcm_type.is_compressed() {
             let compressed = self.inner.get_slice_trailing(smp)?;
             let it215 = smp.pcm_type == PcmType::IT215;
-            decompress(smp)(compressed, smp.length, it215)?.into()
+            decompress(smp)(
+                compressed,
+                smp.length_frames() as u32,
+                it215,
+                smp.is_stereo(),
+            )?
+            .into()
         } else {
             self.inner.get_slice(smp)?.into()
         };
-        
+
         Ok(pcm)
     }
 
@@ -86,7 +92,7 @@ impl Module for IT {
         &self.samples
     }
 
-    fn load(data: &mut impl ReadSeek ) -> Result<Box<dyn Module>, Error> {
+    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
         info!("Loading Impulse Tracker Module");
         Ok(Box::new(parse_(data)?))
     }
@@ -106,7 +112,7 @@ impl Module for IT {
 }
 
 #[inline]
-fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool) -> Result<Vec<u8>, Error> {
+fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool, bool) -> Result<Vec<u8>, Error> {
     info!(
         "Decompressing Impulse Tracker sample with raw index: {}",
         smp.index_raw()
@@ -205,24 +211,16 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
         let pointer = file.read_u32_le()?;
         let signed = cvt.contains(CVT_SIGNED);
 
-
-        let pcm_type = if flags.contains(FLAG_COMPRESSION) {
-            match cvt.contains(CVT_DELTA) {
+        let pcm_type = match flags.contains(FLAG_COMPRESSION) {
+            true => match cvt.contains(CVT_DELTA) {
                 true => PcmType::IT215,
                 false => PcmType::IT214,
-            }
-        } else {
-            PcmType::PCM
+            },
+            false => PcmType::PCM,
         };
-        
+
         let depth = Depth::new(!flags.contains(FLAG_BITS_16), signed, signed);
-        
-        // FIXME: Decompressing it215 stereo samples is broken, so only take one channel
-        let stereo = match pcm_type == PcmType::IT215 {
-            true => false,
-            false => flags.contains(FLAG_STEREO),
-        };
-        let channel = Channel::new(stereo, false);
+        let channel = Channel::new(flags.contains(FLAG_STEREO), false);
         let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
 
         if !is_sample_valid(pointer, length, file.len(), pcm_type.is_compressed()) {
