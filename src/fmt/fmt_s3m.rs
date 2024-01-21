@@ -145,6 +145,8 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         };
 
         let rate = file.read_u32_le()? & 0xffff;
+        let rate = if rate <= 1 { 1024 } else { rate }; // TODO: some samples have low freq
+
         file.skip_bytes(12)?; // internal buffer used during playback
 
         let name = read_str::<28>(file)?;
