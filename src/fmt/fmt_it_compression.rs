@@ -82,14 +82,13 @@ impl<'a> BitReader<'a> {
         Ok(value >> (32 - n))
     }
 }
-
+// len_frames = len_bytes / bytes_per_sample / channels
 #[inline(always)]
-pub fn decompress_8_bit(buf: &[u8], len: u32, it215: bool, stereo: bool) -> Result<Vec<u8>, Error> {
-    let mut out = Vec::with_capacity(len as usize);
-    let channels = (stereo as u32) + 1;
-    let offset = decompress_8_bit_inner(buf, len * channels, it215, &mut out)?;
+pub fn decompress_8_bit(buf: &[u8], len_frames: u32, it215: bool, stereo: bool) -> Result<Vec<u8>, Error> {
+    let mut out = Vec::with_capacity(len_frames as usize);
+    let offset = decompress_8_bit_inner(buf, len_frames, it215, &mut out)?;
     if stereo {
-        decompress_8_bit_inner(&buf[offset..], len * channels, it215, &mut out)?;
+        decompress_8_bit_inner(&buf[offset..], len_frames, it215, &mut out)?;
     }
     return Ok(out)
 }
@@ -191,12 +190,11 @@ pub fn decompress_8_bit_inner(buf: &[u8], mut len: u32, it215: bool, dest_buf: &
 }
 
 #[inline(always)]
-pub fn decompress_16_bit(buf: &[u8], len: u32, it215: bool, stereo: bool) -> Result<Vec<u8>, Error> {
-    let mut out = Vec::with_capacity(len as usize * 2);
-    let channels = (stereo as u32) + 1;
-    let offset = decompress_16_bit_inner(buf, len * channels, it215, &mut out)?;
+pub fn decompress_16_bit(buf: &[u8], len_frames: u32, it215: bool, stereo: bool) -> Result<Vec<u8>, Error> {
+    let mut out = Vec::with_capacity(len_frames as usize);
+    let offset = decompress_16_bit_inner(buf, len_frames, it215, &mut out)?;
     if stereo {
-        decompress_16_bit_inner(&buf[offset..], len * channels, it215, &mut out)?;
+        decompress_16_bit_inner(&buf[offset..], len_frames, it215, &mut out)?;
     }
     return Ok(out)
 }
@@ -204,7 +202,7 @@ pub fn decompress_16_bit(buf: &[u8], len: u32, it215: bool, stereo: bool) -> Res
 
 #[rustfmt::skip]
 pub fn decompress_16_bit_inner(buf: &[u8], len: u32, it215: bool, dest_buf: &mut Vec<u8>) -> Result<usize, Error> {
-    let mut len = len / 2;         // Length of uncompressed sample. We half this we're decompressing a &[u16] as a &[u8]
+    let mut len = len;         // Length of uncompressed sample. We half this we're decompressing a &[u16] as a &[u8]
     let mut blklen: u16;                // uncompressed block length. Usually 0x4000 for 16-Bit samples
     let mut blkpos: u16;                // block position
     let mut sample_value: i16;          // decompressed sample value             (Note i16 for 16 bit samples)
