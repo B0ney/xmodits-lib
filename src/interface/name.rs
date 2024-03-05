@@ -108,7 +108,10 @@ impl SampleNamer {
 
             let smp_name = || {
                 let name = match self.prefer_filename {
-                    true => smp.filename_pretty(),
+                    true => match smp.filename_pretty() {
+                        name if name.is_empty() => smp.name_pretty(),
+                        name => name,
+                    },
                     false => smp.name_pretty(),
                 };
 
