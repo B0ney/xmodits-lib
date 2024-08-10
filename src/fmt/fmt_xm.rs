@@ -207,6 +207,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
             file.skip_bytes(1)?; // panning,
 
             let notenum = file.read_u8()? as i8;
+            // TODO: THis is either 00 = delta, or AD => 4 bit ADPCM compressed data
             file.skip_bytes(1)?; // reserved
 
             let name = read_str::<22>(file)?;
