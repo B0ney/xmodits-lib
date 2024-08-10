@@ -6,6 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
+use crate::dsp::deltadecode::{delta_decode_u16, delta_decode_u8};
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample};
 use crate::interface::Error;
@@ -71,18 +72,20 @@ impl Module for IT {
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        let pcm = if smp.pcm_type.is_compressed() {
-            let compressed = self.inner.get_slice_trailing(smp)?;
-            let it215 = smp.pcm_type == PcmType::IT215;
-            decompress(smp)(
-                compressed,
-                smp.length_frames() as u32,
-                it215,
-                smp.is_stereo(),
-            )?
-            .into()
-        } else {
-            self.inner.get_slice(smp)?.into()
+        let pcm = match smp.pcm_type {
+            PcmType::PCM => self.inner.get_slice(smp)?.into(),
+            PcmType::DELTA => delta_decode(smp, self.inner.get_owned_slice(smp)?).into(),
+            PcmType::IT214 | PcmType::IT215 => {
+                let compressed = self.inner.get_slice_trailing(smp)?;
+                let it215 = smp.pcm_type == PcmType::IT215;
+                decompress(smp)(
+                    compressed,
+                    smp.length_frames() as u32,
+                    it215,
+                    smp.is_stereo(),
+                )?
+                .into()
+            }
         };
 
         Ok(pcm)
@@ -210,13 +213,19 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
         let pointer = file.read_u32_le()?;
         let signed = cvt.contains(CVT_SIGNED);
+        println!("{:8b}", cvt); //
+        dbg!(cvt.contains(1 << 3)); // TODO: non-it214/5 samples can be delta'd
 
         let pcm_type = match flags.contains(FLAG_COMPRESSION) {
             true => match cvt.contains(CVT_DELTA) {
                 true => PcmType::IT215,
                 false => PcmType::IT214,
             },
-            false => PcmType::PCM,
+            // https://github.com/schismtracker/schismtracker/blob/master/fmt/it.c#L230-L240
+            false => match cvt.contains(CVT_DELTA) {
+                true => PcmType::DELTA,
+                false => PcmType::PCM,
+            },
         };
 
         let depth = Depth::new(!flags.contains(FLAG_BITS_16), signed, signed);
@@ -261,6 +270,35 @@ fn check_zirconia(file: &mut impl ReadSeek) -> Result<(), Error> {
         true => Err(Error::unsupported(UNSUPPORTED)),
         false => Ok(()),
     }
+}
+
+// Maybe look at: 
+// https://github.com/schismtracker/schismtracker/blob/a106b57e0f809b95d9e8bcf5a3975d27e0681b5a/player/csndfile.c#L653-L694
+// https://github.com/schismtracker/schismtracker/blob/a106b57e0f809b95d9e8bcf5a3975d27e0681b5a/player/csndfile.c#L763-L793
+pub fn delta_decode(smp: &Sample, buf: Vec<u8>) -> Vec<u8> {
+    info!("Delta decoding sample with raw index: {}", smp.index_raw());
+
+    let delta_decode = match smp.is_8_bit() {
+        true => delta_decode_u8,
+        false => delta_decode_u16,
+    };
+
+    if smp.is_stereo() {
+        // Stereo xm samples are delta encoded per channel.
+        // Delta decode each channel separately
+        let half = buf.len() / 2;
+
+        let mut left = buf;
+        let right = left.split_off(half);
+
+        // re-join stereo data
+        let mut decoded = delta_decode(left);
+        decoded.append(&mut delta_decode(right));
+
+        return decoded;
+    }
+
+    delta_decode(buf)
 }
 
 #[cfg(test)]
