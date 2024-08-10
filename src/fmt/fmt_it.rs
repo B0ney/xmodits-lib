@@ -41,11 +41,10 @@ const FLAG_PINGPONG_SUSTAIN: u8 = 1 << 7;
 /* Cvt flags */
 const CVT_SIGNED: u8 = 1; // IT 2.01 and below use unsigned samples
 const CVT_DELTA: u8 = 1 << 2; // off = PCM values, ON = Delta values
+const CVT_ADPCM: u8 = 255;
 
 const UNSUPPORTED: &str = "Impulse Tracker Module uses 'ziRCON' sample compression";
 const INVALID: &str = "Not a valid Impulse Tracker module";
-const DELTA_PCM: &str =
-    "This Impulse Tracker sample is stored as delta values. Samples may sound quiet.";
 
 /// Impulse Tracker module
 pub struct IT {
@@ -86,6 +85,7 @@ impl Module for IT {
                 )?
                 .into()
             }
+            PcmType::ADPCM => todo!(),
         };
 
         Ok(pcm)
@@ -161,18 +161,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
         source: None,
     })
 }
-/*
-todo: saga_musix_-_gleaming.it
-compressed: true
-CVT_DELTA: true
 
-stereo samples: true - but in reality it's not,
-    and because of that it, fails to decompress the samples
-
-bacter_vs_saga_musix_-_ocean_paradise.it
-also CVT_DELTA
-
-*/
 fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>, Error> {
     let mut samples: Vec<Sample> = Vec::with_capacity(ptrs.len());
     info!("Building samples");
@@ -213,17 +202,17 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
 
         let pointer = file.read_u32_le()?;
         let signed = cvt.contains(CVT_SIGNED);
-        println!("{:8b}", cvt); //
-        dbg!(cvt.contains(1 << 3)); // TODO: non-it214/5 samples can be delta'd
 
         let pcm_type = match flags.contains(FLAG_COMPRESSION) {
             true => match cvt.contains(CVT_DELTA) {
                 true => PcmType::IT215,
                 false => PcmType::IT214,
             },
-            // https://github.com/schismtracker/schismtracker/blob/master/fmt/it.c#L230-L240
             false => match cvt.contains(CVT_DELTA) {
-                true => PcmType::DELTA,
+                true => match !flags.contains(FLAG_BITS_16) && cvt.contains(CVT_ADPCM) {
+                    true => PcmType::ADPCM,
+                    false => PcmType::DELTA,
+                },
                 false => PcmType::PCM,
             },
         };
@@ -272,9 +261,6 @@ fn check_zirconia(file: &mut impl ReadSeek) -> Result<(), Error> {
     }
 }
 
-// Maybe look at: 
-// https://github.com/schismtracker/schismtracker/blob/a106b57e0f809b95d9e8bcf5a3975d27e0681b5a/player/csndfile.c#L653-L694
-// https://github.com/schismtracker/schismtracker/blob/a106b57e0f809b95d9e8bcf5a3975d27e0681b5a/player/csndfile.c#L763-L793
 pub fn delta_decode(smp: &Sample, buf: Vec<u8>) -> Vec<u8> {
     info!("Delta decoding sample with raw index: {}", smp.index_raw());
 
@@ -295,10 +281,10 @@ pub fn delta_decode(smp: &Sample, buf: Vec<u8>) -> Vec<u8> {
         let mut decoded = delta_decode(left);
         decoded.append(&mut delta_decode(right));
 
-        return decoded;
+        decoded
+    } else {
+        delta_decode(buf)
     }
-
-    delta_decode(buf)
 }
 
 #[cfg(test)]
