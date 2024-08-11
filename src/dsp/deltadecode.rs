@@ -18,7 +18,6 @@ pub fn delta_decode(smp: &Sample, buf: Vec<u8>) -> Vec<u8> {
     };
 
     if smp.is_stereo() {
-        // Stereo xm samples are delta encoded per channel.
         // Delta decode each channel separately
         let half = buf.len() / 2;
 
