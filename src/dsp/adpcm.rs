@@ -2,7 +2,9 @@ use std::io::{self, Cursor, Read};
 
 use crate::{parser::io::ByteReader, Sample};
 
-pub fn decode_adpcm(sample: &Sample, buf: &[u8]) -> io::Result<Vec<u8>> {
+/// See: Page 16 in "The Unofficial XM File Format Specification"
+/// https://www.celersms.com/doc/XM_file_format.pdf#page=16
+pub fn adpcm_decode(sample: &Sample, buf: &[u8]) -> io::Result<Vec<u8>> {
     let mut buffer = Cursor::new(buf);
     let mut compression_table: [u8; 16] = [0; 16];
     let mut delta: u8 = 0;

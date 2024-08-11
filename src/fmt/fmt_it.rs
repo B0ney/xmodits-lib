@@ -6,7 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
-use crate::dsp::adpcm::decode_adpcm;
+use crate::dsp::adpcm::adpcm_decode;
 use crate::dsp::deltadecode::{delta_decode_u16, delta_decode_u8};
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample};
@@ -86,7 +86,7 @@ impl Module for IT {
                 )?
                 .into()
             }
-            PcmType::ADPCM => decode_adpcm(smp, self.inner.get_slice_trailing(smp)?)?.into(),
+            PcmType::ADPCM => adpcm_decode(smp, self.inner.get_slice_trailing(smp)?)?.into(),
         };
 
         Ok(pcm)

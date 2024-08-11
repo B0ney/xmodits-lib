@@ -5,10 +5,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::dsp::adpcm::adpcm_decode;
 use crate::dsp::deltadecode::{delta_decode_u16, delta_decode_u8};
 use crate::info;
 use crate::interface::module::{GenericTracker, Module};
-use crate::interface::sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample, PcmType};
+use crate::interface::sample::{
+    remove_invalid_samples, Channel, Depth, Loop, LoopType, PcmType, Sample,
+};
 use crate::interface::Error;
 use crate::parser::io::{non_consume, read_exact_const};
 use crate::parser::{
@@ -48,7 +51,14 @@ impl Module for XM {
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(delta_decode(smp, self.inner.get_owned_slice(smp)?).into())
+        match smp.pcm_type {
+            PcmType::DELTA => Ok(delta_decode(smp, self.inner.get_owned_slice(smp)?).into()),
+            PcmType::ADPCM => Ok(adpcm_decode(smp, self.inner.get_slice_trailing(smp)?)?.into()),
+            invalid => Err(Error::InvalidModule(format!(
+                "Expected DELTA or ADPCM, found: {:?}",
+                invalid
+            ))),
+        }
     }
 
     fn samples(&self) -> &[Sample] {
@@ -207,8 +217,10 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
             file.skip_bytes(1)?; // panning,
 
             let notenum = file.read_u8()? as i8;
-            // TODO: THis is either 00 = delta, or AD => 4 bit ADPCM compressed data
-            file.skip_bytes(1)?; // reserved
+            let pcm_type = match file.read_byte()? {
+                0xAD => PcmType::ADPCM,
+                _ => PcmType::DELTA,
+            };
 
             let name = read_str::<22>(file)?;
 
@@ -240,7 +252,7 @@ fn build(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
                     depth,
                     channel,
                     index_raw: total_samples,
-                    pcm_type: PcmType::DELTA,
+                    pcm_type,
                     looping: Loop::new(loop_start, loop_end, loop_kind),
                 });
             }
@@ -267,7 +279,7 @@ fn check_mod_plugin_packed(file: &mut impl ReadSeek) -> Result<(), Error> {
 
     match magic == MAGIC_MOD_PLUGIN_PACKED {
         true => Err(Error::unsupported(
-            "Extened Module uses 'MOD Plugin packed'",
+            "Extended Module uses 'MOD Plugin packed'",
         )),
         false => Ok(()),
     }
