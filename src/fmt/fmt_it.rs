@@ -6,6 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
+use crate::dsp::{delta_decode, adpcm_decode};
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample};
 use crate::interface::Error;
@@ -17,7 +18,6 @@ use crate::parser::{
 };
 use crate::{info, warn};
 use std::borrow::Cow;
-use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 const NAME: &str = "Impulse Tracker";
@@ -40,11 +40,10 @@ const FLAG_PINGPONG_SUSTAIN: u8 = 1 << 7;
 /* Cvt flags */
 const CVT_SIGNED: u8 = 1; // IT 2.01 and below use unsigned samples
 const CVT_DELTA: u8 = 1 << 2; // off = PCM values, ON = Delta values
+const CVT_ADPCM: u8 = 255;
 
 const UNSUPPORTED: &str = "Impulse Tracker Module uses 'ziRCON' sample compression";
 const INVALID: &str = "Not a valid Impulse Tracker module";
-const DELTA_PCM: &str =
-    "This Impulse Tracker sample is stored as delta values. Samples may sound quiet.";
 
 /// Impulse Tracker module
 pub struct IT {
@@ -71,18 +70,21 @@ impl Module for IT {
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        let pcm = if smp.pcm_type.is_compressed() {
-            let compressed = self.inner.get_slice_trailing(smp)?;
-            let it215 = smp.pcm_type == PcmType::IT215;
-            decompress(smp)(
-                compressed,
-                smp.length_frames() as u32,
-                it215,
-                smp.is_stereo(),
-            )?
-            .into()
-        } else {
-            self.inner.get_slice(smp)?.into()
+        let pcm = match smp.pcm_type {
+            PcmType::PCM => self.inner.get_slice(smp)?.into(),
+            PcmType::DELTA => delta_decode(smp, self.inner.get_owned_slice(smp)?).into(),
+            PcmType::IT214 | PcmType::IT215 => {
+                let compressed = self.inner.get_slice_trailing(smp)?;
+                let it215 = smp.pcm_type == PcmType::IT215;
+                decompress(smp)(
+                    compressed,
+                    smp.length_frames() as u32,
+                    it215,
+                    smp.is_stereo(),
+                )?
+                .into()
+            }
+            PcmType::ADPCM => adpcm_decode(smp, self.inner.get_slice_trailing(smp)?)?.into(),
         };
 
         Ok(pcm)
@@ -158,18 +160,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
         source: None,
     })
 }
-/*
-todo: saga_musix_-_gleaming.it
-compressed: true
-CVT_DELTA: true
 
-stereo samples: true - but in reality it's not,
-    and because of that it, fails to decompress the samples
-
-bacter_vs_saga_musix_-_ocean_paradise.it
-also CVT_DELTA
-
-*/
 fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>, Error> {
     let mut samples: Vec<Sample> = Vec::with_capacity(ptrs.len());
     info!("Building samples");
@@ -216,7 +207,13 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
                 true => PcmType::IT215,
                 false => PcmType::IT214,
             },
-            false => PcmType::PCM,
+            false => match cvt.contains(CVT_DELTA) {
+                true => match !flags.contains(FLAG_BITS_16) && cvt.contains(CVT_ADPCM) {
+                    true => PcmType::ADPCM,
+                    false => PcmType::DELTA,
+                },
+                false => PcmType::PCM,
+            },
         };
 
         let depth = Depth::new(!flags.contains(FLAG_BITS_16), signed, signed);
@@ -260,50 +257,5 @@ fn check_zirconia(file: &mut impl ReadSeek) -> Result<(), Error> {
     match magic == MAGIC_ZIRCONIA {
         true => Err(Error::unsupported(UNSUPPORTED)),
         false => Ok(()),
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::{fmt::fmt_it::parse_, interface::Module};
-
-    #[test]
-    pub fn a_() {
-        // env_logger::init();
-        use crate::exporter::AudioFormat;
-        use crate::interface::ripper::Ripper;
-        use std::fs::File;
-        use std::io::{Read, Seek};
-
-        // rayon::ThreadPoolBuilder::new()
-        //     .num_threads(2)
-        //     .build_global()
-        //     .unwrap();
-        // let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
-        let mut file = std::io::Cursor::new(std::fs::read("./modules/slayerdsm.it").unwrap());
-
-        let tracker = parse_(&mut file).unwrap();
-        // dbg!(samples.len());
-        for s in tracker.samples() {
-            dbg!(s.name());
-            dbg!(s.length);
-            dbg!(&s.looping);
-        }
-
-        file.rewind().unwrap();
-        let mut buf: Vec<u8> = Vec::new();
-        file.read_to_end(&mut buf).unwrap();
-
-        // let tracker = IT {
-        //     inner: buf.into(),
-        //     samples,
-        //     version: 0x0214,
-        // };
-
-        let ripper = Ripper::default();
-        // ripper.change_format(ExportFormat::IFF.into());
-        ripper
-            .rip_to_dir("./test/export/slayer/", &tracker)
-            .unwrap()
     }
 }

@@ -5,7 +5,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::info;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
@@ -15,6 +14,7 @@ use crate::parser::{
     io::{is_magic, ByteReader, ReadSeek},
     string::read_str,
 };
+use crate::{info, warn};
 use std::borrow::Cow;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
@@ -136,7 +136,13 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
 
         let loop_start = file.read_u32_le()?;
         let loop_stop = file.read_u32_le()?;
-        file.skip_bytes(3)?; // vol, reserved byte, pack
+        file.skip_bytes(2)?; // vol, reserved byte
+
+        // packed samples are not supported
+        if file.read_byte()? != 0 {
+            warn!("Skipping unsupported DP30ADPCM Sample");
+            continue;
+        }
 
         let flags = file.read_u8()?;
         let loop_kind = match flags.contains(FLAG_LOOP) {
@@ -159,7 +165,7 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
         let length = length * channel.channels() as u32 * depth.bytes() as u32;
 
         if !is_sample_valid(pointer, length, file.len(), false) {
-            info!("Skipping invalid sample at index: {}...", index_raw + 1);
+            warn!("Skipping invalid sample at index: {}...", index_raw + 1);
             continue;
         }
 

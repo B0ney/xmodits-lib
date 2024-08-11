@@ -346,10 +346,12 @@ pub enum PcmType {
     PCM,
     /// Samples are stored as Delta Values,
     DELTA,
-    /// Sample is compressed with Impulse Tracker v2.14
+    /// Samples are compressed with Impulse Tracker v2.14
     IT214,
-    /// Sample is compressed with Impulse Tracker v2.15
+    /// Samples are compressed with Impulse Tracker v2.15
     IT215,
+    /// Samples are stored as Adaptive differential pulse-code modulation 
+    ADPCM,
 }
 
 impl PcmType {
