@@ -5,8 +5,35 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::dsp::pcm::align_u16;
+use crate::{dsp::pcm::align_u16, info, Sample};
 use bytemuck::cast_slice_mut;
+
+#[inline]
+pub fn delta_decode(smp: &Sample, buf: Vec<u8>) -> Vec<u8> {
+    info!("Delta decoding sample with raw index: {}", smp.index_raw());
+
+    let delta_decode = match smp.is_8_bit() {
+        true => delta_decode_u8,
+        false => delta_decode_u16,
+    };
+
+    if smp.is_stereo() {
+        // Stereo xm samples are delta encoded per channel.
+        // Delta decode each channel separately
+        let half = buf.len() / 2;
+
+        let mut left = buf;
+        let right = left.split_off(half);
+
+        // re-join stereo data
+        let mut decoded = delta_decode(left);
+        decoded.append(&mut delta_decode(right));
+
+        return decoded;
+    }
+
+    delta_decode(buf)
+}
 
 #[inline]
 pub fn delta_decode_u8(mut pcm: Vec<u8>) -> Vec<u8> {

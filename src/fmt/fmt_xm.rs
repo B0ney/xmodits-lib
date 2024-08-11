@@ -5,19 +5,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::dsp::adpcm::adpcm_decode;
-use crate::dsp::deltadecode::{delta_decode_u16, delta_decode_u8};
+use crate::dsp::{adpcm_decode, delta_decode};
 use crate::info;
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{
     remove_invalid_samples, Channel, Depth, Loop, LoopType, PcmType, Sample,
 };
 use crate::interface::Error;
-use crate::parser::io::{non_consume, read_exact_const};
 use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,
-    io::{is_magic, ByteReader, ReadSeek},
+    io::{is_magic, ByteReader, ReadSeek, non_consume, read_exact_const},
     string::read_str,
 };
 use std::borrow::Cow;
@@ -82,33 +80,6 @@ impl Module for XM {
     fn source(&self) -> Option<&Path> {
         self.source.as_deref()
     }
-}
-
-#[inline]
-pub fn delta_decode(smp: &Sample, buf: Vec<u8>) -> Vec<u8> {
-    info!("Delta decoding sample with raw index: {}", smp.index_raw());
-
-    let delta_decode = match smp.is_8_bit() {
-        true => delta_decode_u8,
-        false => delta_decode_u16,
-    };
-
-    if smp.is_stereo() {
-        // Stereo xm samples are delta encoded per channel.
-        // Delta decode each channel separately
-        let half = buf.len() / 2;
-
-        let mut left = buf;
-        let right = left.split_off(half);
-
-        // re-join stereo data
-        let mut decoded = delta_decode(left);
-        decoded.append(&mut delta_decode(right));
-
-        return decoded;
-    }
-
-    delta_decode(buf)
 }
 
 pub fn parse_(file: &mut impl ReadSeek) -> Result<XM, Error> {

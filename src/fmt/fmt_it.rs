@@ -6,8 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
-use crate::dsp::adpcm::adpcm_decode;
-use crate::dsp::deltadecode::{delta_decode_u16, delta_decode_u8};
+use crate::dsp::{delta_decode, adpcm_decode};
 use crate::interface::module::{GenericTracker, Module};
 use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample};
 use crate::interface::Error;
@@ -19,7 +18,6 @@ use crate::parser::{
 };
 use crate::{info, warn};
 use std::borrow::Cow;
-use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 const NAME: &str = "Impulse Tracker";
@@ -259,76 +257,5 @@ fn check_zirconia(file: &mut impl ReadSeek) -> Result<(), Error> {
     match magic == MAGIC_ZIRCONIA {
         true => Err(Error::unsupported(UNSUPPORTED)),
         false => Ok(()),
-    }
-}
-
-pub fn delta_decode(smp: &Sample, buf: Vec<u8>) -> Vec<u8> {
-    info!("Delta decoding sample with raw index: {}", smp.index_raw());
-
-    let delta_decode = match smp.is_8_bit() {
-        true => delta_decode_u8,
-        false => delta_decode_u16,
-    };
-
-    if smp.is_stereo() {
-        // Stereo xm samples are delta encoded per channel.
-        // Delta decode each channel separately
-        let half = buf.len() / 2;
-
-        let mut left = buf;
-        let right = left.split_off(half);
-
-        // re-join stereo data
-        let mut decoded = delta_decode(left);
-        decoded.append(&mut delta_decode(right));
-
-        decoded
-    } else {
-        delta_decode(buf)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::{fmt::fmt_it::parse_, interface::Module};
-
-    #[test]
-    pub fn a_() {
-        // env_logger::init();
-        use crate::exporter::AudioFormat;
-        use crate::interface::ripper::Ripper;
-        use std::fs::File;
-        use std::io::{Read, Seek};
-
-        // rayon::ThreadPoolBuilder::new()
-        //     .num_threads(2)
-        //     .build_global()
-        //     .unwrap();
-        // let mut file = std::io::BufReader::new(File::open("./test/test_module.it").unwrap());
-        let mut file = std::io::Cursor::new(std::fs::read("./modules/slayerdsm.it").unwrap());
-
-        let tracker = parse_(&mut file).unwrap();
-        // dbg!(samples.len());
-        for s in tracker.samples() {
-            dbg!(s.name());
-            dbg!(s.length);
-            dbg!(&s.looping);
-        }
-
-        file.rewind().unwrap();
-        let mut buf: Vec<u8> = Vec::new();
-        file.read_to_end(&mut buf).unwrap();
-
-        // let tracker = IT {
-        //     inner: buf.into(),
-        //     samples,
-        //     version: 0x0214,
-        // };
-
-        let ripper = Ripper::default();
-        // ripper.change_format(ExportFormat::IFF.into());
-        ripper
-            .rip_to_dir("./test/export/slayer/", &tracker)
-            .unwrap()
     }
 }
