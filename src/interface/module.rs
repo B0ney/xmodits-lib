@@ -110,7 +110,7 @@ impl Module for GenericTracker {
     }
 
     fn format(&self) -> &str {
-        &self.info.format
+        self.info.format
     }
 
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {

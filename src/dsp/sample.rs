@@ -51,7 +51,7 @@ pub struct SampleBuffer {
 
 impl SampleBuffer {
     pub fn duration(&self) -> usize {
-        let Some(chn) = self.buf.get(0) else {
+        let Some(chn) = self.buf.first() else {
             return 0;
         };
         chn.len()

@@ -5,12 +5,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use std::borrow::Cow;
+use std::{borrow::Cow, num::NonZeroU32};
 
 use crate::parser::to_str_os;
 
 /// Tracker module sample
-#[derive(Default, Debug, Clone, Hash, Eq)]
+#[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Sample {
     /// Raw sample filename. Not all formats support this.
     pub filename: Option<Box<str>>,
@@ -110,13 +110,6 @@ impl Sample {
     /// Length of the sample in frames
     pub fn length_frames(&self) -> usize {
         self.length as usize / self.bytes() as usize / self.channels() as usize
-    }
-}
-
-/// We consider two samples that point to the same region to be equal
-impl PartialEq for Sample {
-    fn eq(&self, other: &Self) -> bool {
-        self.pointer == other.pointer
     }
 }
 
@@ -272,6 +265,25 @@ impl Depth {
     }
 }
 
+pub struct SampleRate {
+    rate: NonZeroU32,
+    transpose: Transpose,
+}
+
+impl SampleRate {
+    pub fn get(&self) -> u32 {
+        self.rate.get()
+    }
+
+    pub fn get_with_transpose(&self, transpose: Transpose) -> u32 {
+        todo!()
+    }
+}
+
+pub struct Transpose {
+
+}
+
 use super::Error;
 
 /// Verify that the generated samples aren't pointing to invalid offsets
@@ -356,10 +368,7 @@ pub enum PcmType {
 
 impl PcmType {
     pub fn is_compressed(&self) -> bool {
-        match self {
-            Self::IT214 | Self::IT215 => true,
-            _ => false,
-        }
+        matches!(self, Self::IT214 | Self::IT215)
     }
 }
 

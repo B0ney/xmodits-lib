@@ -186,8 +186,7 @@ fn build_samples(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, 
         }
 
         for smp in staging_samples.iter_mut() {
-            let pointer = file.seek_position()? as u32;
-            smp.pointer = pointer;
+            smp.pointer = file.seek_position()? as u32;
             file.skip_bytes(smp.length as i64)?;
         }
 

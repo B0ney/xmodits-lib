@@ -105,7 +105,8 @@ pub fn decompress_8_bit(buf: &[u8], len_frames: u32, it215: bool, stereo: bool) 
     if stereo {
         decompress_8_bit_inner(&buf[offset..], len_frames, it215, &mut out)?;
     }
-    return Ok(out)
+    
+    Ok(out)
 }
 
 #[rustfmt::skip] 
@@ -211,7 +212,8 @@ pub fn decompress_16_bit(buf: &[u8], len_frames: u32, it215: bool, stereo: bool)
     if stereo {
         decompress_16_bit_inner(&buf[offset..], len_frames, it215, &mut out)?;
     }
-    return Ok(out)
+
+    Ok(out)
 }
 
 

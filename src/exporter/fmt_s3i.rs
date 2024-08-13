@@ -47,8 +47,7 @@ impl AudioTrait for S3i {
         let name: [u8; 28] = to_ascii_array(smp.name());
         let memseg: [u8; 3] = [0; 3];
 
-        let flags: u8 = 0
-            | (!smp.looping.is_disabled() as u8) << 0
+        let flags: u8 = (!smp.looping.is_disabled() as u8)
             | (smp.is_stereo() as u8) << 1
             | (!smp.is_8_bit() as u8) << 2;
 
