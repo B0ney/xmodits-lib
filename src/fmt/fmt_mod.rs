@@ -48,6 +48,7 @@ pub fn load(
     file: &mut impl ReadSeek,
     source: impl Into<Option<PathBuf>>,
 ) -> Result<GenericTracker, Error> {
+    check_iff(file)?;
     check_xpk(file)?;
 
     let title = read_str::<20>(file)?;
