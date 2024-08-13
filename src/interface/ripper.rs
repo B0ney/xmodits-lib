@@ -5,10 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#[cfg(feature = "rayon")]
-use rayon::prelude::*;
 use std::io::{BufWriter, Write};
-// use std::io::{self, Write};
 use std::{fs, path::Path};
 
 use crate::error;
@@ -129,45 +126,4 @@ pub fn build_context<'a>(module: &'a dyn Module, audio_format: &'a DynAudioTrait
             .unwrap(),
         source_path: module.source(),
     }
-}
-
-#[test]
-fn a() {
-    // let fnh = ;
-    // let format = ExportFormat::IFF.get_impl();
-    // let format2 = ExportFormat::RAW.get_impl();
-    // let a =
-
-    // let mut def = Ripper::new(Box::new(aa), );
-    let mut def = Ripper::default();
-    def.change_namer(
-        SampleNamer {
-            prefer_filename: false,
-            ..Default::default()
-        }
-        .into(),
-    );
-    // def.rip(directory, module).unwrap();
-
-    // let xm = crate::fmt::fmt_xm::XM::load(vec![0]).unwrap();
-    // let s3m = Box::new(crate::fmt::fmt_s3m::S3M::load(vec![0]).unwrap());
-
-    // def.rip_to_dir("directory", &xm).unwrap();
-    dbg!(def.format.extension());
-
-    /*
-        with Impl<Box<dyn AudioTrait>>:
-
-            def.change_format(ExportFormat::RAW);
-
-
-        with Box<dyn AudioTrait>:
-
-            def.change_format(ExportFormat::RAW.into());
-
-            This one is more flexible so I'll use this one.
-            The above looks nice, but It's too restrictive.
-    */
-
-    dbg!(def.format.extension());
 }
