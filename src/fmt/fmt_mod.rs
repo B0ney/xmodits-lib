@@ -5,17 +5,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::info;
-use crate::interface::module::{GenericTracker, Module};
+use crate::interface::module::{GenericTracker, Info};
 use crate::interface::sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::{
-    io::{is_magic_non_consume, non_consume, ByteReader, Container, ReadSeek},
+    io::{is_magic_non_consume, non_consume, ByteReader, ReadSeek},
     string::read_str,
 };
-use std::borrow::Cow;
-use std::io::Cursor;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /*
 TODO: debranu.mod is an IFF containing a MOD
@@ -23,6 +20,8 @@ looking at the binary shows that it was made with ProTracker 3.
 ProTracker 3.6x supports saving modules inside of IFF containers.
 https://bugs.openmpt.org/view.php?id=752
 */
+
+const FORMAT: &str = "Amiga ProTracker";
 
 const CHANNEL_4: &[&[u8]] = &[b"M.K.", b"M!K!", b"M&K!", b"N.T."];
 const CHANNEL_6: &[&[u8]] = &[b"CD61"];
@@ -41,53 +40,14 @@ const MAGIC_PP20: [u8; 4] = *b"PP20";
 // https://github.com/OpenMPT/openmpt/blob/d75cd3eaf299ee84c484ff66ec5836a084738351/soundlib/Load_mod.cpp#L322
 const INVALID_BYTE_THRESHOLD: u8 = 40;
 
-/// Amiga SoundTracker
-pub struct MOD {
-    inner: GenericTracker,
-    samples: Box<[Sample]>,
-    source: Option<Box<Path>>,
-    title: Box<str>,
+pub fn probe(_buf: &[u8]) -> bool {
+    true // TODO
 }
 
-impl Module for MOD {
-    fn name(&self) -> &str {
-        &self.title
-    }
-
-    fn format(&self) -> &str {
-        "Amiga ProTracker"
-    }
-
-    fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(self.inner.get_slice(smp)?.into())
-    }
-
-    fn samples(&self) -> &[Sample] {
-        &self.samples
-    }
-
-    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
-        info!("Loading Amiga ProTracker Module");
-        let mut data = check_iff(data)?;
-        Ok(Box::new(parse_( data)?))
-    }
-
-    fn matches_format(buf: &[u8]) -> bool {
-        // for now
-        true
-    }
-
-    fn set_source(mut self: Box<Self>, path: PathBuf) -> Box<dyn Module> {
-        self.source = Some(path.into());
-        self
-    }
-
-    fn source(&self) -> Option<&Path> {
-        self.source.as_deref()
-    }
-}
-
-pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
+pub fn load(
+    file: &mut impl ReadSeek,
+    source: impl Into<Option<PathBuf>>,
+) -> Result<GenericTracker, Error> {
     check_xpk(file)?;
 
     let title = read_str::<20>(file)?;
@@ -112,13 +72,15 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<MOD, Error> {
 
     remove_invalid_samples(&mut samples, file.len())?;
 
-    let inner = file.load_to_memory()?.into();
-
-    Ok(MOD {
-        title,
-        inner,
+    Ok(GenericTracker {
+        info: Info {
+            name: title.to_string(),
+            format: FORMAT,
+            source: source.into(),
+            ..Default::default()
+        },
+        inner: file.load_to_memory()?.into_boxed_slice(),
         samples: samples.into(),
-        source: None,
     })
 }
 
@@ -273,17 +235,4 @@ fn max(f: &[u8; 128]) -> u8 {
         }
     }
     max
-}
-
-#[cfg(test)]
-mod test {
-    use std::fs::File;
-
-    use super::parse_;
-
-    #[test]
-    fn a() {
-        let mut m = File::open("./modules/debranu.mod").unwrap();
-        parse_(&mut m).unwrap();
-    }
 }

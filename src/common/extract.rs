@@ -1,9 +1,10 @@
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
-use crate::{load_module, Error, Ripper};
+use crate::fmt::loader;
+use crate::{Error, Ripper};
 
-use super::error::{does_not_exist, too_large, no_filename, not_empty};
+use super::error::{does_not_exist, no_filename, not_empty, too_large};
 use super::info::{filesize, is_dir_empty};
 use super::MAX_SIZE_BYTES;
 
@@ -26,9 +27,7 @@ where
         return Err(too_large(MAX_SIZE_BYTES));
     }
 
-    // let mut data = BufReader::with_capacity(BUFFER_SIZE, File::open(file)?);
-    let mut data = std::fs::File::open(file)?;
-    let module = load_module(&mut data)?.set_source(file.into());
+    let module = loader::from_path(file)?;
 
     if !destination.is_dir() {
         return Err(does_not_exist(destination));

@@ -5,38 +5,29 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use std::io::Cursor;
+use std::path::PathBuf;
 
-use crate::fmt::{formats::*, loader::identify_module, Format};
-use crate::info;
-use crate::interface::{Error, Module};
-use crate::parser::io::Container;
+use crate::fmt::{loader::identify_module, Format};
+use crate::interface::module::GenericTracker;
+use crate::interface::Error;
 use crate::parser::{
     bytes::magic_header,
-    io::{is_magic, ByteReader, ReadSeek},
+    io::{is_magic, ByteReader, Container, ReadSeek},
     string::read_string,
 };
 
+use super::{fmt_it, fmt_mod, fmt_s3m, fmt_xm};
+
 const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
 
-struct Private;
-
-/// Unreal Package
-///
-/// "Abandon all hope ye who try to parse this file format." - Tim Sweeney, Unreal Packages
-pub struct UMX(Private);
-
-impl UMX {
-    pub fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
-        info!("Loading Unreal package");
-        parse_(data)
-    }
-    pub fn matches_format(buf: &[u8]) -> bool {
-        magic_header(&MAGIC_UPKG, buf)
-    }
+pub fn probe(buf: &[u8]) -> bool {
+    magic_header(&MAGIC_UPKG, buf)
 }
 
-pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+pub fn load(
+    file: &mut impl ReadSeek,
+    source: impl Into<Option<PathBuf>>,
+) -> Result<GenericTracker, Error> {
     if !is_magic(file, &MAGIC_UPKG)? {
         return Err(Error::invalid("Not a valid Unreal package"));
     }
@@ -103,28 +94,22 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
     let _ = read_compact_index(file)?; // obj size field
     let _inner_size = read_compact_index(file)? as u64;
 
-    // let start_pos = file.position() as usize;
-
-    // let file: Vec<u8> = std::mem::take(file)
-    //     .into_inner()
-    //     .drain(start_pos..(start_pos + inner_size as usize))
-    //     .collect(); // remove umx header + tables
-
     let size = file.size();
 
     // store the reader into a Container struct
     // so that seeking is relative to this current offset
     let mut file = Container::new(file, size);
-    let file = &mut file;
+    let data = &mut file;
 
-    // done to prevent overflow compile error
-    let module: Box<dyn Module> = match identify_module(file)? {
-        Format::IT => IT::load(file)?,
-        Format::XM => XM::load(file)?,
-        Format::S3M => S3M::load(file)?,
-        Format::MOD => MOD::load(file)?,
+    // // done to prevent overflow compile error
+    let module = match identify_module(data)? {
+        Format::IT => fmt_it::load(data, source)?,
+        Format::XM => fmt_xm::load(data, source)?,
+        Format::S3M => fmt_s3m::load(data, source)?,
+        Format::MOD => fmt_mod::load(data, source)?,
         Format::UMX => return Err(Error::invalid("Nested Unreal music containers are invalid")),
     };
+
     Ok(module)
 }
 
@@ -183,14 +168,9 @@ fn read_compact_index(file: &mut impl ReadSeek) -> Result<i32, Error> {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        fs::File,
-        io::{BufReader, Cursor},
-    };
+    use std::io::Cursor;
 
     use crate::fmt::fmt_umx::read_compact_index;
-
-    use super::parse_;
 
     // Test read compact index works
     #[test]
@@ -209,13 +189,5 @@ mod tests {
             let expanded = read_compact_index(&mut Cursor::new(compact)).expect("Compact index");
             assert_eq!(expanded, number);
         }
-    }
-    #[test]
-    fn drain() {
-        let mut a = vec![1, 2, 3, 4];
-        let mut a: Vec<u8> = a.drain(1..(1 + 2)).collect();
-
-        // let _ = a.drain(..1);
-        dbg!(a);
     }
 }

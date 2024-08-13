@@ -12,4 +12,4 @@ pub mod fmt_s3m;
 pub mod fmt_umx;
 pub mod fmt_xm;
 pub mod loader;
-pub use loader::{formats, Format};
+pub use loader::{from_path, load_module, Format};

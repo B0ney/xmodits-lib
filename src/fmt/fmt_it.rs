@@ -6,8 +6,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
-use crate::dsp::{delta_decode, adpcm_decode};
-use crate::interface::module::{GenericTracker, Module};
+use crate::info;
+use crate::interface::module::{GenericTracker, Info};
 use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample};
 use crate::interface::Error;
 use crate::parser::{
@@ -16,17 +16,14 @@ use crate::parser::{
     io::{is_magic, non_consume, read_exact_const, ByteReader, ReadSeek},
     string::read_str,
 };
-use crate::{info, warn};
-use std::borrow::Cow;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-const NAME: &str = "Impulse Tracker";
+const FORMAT: &str = "Impulse Tracker";
 
 /* Magic values */
 const MAGIC_IMPM: [u8; 4] = *b"IMPM";
 const MAGIC_IMPS: [u8; 4] = *b"IMPS";
 const MAGIC_ZIRCONIA: [u8; 8] = *b"ziRCONia";
-const MAGIC_IT215: u16 = 0x0215;
 
 /* Sample flags */
 const FLAG_BITS_16: u8 = 1 << 1;
@@ -45,88 +42,14 @@ const CVT_ADPCM: u8 = 255;
 const UNSUPPORTED: &str = "Impulse Tracker Module uses 'ziRCON' sample compression";
 const INVALID: &str = "Not a valid Impulse Tracker module";
 
-/// Impulse Tracker module
-pub struct IT {
-    inner: GenericTracker,
-    samples: Box<[Sample]>,
-    title: Box<str>,
-    source: Option<Box<Path>>,
-    version: u16,
+pub fn probe(buf: &[u8]) -> bool {
+    magic_header(&MAGIC_IMPM, buf) | magic_header(&MAGIC_ZIRCONIA, buf)
 }
 
-impl IT {
-    fn it215(&self) -> bool {
-        self.version == MAGIC_IT215
-    }
-}
-
-impl Module for IT {
-    fn name(&self) -> &str {
-        &self.title
-    }
-
-    fn format(&self) -> &str {
-        NAME
-    }
-
-    fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        let pcm = match smp.pcm_type {
-            PcmType::PCM => self.inner.get_slice(smp)?.into(),
-            PcmType::DELTA => delta_decode(smp, self.inner.get_owned_slice(smp)?).into(),
-            PcmType::IT214 | PcmType::IT215 => {
-                let compressed = self.inner.get_slice_trailing(smp)?;
-                let it215 = smp.pcm_type == PcmType::IT215;
-                decompress(smp)(
-                    compressed,
-                    smp.length_frames() as u32,
-                    it215,
-                    smp.is_stereo(),
-                )?
-                .into()
-            }
-            PcmType::ADPCM => adpcm_decode(smp, self.inner.get_slice_trailing(smp)?)?.into(),
-        };
-
-        Ok(pcm)
-    }
-
-    fn samples(&self) -> &[Sample] {
-        &self.samples
-    }
-
-    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
-        info!("Loading Impulse Tracker Module");
-        Ok(Box::new(parse_(data)?))
-    }
-
-    fn matches_format(buf: &[u8]) -> bool {
-        magic_header(&MAGIC_IMPM, buf) | magic_header(&MAGIC_ZIRCONIA, buf)
-    }
-
-    fn set_source(mut self: Box<Self>, path: PathBuf) -> Box<dyn Module> {
-        self.source = Some(path.into());
-        self
-    }
-
-    fn source(&self) -> Option<&Path> {
-        self.source.as_deref()
-    }
-}
-
-#[inline]
-fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool, bool) -> Result<Vec<u8>, Error> {
-    info!(
-        "Decompressing Impulse Tracker sample with raw index: {}",
-        smp.index_raw()
-    );
-
-    match smp.is_8_bit() {
-        true => decompress_8_bit,
-        false => decompress_16_bit,
-    }
-}
-
-pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
+pub fn load(
+    file: &mut impl ReadSeek,
+    source: impl Into<Option<PathBuf>>,
+) -> Result<GenericTracker, Error> {
     check_zirconia(file)?;
 
     if !is_magic(file, &MAGIC_IMPM)? {
@@ -140,8 +63,7 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
     let ins_num = file.read_u16_le()?;
     let smp_num = file.read_u16_le()?;
     file.skip_bytes(4)?;
-
-    let version = file.read_u16_le()?;
+    file.skip_bytes(2)?; // version
     file.set_seek_pos((0x00c0 + ord_num + (ins_num * 4)) as u64)?;
 
     let mut smp_ptrs: Vec<u32> = Vec::with_capacity(smp_num as usize);
@@ -149,15 +71,15 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<IT, Error> {
         smp_ptrs.push(file.read_u32_le()?);
     }
 
-    let samples = build_samples(file, smp_ptrs)?.into();
-    let inner = file.load_to_memory()?.into();
-
-    Ok(IT {
-        title,
-        inner,
-        samples,
-        version,
-        source: None,
+    Ok(GenericTracker {
+        info: Info {
+            name: title.to_string(),
+            format: FORMAT,
+            source: source.into(),
+            ..Default::default()
+        },
+        inner: file.load_to_memory()?.into_boxed_slice(),
+        samples: build_samples(file, smp_ptrs)?.into_boxed_slice(),
     })
 }
 
@@ -249,6 +171,19 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
     }
 
     Ok(samples)
+}
+
+#[inline]
+pub fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool, bool) -> Result<Vec<u8>, Error> {
+    info!(
+        "Decompressing Impulse Tracker sample with raw index: {}",
+        smp.index_raw()
+    );
+
+    match smp.is_8_bit() {
+        true => decompress_8_bit,
+        false => decompress_16_bit,
+    }
 }
 
 fn check_zirconia(file: &mut impl ReadSeek) -> Result<(), Error> {

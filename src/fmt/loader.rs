@@ -5,19 +5,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use std::io::Cursor;
+use std::path::{Path, PathBuf};
 
 use crate::interface::{Error, Module};
 use crate::parser::io::{non_consume, ReadSeek};
 
-pub mod formats {
-    pub use crate::fmt::fmt_it::IT;
-    pub use crate::fmt::fmt_mod::MOD;
-    pub use crate::fmt::fmt_s3m::S3M;
-    pub use crate::fmt::fmt_umx::UMX;
-    pub use crate::fmt::fmt_xm::XM;
-}
-use formats::*;
+use super::{fmt_it, fmt_mod, fmt_s3m, fmt_umx, fmt_xm};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Format {
@@ -28,16 +21,25 @@ pub enum Format {
     UMX,
 }
 
+pub fn from_path(source: impl AsRef<Path>) -> Result<Box<dyn Module>, Error> {
+    let source = source.as_ref().to_owned();
+    let mut file = std::fs::File::open(&source)?;
+    load_module(&mut file, source)
+}
+
 /// load a module
-pub fn load_module(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
+pub fn load_module(
+    data: &mut impl ReadSeek,
+    source: impl Into<Option<PathBuf>>,
+) -> Result<Box<dyn Module>, Error> {
     let module = match identify_module(data)? {
-        Format::IT => IT::load(data)?,
-        Format::XM => XM::load(data)?,
-        Format::S3M => S3M::load(data)?,
-        Format::MOD => MOD::load(data)?,
-        Format::UMX => UMX::load(data)?,
+        Format::IT => fmt_it::load(data, source)?,
+        Format::XM => fmt_xm::load(data, source)?,
+        Format::S3M => fmt_s3m::load(data, source)?,
+        Format::MOD => fmt_mod::load(data, source)?,
+        Format::UMX => fmt_umx::load(data, source)?,
     };
-    Ok(module)
+    Ok(Box::new(module))
 }
 
 pub fn identify_module(data: &mut impl ReadSeek) -> Result<Format, Error> {
@@ -45,11 +47,11 @@ pub fn identify_module(data: &mut impl ReadSeek) -> Result<Format, Error> {
     non_consume(data, |data| data.read(&mut bytes))?;
 
     match &bytes {
-        buf if IT::matches_format(buf) => Ok(Format::IT),
-        buf if XM::matches_format(buf) => Ok(Format::XM),
-        buf if S3M::matches_format(buf) => Ok(Format::S3M),
-        buf if UMX::matches_format(buf) => Ok(Format::UMX),
-        buf if MOD::matches_format(buf) => Ok(Format::MOD),
+        buf if fmt_it::probe(buf) => Ok(Format::IT),
+        buf if fmt_xm::probe(buf) => Ok(Format::XM),
+        buf if fmt_s3m::probe(buf) => Ok(Format::S3M),
+        buf if fmt_umx::probe(buf) => Ok(Format::UMX),
+        buf if fmt_mod::probe(buf) => Ok(Format::MOD), // TODO: have decent mod validation to avoid needing to put this last
         _ => Err(Error::NoFormatFound),
     }
 }
@@ -68,20 +70,4 @@ impl std::fmt::Display for Format {
             }
         )
     }
-}
-
-#[cfg(test)]
-mod test {
-    // use crate::fmt::loader::identify_module;
-    // use std::{io, vec};
-
-    // #[test]
-    // fn a() {
-    //     let mut buf = vec![0u8; 0x2c];
-    //     buf.extend_from_slice(b"SCRM");
-
-    //     let head: &[u8] = &buf;
-    //     let mut head = io::Cursor::new(head);
-    //     dbg!(identify_module(&mut head));
-    // }
 }

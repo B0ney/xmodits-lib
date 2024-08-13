@@ -1,11 +1,10 @@
-use std::borrow::Cow;
-use std::fs::{self, read_dir};
-use std::path::{Path, PathBuf};
+use std::fs::read_dir;
+use std::path::Path;
 
-use crate::{load_module, Error};
+use crate::fmt::loader;
+use crate::Error;
 
-use super::error::{no_filename, not_empty, too_large};
-use super::extract::create_folder_name;
+use super::error::too_large;
 use super::MAX_SIZE_BYTES;
 
 /// Basic information about a tracker module
@@ -28,7 +27,7 @@ impl Info {
             return Err(too_large(MAX_SIZE_BYTES));
         }
 
-        let module = load_module(&mut fs::File::open(file)?)?;
+        let module = loader::from_path(file)?;
         let total_sample_size: usize = module.samples().iter().map(|m| m.length as usize).sum();
 
         let info = Info {
@@ -49,5 +48,3 @@ pub fn filesize(path: &Path) -> Result<u64, Error> {
 pub fn is_dir_empty(path: impl AsRef<Path>) -> Result<bool, Error> {
     Ok(read_dir(path.as_ref())?.next().is_none())
 }
-
-

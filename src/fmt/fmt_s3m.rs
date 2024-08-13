@@ -5,7 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::interface::module::{GenericTracker, Module};
+use crate::interface::module::{GenericTracker, Info};
 use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample};
 use crate::interface::Error;
 use crate::parser::{
@@ -15,11 +15,9 @@ use crate::parser::{
     string::read_str,
 };
 use crate::{info, warn};
-use std::borrow::Cow;
-use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-const NAME: &str = "Scream Tracker";
+const FORMAT: &str = "Scream Tracker";
 
 const MAGIC_SCRM: [u8; 4] = *b"SCRM";
 const MAGIC_NUMBER: [u8; 1] = [0x10];
@@ -30,54 +28,17 @@ const FLAG_LOOP: u8 = 1 << 0;
 const FLAG_STEREO: u8 = 1 << 1;
 const FLAG_BITS: u8 = 1 << 2;
 
-/// Scream Tracker
-pub struct S3M {
-    inner: GenericTracker,
-    samples: Box<[Sample]>,
-    name: Box<str>,
-    source: Option<Box<Path>>,
-}
-
-impl Module for S3M {
-    fn name(&self) -> &str {
-        &self.name
-    }
-
-    fn format(&self) -> &str {
-        NAME
-    }
-
-    fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
-        Ok(self.inner.get_slice(smp)?.into())
-    }
-
-    fn samples(&self) -> &[Sample] {
-        &self.samples
-    }
-
-    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error> {
-        info!("Loading Scream Tracker 3 Module");
-        Ok(Box::new(parse_(data)?))
-    }
-
-    fn matches_format(buf: &[u8]) -> bool {
-        match buf.get(0x2c..) {
-            Some(slice) => magic_header(&MAGIC_SCRM, slice),
-            None => false,
-        }
-    }
-
-    fn set_source(mut self: Box<Self>, path: PathBuf) -> Box<dyn Module> {
-        self.source = Some(path.into());
-        self
-    }
-
-    fn source(&self) -> Option<&Path> {
-        self.source.as_deref()
+pub fn probe(buf: &[u8]) -> bool {
+    match buf.get(0x2c..) {
+        Some(slice) => magic_header(&MAGIC_SCRM, slice),
+        None => false,
     }
 }
 
-pub fn parse_(file: &mut impl ReadSeek) -> Result<S3M, Error> {
+pub fn load(
+    file: &mut impl ReadSeek,
+    source: impl Into<Option<PathBuf>>,
+) -> Result<GenericTracker, Error> {
     let title = read_str::<28>(file)?;
     file.skip_bytes(1)?; // skip other magic
 
@@ -104,18 +65,19 @@ pub fn parse_(file: &mut impl ReadSeek) -> Result<S3M, Error> {
         ptrs.push((file.read_u16_le()? as u32) << 4);
     }
 
-    let samples = build(file, ptrs, signed)?.into();
-    let inner = file.load_to_memory()?.into();
-
-    Ok(S3M {
-        name: title,
-        inner,
-        samples,
-        source: None,
+    Ok(GenericTracker {
+        info: Info {
+            name: title.to_string(),
+            format: FORMAT,
+            source: source.into(),
+            ..Default::default()
+        },
+        inner: file.load_to_memory()?.into_boxed_slice(),
+        samples: build_samples(file, ptrs, signed)?.into(),
     })
 }
 
-fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<Sample>, Error> {
+fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<Sample>, Error> {
     let mut samples: Vec<Sample> = Vec::with_capacity(ptrs.len());
 
     for (index_raw, ptr) in ptrs.into_iter().enumerate() {
@@ -186,36 +148,4 @@ fn build(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<S
     }
 
     Ok(samples)
-}
-
-#[test]
-pub fn a() {
-    use std::io::{Read, Seek};
-    // env_logger::init();
-    use crate::interface::ripper::Ripper;
-    // panic!();
-    let mut file = std::fs::File::open("./modules/dusk.s3m").unwrap();
-    let tracker = parse_(&mut file).unwrap();
-    info!("3gsfg {}", &tracker.name());
-    // for i in tracker.samples() {
-    //     // dbg!(i.is_stereo());
-    //     dbg!(i.filename_pretty());
-    //     dbg!(i.name_pretty());
-    //     dbg!(i.bits());
-    //     dbg!(&i.looping);
-    //     dbg!(i.bits());
-    // }
-
-    // file.rewind().unwrap();
-    // let mut inner = Vec::new();
-    // file.read_to_end(&mut inner).unwrap();
-
-    // let module = S3M {
-    //     inner: inner.into(),
-    //     samples: samples.into(),
-    // };
-
-    // let mut ripper = Ripper::default();
-    // ripper.change_format(ExportFormat::AIFF.into());
-    // ripper.rip_to_dir("./dusk/", &tracker).unwrap()
 }
