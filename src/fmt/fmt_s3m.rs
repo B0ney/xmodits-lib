@@ -15,7 +15,7 @@ use crate::parser::{
     string::read_str,
 };
 use crate::{info, warn};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 const FORMAT: &str = "Scream Tracker";
 
@@ -77,7 +77,11 @@ pub fn load(
     })
 }
 
-fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>, signed: bool) -> Result<Vec<Sample>, Error> {
+fn build_samples(
+    file: &mut impl ReadSeek,
+    ptrs: Vec<u32>,
+    signed: bool,
+) -> Result<Vec<Sample>, Error> {
     let mut samples: Vec<Sample> = Vec::with_capacity(ptrs.len());
 
     for (index_raw, ptr) in ptrs.into_iter().enumerate() {

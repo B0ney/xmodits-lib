@@ -7,7 +7,6 @@
 
 use crate::dsp::{adpcm_decode, delta_decode, decompress_it21n};
 use crate::interface::{sample::Sample, Error};
-use crate::parser::io::ReadSeek;
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
@@ -25,27 +24,6 @@ pub trait Module {
     /// Note: This should not be used to strictly identify the format
     fn format(&self) -> &str;
 
-    /// Display internal text
-    // fn comments(&self) -> Cow<str>;
-
-    fn matches_format(buf: &[u8]) -> bool
-    where
-        Self: Sized;
-
-    /// Load tracker module from reader
-    /// This function should not panic.
-    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error>
-    where
-        Self: Sized;
-
-    /// Load tracker module from a path
-    fn load_path(path: &Path) -> Result<Box<dyn Module>, Error>
-    where
-        Self: Sized,
-    {
-        Self::load(&mut std::fs::File::open(path)?)
-    }
-
     /// Obtain readable pcm data.
     ///
     /// Returns a ``Cow<[u8]>`` to allow referencing the inner buffer
@@ -61,7 +39,7 @@ pub trait Module {
     fn total_samples(&self) -> usize {
         self.samples().len()
     }
-    fn set_source(self: Box<Self>, path: PathBuf) -> Box<dyn Module>;
+
     fn source(&self) -> Option<&Path>;
 }
 
@@ -135,18 +113,6 @@ impl Module for GenericTracker {
         &self.info.format
     }
 
-    fn matches_format(buf: &[u8]) -> bool
-    where
-        Self: Sized {
-        todo!()
-    }
-
-    fn load(data: &mut impl ReadSeek) -> Result<Box<dyn Module>, Error>
-    where
-        Self: Sized {
-        todo!()
-    }
-
     fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
         self.pcm(smp)
     }
@@ -155,19 +121,8 @@ impl Module for GenericTracker {
         &self.samples
     }
 
-    fn set_source(self: Box<Self>, path: PathBuf) -> Box<dyn Module> {
-        todo!()
-    }
 
     fn source(&self) -> Option<&Path> {
         self.info.source.as_deref()
     }
 }
-
-// #[derive(Debug, Default, Clone)]
-// enum Source {
-//     #[default]
-//     Unknown,
-//     Path(Box<Path>),
-
-// }
