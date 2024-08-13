@@ -6,7 +6,6 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 pub mod fmt_it;
-pub mod fmt_it_compression;
 pub mod fmt_mod;
 pub mod fmt_s3m;
 pub mod fmt_umx;

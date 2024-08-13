@@ -5,7 +5,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::fmt_it_compression::{decompress_16_bit, decompress_8_bit};
 use crate::info;
 use crate::interface::module::{GenericTracker, Info};
 use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample};
@@ -173,18 +172,6 @@ fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>
     Ok(samples)
 }
 
-#[inline]
-pub fn decompress(smp: &Sample) -> impl Fn(&[u8], u32, bool, bool) -> Result<Vec<u8>, Error> {
-    info!(
-        "Decompressing Impulse Tracker sample with raw index: {}",
-        smp.index_raw()
-    );
-
-    match smp.is_8_bit() {
-        true => decompress_8_bit,
-        false => decompress_16_bit,
-    }
-}
 
 fn check_zirconia(file: &mut impl ReadSeek) -> Result<(), Error> {
     let magic = non_consume(file, |file| read_exact_const::<8>(file))?;

@@ -5,8 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::dsp::{adpcm_decode, delta_decode};
-use crate::fmt::fmt_it::decompress;
+use crate::dsp::{adpcm_decode, delta_decode, decompress_it21n};
 use crate::interface::{sample::Sample, Error};
 use crate::parser::io::ReadSeek;
 use std::borrow::Cow;
@@ -82,14 +81,6 @@ pub struct GenericTracker {
 }
 
 impl GenericTracker {
-    pub fn new(buf: Vec<u8>) -> Self {
-        Self {
-            inner: buf.into_boxed_slice(),
-            info: todo!(),
-            samples: todo!(),
-        }
-    }
-
     #[inline]
     pub fn get_slice(&self, smp: &Sample) -> Result<&[u8], Error> {
         self.inner
@@ -119,7 +110,7 @@ impl GenericTracker {
             PcmType::PCM => self.get_slice(smp).map(Into::into),
             PcmType::DELTA => Ok(delta_decode(smp, self.get_owned_slice_trailing(smp)?).into()),
             PcmType::ADPCM => adpcm_decode(smp, self.get_slice_trailing(smp)?).map(Into::into),
-            PcmType::IT214 | PcmType::IT215 => decompress(smp)(
+            PcmType::IT214 | PcmType::IT215 => decompress_it21n(smp)(
                 self.get_slice_trailing(smp)?,
                 smp.length_frames() as u32,
                 smp.pcm_type == PcmType::IT215,

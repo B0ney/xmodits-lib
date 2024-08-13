@@ -13,10 +13,25 @@
 //! Bitreading:
 //!     https://github.com/Konstanty/libmodplug/blob/master/src/load_it.cpp#L1183
 
-use crate::error;
+use crate::{error, info, Sample};
 use crate::interface::Error;
 use crate::parser::bytes::le_u16 as _le_u16;
 use bytemuck::cast_slice;
+
+
+#[inline]
+pub fn decompress_it21n(smp: &Sample) -> impl Fn(&[u8], u32, bool, bool) -> Result<Vec<u8>, Error> {
+    info!(
+        "Decompressing Impulse Tracker sample with raw index: {}",
+        smp.index_raw()
+    );
+
+    match smp.is_8_bit() {
+        true => decompress_8_bit,
+        false => decompress_16_bit,
+    }
+}
+
 
 #[rustfmt::skip] 
 struct BitReader<'a> {
