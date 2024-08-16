@@ -8,7 +8,7 @@
 use std::io::Cursor;
 use std::path::PathBuf;
 
-use crate::fmt::{loader::identify_module, Format};
+use crate::fmt::detect::get_loader;
 use crate::interface::module::GenericTracker;
 use crate::interface::Error;
 use crate::parser::{
@@ -17,21 +17,16 @@ use crate::parser::{
     string::read_string,
 };
 
-use crate::fmt::{fmt_it, fmt_mod, fmt_s3m, fmt_xm};
-
 const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
 
 pub fn probe(buf: &[u8]) -> bool {
     magic_header(&MAGIC_UPKG, buf)
 }
 
-pub fn load(
-    buffer: Vec<u8>,
-    source: Option<PathBuf>,
-) -> Result<GenericTracker, Error> {
+pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
     let mut buffer = Cursor::new(buffer);
     let file = &mut buffer;
-    
+
     if !is_magic(file, &MAGIC_UPKG)? {
         return Err(Error::invalid("Not a valid Unreal package"));
     }
@@ -104,14 +99,8 @@ pub fn load(
     let mut buffer = buffer.into_inner();
     let inner = buffer.split_off(offset as usize);
 
-    // // done to prevent overflow compile error
-    let module = match identify_module(&mut Cursor::new(&inner))? {
-        Format::IT => fmt_it::load(inner, source)?,
-        Format::XM => fmt_xm::load(inner, source)?,
-        Format::S3M => fmt_s3m::load(inner, source)?,
-        Format::MOD => fmt_mod::load(inner, source)?,
-        Format::UMX => return Err(Error::invalid("Nested Unreal music containers are invalid")),
-    };
+    let load_module = get_loader(&mut Cursor::new(&inner))?;
+    let module = load_module(inner, source)?;
 
     Ok(module)
 }
@@ -174,7 +163,6 @@ mod tests {
     use std::io::Cursor;
 
     use crate::container::umx::read_compact_index;
-
 
     // Test read compact index works
     #[test]

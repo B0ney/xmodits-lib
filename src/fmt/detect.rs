@@ -1,8 +1,12 @@
 //! Detect A tracker format
 
-use crate::{parser::io::{non_consume, ReadSeek}, Error};
+use std::path::PathBuf;
+
+use crate::{interface::module::GenericTracker, parser::io::{non_consume, ReadSeek}, Error};
 
 use super::{fmt_it, fmt_mod, fmt_s3m, fmt_xm};
+
+pub type Loader = fn(Vec<u8>, Option<PathBuf>) -> Result<GenericTracker, Error>;
 
 pub enum Format {
     IT,
@@ -23,4 +27,13 @@ pub fn detect(data: &mut impl ReadSeek) -> Result<Format, Error> {
         buf if fmt_mod::probe(buf) => Ok(Format::MOD), // TODO: have decent mod validation to avoid needing to put this last
         _ => Err(Error::NoFormatFound),
     }
+}
+
+pub fn get_loader(data: &mut impl ReadSeek) -> Result<Loader, Error> {
+    detect(data).map(|format| match format {
+        Format::IT => fmt_it::load,
+        Format::XM => fmt_xm::load,
+        Format::S3M => fmt_s3m::load,
+        Format::MOD => fmt_mod::load,
+    }) 
 }
