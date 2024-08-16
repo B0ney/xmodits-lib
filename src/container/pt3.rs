@@ -1,0 +1,1 @@
+//! Obtain inner MOD file from a ProTracker 3 file

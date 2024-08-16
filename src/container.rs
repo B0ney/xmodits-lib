@@ -2,4 +2,5 @@
 
 pub mod zip;
 pub mod umx;
+pub mod pt3;
 
