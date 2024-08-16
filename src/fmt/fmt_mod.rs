@@ -52,7 +52,7 @@ pub fn load(
     check_xpk(file)?;
 
     let title = read_str::<20>(file)?;
-    let MODInfo { channels, samples } = get_mod_info(file)?;
+    let (channels, samples) = get_mod_info(file)?;
 
     let mut samples = {
         let sample_number = samples as usize;
@@ -142,54 +142,47 @@ pub fn load(
     })
 }
 
-fn get_mod_info(data: &mut impl ReadSeek) -> std::io::Result<MODInfo> {
+fn get_mod_info(data: &mut impl ReadSeek) -> std::io::Result<(u8, u8)> {
     non_consume(data, |data| {
         data.set_seek_pos(1080)?;
         let magic: [u8; 4] = data.read_u32_be()?.to_be_bytes();
-        Ok(MODInfo::generate(magic))
+        Ok(get_channels_and_sample_num(magic))
     })
 }
 
-struct MODInfo {
-    pub channels: u8,
-    pub samples: u8,
-}
+pub fn get_channels_and_sample_num(magic: [u8; 4]) -> (u8, u8) {
+    let mut samples = 31;
 
-impl MODInfo {
-    pub fn generate(magic: [u8; 4]) -> Self {
-        let mut samples = 31;
+    // https://github.com/Konstanty/libmodplug/blob/master/src/load_mod.cpp#L208-L224
+    #[rustfmt::skip]
+    let advanced = |magic: [u8; 4]| -> Option<u8> {
+        match magic {
+            m if m[..3] == *b"FLT" && (b'4'..=b'9').contains(&m[3]) => Some(m[3] - b'0'),
+            m if m[..3] == *b"TDZ" && (b'4'..=b'9').contains(&m[3]) => Some(m[3] - b'0'),
+            m if m[1..] == *b"CHN" && (b'2'..=b'9').contains(&m[0]) => Some(m[0] - b'0'),
+            m if (m[0] == b'1' && m[2..] == *b"CH") && m[1].is_ascii_digit() => Some(m[1] - b'0' + 10),
+            m if (m[0] == b'2' && m[2..] == *b"CH") && m[1].is_ascii_digit() => Some(m[1] - b'0' + 20),
+            m if (m[0] == b'3' && m[2..] == *b"CH") && (b'0'..=b'2').contains(&m[1]) => Some(m[1] - b'0' + 30),
+            _ => None,
+        }
+    };
 
-        // https://github.com/Konstanty/libmodplug/blob/master/src/load_mod.cpp#L208-L224
-        #[rustfmt::skip]
-        let advanced = |magic: [u8; 4]| -> Option<u8> {
-            match magic {
-                m if m[..3] == *b"FLT" && (b'4'..=b'9').contains(&m[3]) => Some(m[3] - b'0'),
-                m if m[..3] == *b"TDZ" && (b'4'..=b'9').contains(&m[3]) => Some(m[3] - b'0'),
-                m if m[1..] == *b"CHN" && (b'2'..=b'9').contains(&m[0]) => Some(m[0] - b'0'),
-                m if (m[0] == b'1' && m[2..] == *b"CH") && m[1].is_ascii_digit() => Some(m[1] - b'0' + 10),
-                m if (m[0] == b'2' && m[2..] == *b"CH") && m[1].is_ascii_digit() => Some(m[1] - b'0' + 20),
-                m if (m[0] == b'3' && m[2..] == *b"CH") && (b'0'..=b'2').contains(&m[1]) => Some(m[1] - b'0' + 30),
-                _ => None,
+    let channels = match magic.as_ref() {
+        m if CHANNEL_4.contains(&m) => 4,
+        m if CHANNEL_6.contains(&m) => 6,
+        m if CHANNEL_8.contains(&m) => 8,
+        m if CHANNEL_16.contains(&m) => 16,
+        m if CHANNEL_32.contains(&m) => 32,
+        _ => match advanced(magic) {
+            Some(channels) => channels,
+            None => {
+                samples = 15;
+                4
             }
-        };
+        },
+    };
 
-        let channels = match magic.as_ref() {
-            m if CHANNEL_4.contains(&m) => 4,
-            m if CHANNEL_6.contains(&m) => 6,
-            m if CHANNEL_8.contains(&m) => 8,
-            m if CHANNEL_16.contains(&m) => 16,
-            m if CHANNEL_32.contains(&m) => 32,
-            _ => match advanced(magic) {
-                Some(channels) => channels,
-                None => {
-                    samples = 15;
-                    4
-                }
-            },
-        };
-
-        Self { channels, samples }
-    }
+    (channels, samples)
 }
 
 fn check_iff(data: &mut impl ReadSeek) -> Result<&mut impl ReadSeek, Error> {
