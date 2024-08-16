@@ -118,8 +118,6 @@ pub fn load(
                 continue;
             }
 
-            let index_raw = index_raw as u16;
-
             samples.push(Sample {
                 filename: Some(filename),
                 name,
@@ -128,7 +126,7 @@ pub fn load(
                 pointer,
                 depth,
                 channel,
-                index_raw,
+                index_raw: index_raw as u16,
                 looping: Loop::new(loop_start, loop_stop, loop_kind),
                 ..Default::default()
             })
