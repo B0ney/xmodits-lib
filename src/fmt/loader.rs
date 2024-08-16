@@ -10,7 +10,8 @@ use std::path::{Path, PathBuf};
 use crate::interface::{Error, Module};
 use crate::parser::io::{non_consume, ReadSeek};
 
-use super::{fmt_it, fmt_mod, fmt_s3m, fmt_umx, fmt_xm};
+use super::{fmt_it, fmt_mod, fmt_s3m, fmt_xm};
+use crate::container::fmt_umx;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Format {
@@ -36,6 +37,7 @@ pub fn load_module(
     let mut data = Vec::new();
     let _ = buffer.read_to_end(&mut data)?;
     
+    let source = source.into();
     let module = match format {
         Format::IT => fmt_it::load(data, source)?,
         Format::XM => fmt_xm::load(data, source)?,

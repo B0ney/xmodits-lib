@@ -17,7 +17,7 @@ use crate::parser::{
     string::read_string,
 };
 
-use super::{fmt_it, fmt_mod, fmt_s3m, fmt_xm};
+use crate::fmt::{fmt_it, fmt_mod, fmt_s3m, fmt_xm};
 
 const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
 
@@ -27,7 +27,7 @@ pub fn probe(buf: &[u8]) -> bool {
 
 pub fn load(
     buffer: Vec<u8>,
-    source: impl Into<Option<PathBuf>>,
+    source: Option<PathBuf>,
 ) -> Result<GenericTracker, Error> {
     let mut buffer = Cursor::new(buffer);
     let file = &mut buffer;
@@ -173,7 +173,8 @@ fn read_compact_index(file: &mut impl ReadSeek) -> Result<i32, Error> {
 mod tests {
     use std::io::Cursor;
 
-    use crate::fmt::fmt_umx::read_compact_index;
+    use crate::container::fmt_umx::read_compact_index;
+
 
     // Test read compact index works
     #[test]

@@ -38,7 +38,7 @@ pub fn probe(buf: &[u8]) -> bool {
 
 pub fn load(
     buffer: Vec<u8>,
-    source: impl Into<Option<PathBuf>>,
+    source: Option<PathBuf>,
 ) -> Result<GenericTracker, Error> {
     let mut buffer = Cursor::new(buffer);
     let file = &mut buffer;
@@ -191,7 +191,7 @@ pub fn load(
         info: Info {
             name: title.to_string(),
             format: FORMAT,
-            source: source.into(),
+            source,
             ..Default::default()
         },
         inner: file.load_to_memory()?.into_boxed_slice(),
