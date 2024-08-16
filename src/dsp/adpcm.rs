@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use crate::parser::io::{read_exact_const, ByteReader};
+use crate::parser::io::{read_into_array, ByteReader};
 use crate::{Error, Sample};
 
 /// See: Page 16 in "The Unofficial XM File Format Specification"
@@ -8,7 +8,7 @@ use crate::{Error, Sample};
 pub fn adpcm_decode(sample: &Sample, buf: &[u8]) -> Result<Vec<u8>, Error> {
     let mut buffer = Cursor::new(buf);
 
-    let compression_table: [u8; 16] = read_exact_const(&mut buffer)?;
+    let compression_table: [u8; 16] = read_into_array(&mut buffer)?;
     let length: usize = ((sample.length as usize + 1) / 2).min(buf.len());
     let mut out: Vec<u8> = Vec::with_capacity(length);
     let mut delta: u8 = 0;

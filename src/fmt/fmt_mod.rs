@@ -53,7 +53,64 @@ pub fn load(
 
     let title = read_str::<20>(file)?;
     let MODInfo { channels, samples } = get_mod_info(file)?;
-    let mut samples = build_samples(file, samples as usize)?;
+
+    let mut samples = {
+        let sample_number = samples as usize;
+        let mut samples: Vec<Sample> = Vec::new();
+        let mut invalid_score: u8 = 0;
+
+        for i in 0..sample_number {
+            let name = read_str::<22>(file)?;
+
+            let length = file.read_u16_be()? as u32 * 2;
+            let finetune = file.read_u8()?;
+            let volume = file.read_u8()?;
+
+            let mut loop_start = file.read_u16_be()? as u32 * 2;
+            let loop_len = file.read_u16_be()? as u32 * 2;
+
+            let mut loop_end = loop_start + loop_len;
+
+            invalid_score += get_invalid_score(volume, finetune, loop_start, loop_end);
+
+            // Make sure loop points don't overflow
+            if (loop_len > 2) && (loop_end > length) && ((loop_start / 2) <= length) {
+                loop_start /= 2;
+                loop_end = loop_start + loop_len;
+            }
+
+            let loop_kind = match loop_start == loop_end || loop_len <= 2 && length > 2 {
+                true => LoopType::Off,
+                false => LoopType::Forward,
+            };
+
+            if invalid_score > INVALID_BYTE_THRESHOLD {
+                return Err(Error::invalid(
+                    "Not a valid MOD file, contains too much invalid samples",
+                ));
+            }
+
+            let rate = FINETUNE[(finetune as usize) & 0x0F] * 2; // Double frequency to move to 3rd octave
+
+            if length != 0 {
+                samples.push(Sample {
+                    filename: None,
+                    name,
+                    length,
+                    rate,
+                    pointer: 0,
+                    depth: Depth::I8,
+                    channel: Channel::Mono,
+                    index_raw: i as u16,
+                    looping: Loop::new(loop_start, loop_end, loop_kind),
+                    ..Default::default()
+                });
+            }
+        }
+
+        samples
+    };
+
     file.skip_bytes(1)?; // song length
     file.skip_bytes(1)?; // reset flag
 
@@ -133,67 +190,6 @@ impl MODInfo {
 
         Self { channels, samples }
     }
-}
-
-#[rustfmt::skip]
-fn build_samples(file: &mut impl ReadSeek, sample_number: usize) -> Result<Vec<Sample>, Error> {
-    let mut samples: Vec<Sample> = Vec::new();
-    let mut invalid_score: u8 = 0;
-
-    for i in 0..sample_number {
-        let name = read_str::<22>(file)?;
-        
-        let length = file.read_u16_be()? as u32 * 2;
-        let finetune = file.read_u8()?;
-        let volume = file.read_u8()?;
-
-        let mut loop_start = file.read_u16_be()? as u32 * 2;
-        let loop_len = file.read_u16_be()? as u32 * 2;
-
-        let mut loop_end = loop_start  + loop_len;
-
-        invalid_score += get_invalid_score(
-            volume, 
-            finetune, 
-            loop_start,
-            loop_end
-        );
-
-        // Make sure loop points don't overflow
-        if (loop_len > 2) && (loop_end > length) && ((loop_start / 2) <= length) {
-            loop_start /= 2;
-            loop_end = loop_start + loop_len;
-        }
-
-        let loop_kind = match loop_start == loop_end || loop_len <= 2 && length > 2 {
-            true  => LoopType::Off,
-            false => LoopType::Forward,
-        };
-
-        if invalid_score > INVALID_BYTE_THRESHOLD {
-            return Err(Error::invalid(
-                "Not a valid MOD file, contains too much invalid samples"
-            ));
-        }
-
-        let rate = FINETUNE[(finetune as usize) & 0x0F] * 2; // Double frequency to move to 3rd octave
-
-        if length != 0 {
-            samples.push(Sample {
-                filename: None,
-                name,
-                length,
-                rate,
-                pointer: 0,
-                depth: Depth::I8,
-                channel: Channel::Mono,
-                index_raw: i as u16,
-                looping: Loop::new(loop_start, loop_end, loop_kind),
-                ..Default::default()
-            });
-        }
-    }
-    Ok(samples)
 }
 
 fn check_iff(data: &mut impl ReadSeek) -> Result<&mut impl ReadSeek, Error> {

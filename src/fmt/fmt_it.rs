@@ -12,7 +12,7 @@ use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,
-    io::{is_magic, non_consume, read_exact_const, ByteReader, ReadSeek},
+    io::{is_magic, non_consume, read_into_array, ByteReader, ReadSeek},
     string::read_str,
 };
 use std::path::PathBuf;
@@ -70,6 +70,98 @@ pub fn load(
         smp_ptrs.push(file.read_u32_le()?);
     }
 
+    let samples = {
+        info!("Building samples");
+
+        let mut samples: Vec<Sample> = Vec::with_capacity(smp_ptrs.len());
+
+        for (index_raw, sample_header) in smp_ptrs.into_iter().enumerate() {
+            file.set_seek_pos(sample_header as u64)?;
+
+            if !is_magic(file, &MAGIC_IMPS)? {
+                return Err(Error::invalid("Not a valid Impulse Tracker sample"));
+            }
+
+            // Check if the sample is empty so we don't waste resources.
+            let length = non_consume(file, |file| {
+                file.skip_bytes(44)?;
+                file.read_u32_le()
+            })?;
+
+            if length == 0 {
+                info!("Skipping empty sample at raw index: {}...", index_raw + 1);
+                continue;
+            }
+
+            let filename = read_str::<12>(file)?;
+            file.skip_bytes(2)?; // zero, gvl
+
+            let flags = file.read_u8()?;
+            file.skip_bytes(1)?; // vol
+
+            let name = read_str::<26>(file)?;
+            let cvt = file.read_u8()?;
+            file.skip_bytes(1)?; // dfp
+            file.skip_bytes(4)?; // sample length since it's not empty
+
+            let loop_start = file.read_u32_le()?;
+            let loop_end = file.read_u32_le()?;
+            let rate = file.read_u32_le()?;
+            file.skip_bytes(8)?; // susloopbegin, susloopend
+
+            let pointer = file.read_u32_le()?;
+            let signed = cvt.contains(CVT_SIGNED);
+
+            let pcm_type = match flags.contains(FLAG_COMPRESSION) {
+                true => match cvt.contains(CVT_DELTA) {
+                    true => PcmType::IT215,
+                    false => PcmType::IT214,
+                },
+                false => match cvt.contains(CVT_DELTA) {
+                    true => match !flags.contains(FLAG_BITS_16) && cvt.contains(CVT_ADPCM) {
+                        true => PcmType::ADPCM,
+                        false => PcmType::DELTA,
+                    },
+                    false => PcmType::PCM,
+                },
+            };
+
+            let depth = Depth::new(!flags.contains(FLAG_BITS_16), signed, signed);
+            let channel = Channel::new(flags.contains(FLAG_STEREO), false);
+            let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
+
+            if !is_sample_valid(pointer, length, file.len(), pcm_type.is_compressed()) {
+                info!("Skipping invalid sample at index: {}...", index_raw + 1);
+                continue;
+            }
+
+            let index_raw = index_raw as u16;
+            let loop_kind = match flags {
+                f if f.contains(FLAG_PINGPONG_SUSTAIN) => LoopType::PingPong,
+                f if f.contains(FLAG_PINGPONG) => LoopType::PingPong,
+                f if f.contains(FLAG_LOOP) => LoopType::Forward,
+                f if f.contains(FLAG_SUSTAIN) => LoopType::Backward,
+                _ => LoopType::Off,
+            };
+
+            samples.push(Sample {
+                filename: Some(filename),
+                name,
+                length,
+                rate,
+                pointer,
+                depth,
+                channel,
+                index_raw,
+                pcm_type,
+                looping: Loop::new(loop_start, loop_end, loop_kind),
+            })
+        }
+
+        samples
+    };
+
+
     Ok(GenericTracker {
         info: Info {
             name: title.to_string(),
@@ -78,103 +170,12 @@ pub fn load(
             ..Default::default()
         },
         inner: file.load_to_memory()?.into_boxed_slice(),
-        samples: build_samples(file, smp_ptrs)?.into_boxed_slice(),
+        samples: samples.into_boxed_slice(),
     })
 }
 
-fn build_samples(file: &mut impl ReadSeek, ptrs: Vec<u32>) -> Result<Vec<Sample>, Error> {
-    let mut samples: Vec<Sample> = Vec::with_capacity(ptrs.len());
-    info!("Building samples");
-
-    for (index_raw, sample_header) in ptrs.into_iter().enumerate() {
-        file.set_seek_pos(sample_header as u64)?;
-
-        if !is_magic(file, &MAGIC_IMPS)? {
-            return Err(Error::invalid("Not a valid Impulse Tracker sample"));
-        }
-
-        // Check if the sample is empty so we don't waste resources.
-        let length = non_consume(file, |file| {
-            file.skip_bytes(44)?;
-            file.read_u32_le()
-        })?;
-
-        if length == 0 {
-            info!("Skipping empty sample at raw index: {}...", index_raw + 1);
-            continue;
-        }
-
-        let filename = read_str::<12>(file)?;
-        file.skip_bytes(2)?; // zero, gvl
-
-        let flags = file.read_u8()?;
-        file.skip_bytes(1)?; // vol
-
-        let name = read_str::<26>(file)?;
-        let cvt = file.read_u8()?;
-        file.skip_bytes(1)?; // dfp
-        file.skip_bytes(4)?; // sample length since it's not empty
-
-        let loop_start = file.read_u32_le()?;
-        let loop_end = file.read_u32_le()?;
-        let rate = file.read_u32_le()?;
-        file.skip_bytes(8)?; // susloopbegin, susloopend
-
-        let pointer = file.read_u32_le()?;
-        let signed = cvt.contains(CVT_SIGNED);
-
-        let pcm_type = match flags.contains(FLAG_COMPRESSION) {
-            true => match cvt.contains(CVT_DELTA) {
-                true => PcmType::IT215,
-                false => PcmType::IT214,
-            },
-            false => match cvt.contains(CVT_DELTA) {
-                true => match !flags.contains(FLAG_BITS_16) && cvt.contains(CVT_ADPCM) {
-                    true => PcmType::ADPCM,
-                    false => PcmType::DELTA,
-                },
-                false => PcmType::PCM,
-            },
-        };
-
-        let depth = Depth::new(!flags.contains(FLAG_BITS_16), signed, signed);
-        let channel = Channel::new(flags.contains(FLAG_STEREO), false);
-        let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
-
-        if !is_sample_valid(pointer, length, file.len(), pcm_type.is_compressed()) {
-            info!("Skipping invalid sample at index: {}...", index_raw + 1);
-            continue;
-        }
-
-        let index_raw = index_raw as u16;
-        let loop_kind = match flags {
-            f if f.contains(FLAG_PINGPONG_SUSTAIN) => LoopType::PingPong,
-            f if f.contains(FLAG_PINGPONG) => LoopType::PingPong,
-            f if f.contains(FLAG_LOOP) => LoopType::Forward,
-            f if f.contains(FLAG_SUSTAIN) => LoopType::Backward,
-            _ => LoopType::Off,
-        };
-
-        samples.push(Sample {
-            filename: Some(filename),
-            name,
-            length,
-            rate,
-            pointer,
-            depth,
-            channel,
-            index_raw,
-            pcm_type,
-            looping: Loop::new(loop_start, loop_end, loop_kind),
-        })
-    }
-
-    Ok(samples)
-}
-
-
 fn check_zirconia(file: &mut impl ReadSeek) -> Result<(), Error> {
-    let magic = non_consume(file, |file| read_exact_const::<8>(file))?;
+    let magic = non_consume(file, |file| read_into_array::<8>(file))?;
 
     match magic == MAGIC_ZIRCONIA {
         true => Err(Error::unsupported(UNSUPPORTED)),

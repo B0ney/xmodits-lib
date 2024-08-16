@@ -5,7 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::parser::io::{io_error, read_exact_const, ReadSeek};
+use crate::parser::io::{io_error, read_into_array, ReadSeek};
 use std::{borrow::Cow, io};
 
 const FORBIDDEN_CHARS: &[char] = &[
@@ -26,13 +26,13 @@ pub fn replace_carriage_return(mut buf: Box<[u8]>) -> Box<[u8]> {
 
 /// Returns an owned string slice from a known size
 pub fn read_str<const N: usize>(data: &mut impl ReadSeek) -> io::Result<Box<str>> {
-    Ok(read_string(&read_exact_const::<N>(data)?))
+    Ok(read_string(&read_into_array::<N>(data)?))
 }
 
 /// Returns an owned string slice from a known size.
 /// Checks if it contains too many non printable ascii data
 pub fn read_str_checked<const N: usize>(data: &mut impl ReadSeek) -> io::Result<Box<str>> {
-    read_string_checked(&read_exact_const::<N>(data)?)
+    read_string_checked(&read_into_array::<N>(data)?)
 }
 
 /// Returns an owned string slice

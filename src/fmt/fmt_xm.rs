@@ -13,7 +13,7 @@ use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,
-    io::{is_magic, non_consume, read_exact_const, ByteReader, ReadSeek},
+    io::{is_magic, non_consume, read_into_array, ByteReader, ReadSeek},
     string::read_str,
 };
 use std::path::PathBuf;
@@ -27,6 +27,9 @@ const MINIMUM_VERSION: u16 = 0x0104;
 
 const FLAG_BITS: u8 = 1 << 4;
 const FLAG_STEREO: u8 = 1 << 5;
+
+const XM_INS_SIZE: u32 = 263;
+const XM_SMP_SIZE: u64 = 40;
 
 pub fn probe(buf: &[u8]) -> bool {
     magic_header(&MAGIC_EXTENDED_MODULE, buf) | magic_header(&MAGIC_MOD_PLUGIN_PACKED, buf)
@@ -84,8 +87,101 @@ pub fn load(
         // }
     }
 
-    let mut samples = build_samples(file, insnum)?;
-    remove_invalid_samples(&mut samples, file.len())?;
+    let samples = {
+        let mut samples: Vec<Sample> = Vec::new();
+        let mut staging_samples: Vec<Sample> = Vec::new();
+        let mut total_samples: u16 = 0;
+        let file_size = file.len().expect("size of reader");
+
+        'ins: for _ in 0..insnum {
+            let offset = file.seek_position()?;
+
+            let mut header_size = file.read_u32_le()?;
+            file.skip_bytes(22)?; // instrument name
+            file.skip_bytes(1)?; // instrument type
+
+            let sample_number = file.read_u16_le()?;
+
+            if header_size == 0 || header_size > XM_INS_SIZE {
+                header_size = XM_INS_SIZE;
+            }
+
+            let total_smp_hdr_size = XM_SMP_SIZE * sample_number as u64;
+            let start_smp_hdr = header_size as u64 + offset;
+
+            file.set_seek_pos(start_smp_hdr)?; // skip to sample headers
+
+            for _ in 0..sample_number {
+                let length = file.read_u32_le()?;
+
+                // Break out of loop if it will lead to an eof error
+                if (start_smp_hdr + total_smp_hdr_size + length as u64) > file_size {
+                    break 'ins;
+                }
+
+                let loop_start = file.read_u32_le()?;
+                let loop_length = file.read_u32_le()?;
+                file.skip_bytes(1)?; // volume
+
+                let finetune = file.read_u8()? as i8;
+                let flag = file.read_u8()?;
+                file.skip_bytes(1)?; // panning,
+
+                let notenum = file.read_u8()? as i8;
+                let pcm_type = match file.read_byte()? {
+                    0xAD => PcmType::ADPCM,
+                    _ => PcmType::DELTA,
+                };
+
+                let name = read_str::<22>(file)?;
+
+                let period = 7680.0 - ((48.0 + notenum as f32) * 64.0) - (finetune as f32 / 2.0);
+                let rate = (8363.0 * 2.0_f32.powf((4608.0 - period) / 768.0)) as u32;
+
+                let depth = Depth::new(!flag.contains(FLAG_BITS), true, true);
+                let channel = Channel::new(flag.contains(FLAG_STEREO), false);
+
+                let loop_start = loop_start / (depth.bytes() as u32 * channel.channels() as u32);
+                let loop_length = loop_length / (depth.bytes() as u32 * channel.channels() as u32);
+                let loop_end = loop_start.checked_add(loop_length).unwrap_or(0);
+
+                let loop_kind = match flag & 0x3 {
+                    0 => LoopType::Off,
+                    1 => LoopType::Forward,
+                    2 => LoopType::PingPong,
+                    3 => LoopType::PingPong,
+                    _ => LoopType::Off,
+                };
+
+                if length != 0 {
+                    staging_samples.push(Sample {
+                        filename: None,
+                        name,
+                        length,
+                        rate,
+                        pointer: 0,
+                        depth,
+                        channel,
+                        index_raw: total_samples,
+                        pcm_type,
+                        looping: Loop::new(loop_start, loop_end, loop_kind),
+                    });
+                }
+                total_samples += 1;
+            }
+
+            for smp in staging_samples.iter_mut() {
+                smp.pointer = file.seek_position()? as u32;
+                file.skip_bytes(smp.length as i64)?;
+            }
+
+            samples.append(&mut staging_samples);
+        }
+
+        remove_invalid_samples(&mut samples, file.len())?;
+
+        samples
+    };
 
     Ok(GenericTracker {
         info: Info {
@@ -99,107 +195,10 @@ pub fn load(
     })
 }
 
-const XM_INS_SIZE: u32 = 263;
-const XM_SMP_SIZE: u64 = 40;
-
-fn build_samples(file: &mut impl ReadSeek, ins_num: u16) -> Result<Vec<Sample>, Error> {
-    let mut samples: Vec<Sample> = Vec::new();
-    let mut staging_samples: Vec<Sample> = Vec::new();
-    let mut total_samples: u16 = 0;
-    let file_size = file.len().expect("size of reader");
-
-    'ins: for _ in 0..ins_num {
-        let offset = file.seek_position()?;
-
-        let mut header_size = file.read_u32_le()?;
-        file.skip_bytes(22)?; // instrument name
-        file.skip_bytes(1)?; // instrument type
-
-        let sample_number = file.read_u16_le()?;
-
-        if header_size == 0 || header_size > XM_INS_SIZE {
-            header_size = XM_INS_SIZE;
-        }
-
-        let total_smp_hdr_size = XM_SMP_SIZE * sample_number as u64;
-        let start_smp_hdr = header_size as u64 + offset;
-
-        file.set_seek_pos(start_smp_hdr)?; // skip to sample headers
-
-        for _ in 0..sample_number {
-            let length = file.read_u32_le()?;
-
-            // Break out of loop if it will lead to an eof error
-            if (start_smp_hdr + total_smp_hdr_size + length as u64) > file_size {
-                break 'ins;
-            }
-
-            let loop_start = file.read_u32_le()?;
-            let loop_length = file.read_u32_le()?;
-            file.skip_bytes(1)?; // volume
-
-            let finetune = file.read_u8()? as i8;
-            let flag = file.read_u8()?;
-            file.skip_bytes(1)?; // panning,
-
-            let notenum = file.read_u8()? as i8;
-            let pcm_type = match file.read_byte()? {
-                0xAD => PcmType::ADPCM,
-                _ => PcmType::DELTA,
-            };
-
-            let name = read_str::<22>(file)?;
-
-            let period: f32 = 7680.0 - ((48.0 + notenum as f32) * 64.0) - (finetune as f32 / 2.0);
-            let rate: u32 = (8363.0 * 2.0_f32.powf((4608.0 - period) / 768.0)) as u32;
-
-            let depth = Depth::new(!flag.contains(FLAG_BITS), true, true);
-            let channel = Channel::new(flag.contains(FLAG_STEREO), false);
-
-            let loop_start = loop_start / (depth.bytes() as u32 * channel.channels() as u32);
-            let loop_length = loop_length / (depth.bytes() as u32 * channel.channels() as u32);
-            let loop_end = loop_start.checked_add(loop_length).unwrap_or(0);
-
-            let loop_kind = match flag & 0x3 {
-                0 => LoopType::Off,
-                1 => LoopType::Forward,
-                2 => LoopType::PingPong,
-                3 => LoopType::PingPong,
-                _ => LoopType::Off,
-            };
-
-            if length != 0 {
-                staging_samples.push(Sample {
-                    filename: None,
-                    name,
-                    length,
-                    rate,
-                    pointer: 0,
-                    depth,
-                    channel,
-                    index_raw: total_samples,
-                    pcm_type,
-                    looping: Loop::new(loop_start, loop_end, loop_kind),
-                });
-            }
-            total_samples += 1;
-        }
-
-        for smp in staging_samples.iter_mut() {
-            smp.pointer = file.seek_position()? as u32;
-            file.skip_bytes(smp.length as i64)?;
-        }
-
-        samples.append(&mut staging_samples);
-    }
-
-    Ok(samples)
-}
-
 fn check_mod_plugin_packed(file: &mut impl ReadSeek) -> Result<(), Error> {
-    let magic = non_consume(file, |file| {
+    let magic: [u8; 20] = non_consume(file, |file| {
         file.skip_bytes(38)?;
-        read_exact_const::<20>(file)
+        read_into_array(file)
     })?;
 
     match magic == MAGIC_MOD_PLUGIN_PACKED {

@@ -147,7 +147,7 @@ pub fn prettify_eof(err: io::Error) -> io::Error {
     }
 }
 
-pub fn read_exact_const<const N: usize>(data: &mut impl ReadSeek) -> io::Result<[u8; N]> {
+pub fn read_into_array<const N: usize>(data: &mut impl ReadSeek) -> io::Result<[u8; N]> {
     let mut buf = [0u8; N];
     data.read_exact(&mut buf).map_err(prettify_eof)?;
 
