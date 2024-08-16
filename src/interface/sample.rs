@@ -332,7 +332,7 @@ pub fn remove_invalid_samples(samples: &mut Vec<Sample>, size: Option<u64>) -> R
         return Ok(());
     };
 
-    samples.retain(|smp| !is_sample_valid(smp.pointer, smp.length, size, smp.pcm_type.is_compressed()));
+    samples.retain(|smp| is_sample_valid(smp.pointer, smp.length, size, smp.pcm_type.is_compressed()));
 
     match samples.is_empty() {
         true => Err(Error::invalid("Module doesn't have any valid samples.")),
