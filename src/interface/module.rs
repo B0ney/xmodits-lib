@@ -86,8 +86,8 @@ impl GenericTracker {
     pub fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
         match smp.pcm_type {
             PcmType::PCM => self.get_slice(smp).map(Into::into),
-            PcmType::DELTA => Ok(delta_decode(smp, self.get_owned_slice_trailing(smp)?).into()),
-            PcmType::ADPCM => adpcm_decode(smp, self.get_slice_trailing(smp)?).map(Into::into),
+            PcmType::DELTA => Ok(delta_decode(smp, self.get_owned_slice(smp)?).into()),
+            PcmType::ADPCM => adpcm_decode(smp, self.get_slice(smp)?).map(Into::into),
             PcmType::IT214 | PcmType::IT215 => decompress_it21n(smp)(
                 self.get_slice_trailing(smp)?,
                 smp.length_frames() as u32,
