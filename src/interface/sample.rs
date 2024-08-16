@@ -280,9 +280,7 @@ impl SampleRate {
     }
 }
 
-pub struct Transpose {
-
-}
+pub struct Transpose {}
 
 use super::Error;
 
@@ -351,7 +349,7 @@ pub enum PcmType {
     IT214,
     /// Samples are compressed with Impulse Tracker v2.15
     IT215,
-    /// Samples are stored as Adaptive differential pulse-code modulation 
+    /// Samples are stored as Adaptive differential pulse-code modulation
     ADPCM,
 }
 
