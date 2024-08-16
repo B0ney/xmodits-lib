@@ -173,7 +173,7 @@ fn read_compact_index(file: &mut impl ReadSeek) -> Result<i32, Error> {
 mod tests {
     use std::io::Cursor;
 
-    use crate::container::fmt_umx::read_compact_index;
+    use crate::container::umx::read_compact_index;
 
 
     // Test read compact index works
