@@ -15,6 +15,7 @@ use crate::parser::{
     io::{is_magic, non_consume, read_into_array, ByteReader, ReadSeek},
     string::read_str,
 };
+use std::io::Cursor;
 use std::path::PathBuf;
 
 const FORMAT: &str = "Impulse Tracker";
@@ -46,9 +47,12 @@ pub fn probe(buf: &[u8]) -> bool {
 }
 
 pub fn load(
-    file: &mut impl ReadSeek,
+    buffer: Vec<u8>,
     source: impl Into<Option<PathBuf>>,
 ) -> Result<GenericTracker, Error> {
+    let mut buffer = Cursor::new(buffer);
+    let file = &mut buffer;
+
     check_zirconia(file)?;
 
     if !is_magic(file, &MAGIC_IMPM)? {
@@ -169,7 +173,7 @@ pub fn load(
             source: source.into(),
             ..Default::default()
         },
-        inner: file.load_to_memory()?.into_boxed_slice(),
+        inner: buffer.into_inner().into_boxed_slice(),
         samples: samples.into_boxed_slice(),
     })
 }

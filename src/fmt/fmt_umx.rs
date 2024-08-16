@@ -5,6 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use std::io::Cursor;
 use std::path::PathBuf;
 
 use crate::fmt::{loader::identify_module, Format};
@@ -12,7 +13,7 @@ use crate::interface::module::GenericTracker;
 use crate::interface::Error;
 use crate::parser::{
     bytes::magic_header,
-    io::{is_magic, ByteReader, Container, ReadSeek},
+    io::{is_magic, ByteReader, ReadSeek},
     string::read_string,
 };
 
@@ -25,9 +26,12 @@ pub fn probe(buf: &[u8]) -> bool {
 }
 
 pub fn load(
-    file: &mut impl ReadSeek,
+    buffer: Vec<u8>,
     source: impl Into<Option<PathBuf>>,
 ) -> Result<GenericTracker, Error> {
+    let mut buffer = Cursor::new(buffer);
+    let file = &mut buffer;
+    
     if !is_magic(file, &MAGIC_UPKG)? {
         return Err(Error::invalid("Not a valid Unreal package"));
     }
@@ -94,19 +98,18 @@ pub fn load(
     let _ = read_compact_index(file)?; // obj size field
     let _inner_size = read_compact_index(file)? as u64;
 
-    let size = file.size();
-
     // store the reader into a Container struct
     // so that seeking is relative to this current offset
-    let mut file = Container::new(file, size);
-    let data = &mut file;
+    let offset = file.position();
+    let mut buffer = buffer.into_inner();
+    let inner = buffer.split_off(offset as usize);
 
     // // done to prevent overflow compile error
-    let module = match identify_module(data)? {
-        Format::IT => fmt_it::load(data, source)?,
-        Format::XM => fmt_xm::load(data, source)?,
-        Format::S3M => fmt_s3m::load(data, source)?,
-        Format::MOD => fmt_mod::load(data, source)?,
+    let module = match identify_module(&mut Cursor::new(&inner))? {
+        Format::IT => fmt_it::load(inner, source)?,
+        Format::XM => fmt_xm::load(inner, source)?,
+        Format::S3M => fmt_s3m::load(inner, source)?,
+        Format::MOD => fmt_mod::load(inner, source)?,
         Format::UMX => return Err(Error::invalid("Nested Unreal music containers are invalid")),
     };
 

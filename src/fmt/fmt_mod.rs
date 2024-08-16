@@ -12,6 +12,7 @@ use crate::parser::{
     io::{is_magic_non_consume, non_consume, ByteReader, ReadSeek},
     string::read_str,
 };
+use std::io::{Cursor, Read};
 use std::path::PathBuf;
 
 /*
@@ -45,9 +46,12 @@ pub fn probe(_buf: &[u8]) -> bool {
 }
 
 pub fn load(
-    file: &mut impl ReadSeek,
+    buffer: Vec<u8>,
     source: impl Into<Option<PathBuf>>,
 ) -> Result<GenericTracker, Error> {
+    let mut buffer = Cursor::new(buffer);
+    let file = &mut buffer;
+
     check_iff(file)?;
     check_xpk(file)?;
 
@@ -137,7 +141,7 @@ pub fn load(
             source: source.into(),
             ..Default::default()
         },
-        inner: file.load_to_memory()?.into_boxed_slice(),
+        inner: buffer.into_inner().into_boxed_slice(),
         samples: samples.into(),
     })
 }

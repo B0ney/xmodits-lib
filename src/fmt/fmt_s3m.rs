@@ -15,6 +15,7 @@ use crate::parser::{
     string::read_str,
 };
 use crate::{info, warn};
+use std::io::Cursor;
 use std::path::PathBuf;
 
 const FORMAT: &str = "Scream Tracker";
@@ -34,9 +35,12 @@ pub fn probe(buf: &[u8]) -> bool {
 }
 
 pub fn load(
-    file: &mut impl ReadSeek,
+    buffer: Vec<u8>,
     source: impl Into<Option<PathBuf>>,
 ) -> Result<GenericTracker, Error> {
+    let mut buffer = Cursor::new(buffer);
+    let file = &mut buffer;
+
     let title = read_str::<28>(file)?;
     file.skip_bytes(1)?; // skip other magic
 
@@ -142,7 +146,7 @@ pub fn load(
             source: source.into(),
             ..Default::default()
         },
-        inner: file.load_to_memory()?.into_boxed_slice(),
+        inner: buffer.into_inner().into_boxed_slice(),
         samples: samples.into(),
     })
 }

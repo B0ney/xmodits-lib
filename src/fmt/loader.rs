@@ -29,16 +29,21 @@ pub fn from_path(source: impl AsRef<Path>) -> Result<Box<dyn Module>, Error> {
 
 /// load a module
 pub fn load_module(
-    data: &mut impl ReadSeek,
+    buffer: &mut impl ReadSeek,
     source: impl Into<Option<PathBuf>>,
 ) -> Result<Box<dyn Module>, Error> {
-    let module = match identify_module(data)? {
+    let format = identify_module(buffer)?;
+    let mut data = Vec::new();
+    let _ = buffer.read_to_end(&mut data)?;
+    
+    let module = match format {
         Format::IT => fmt_it::load(data, source)?,
         Format::XM => fmt_xm::load(data, source)?,
         Format::S3M => fmt_s3m::load(data, source)?,
         Format::MOD => fmt_mod::load(data, source)?,
         Format::UMX => fmt_umx::load(data, source)?,
     };
+
     Ok(Box::new(module))
 }
 
