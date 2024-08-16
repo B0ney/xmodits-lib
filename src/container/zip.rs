@@ -5,11 +5,17 @@ use std::path::PathBuf;
 
 use crate::fmt::detect::get_loader;
 use crate::interface::module::GenericTracker;
-use crate::parser::io::ReadSeek;
+use crate::parser::bytes::magic_header;
 use crate::Error;
 
-pub fn load<R: ReadSeek>(reader: R, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
-    let mut zip = zip::ZipArchive::new(reader).unwrap();
+pub fn probe(bytes: &[u8]) -> bool {
+    magic_header(&[0x50, 0x4B, 0x03, 0x04], bytes)
+        | magic_header(&[0x50, 0x4B, 0x05, 0x06], bytes)
+        | magic_header(&[0x50, 0x4B, 0x07, 0x08], bytes)
+}
+
+pub fn load(reader: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
+    let mut zip = zip::ZipArchive::new(Cursor::new(reader)).unwrap();
 
     let entries: Vec<String> = zip.file_names().map(String::from).collect();
 
@@ -27,4 +33,3 @@ pub fn load<R: ReadSeek>(reader: R, source: Option<PathBuf>) -> Result<GenericTr
 
     load_module(buffer, source)
 }
-
