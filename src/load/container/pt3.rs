@@ -58,10 +58,10 @@ pub fn inner(reader: Vec<u8>) -> Result<Vec<u8>, Error> {
             }
             PTDT => {
                 let offset = file.position();
-                let mut inner = buffer.into_inner();
+                let mut inner = buffer.into_inner().split_off(offset as usize);
                 inner.truncate(iff_chunk.size as usize);
 
-                return Ok(inner.split_off(offset as usize));
+                return Ok(inner);
             }
             _ => file.skip_bytes(iff_chunk.size as i64)?,
         }

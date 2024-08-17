@@ -90,8 +90,6 @@ pub fn inner(reader: Vec<u8>) -> Result<Vec<u8>, Error> {
     let _ = read_compact_index(file)?; // obj size field
     let inner_size = read_compact_index(file)? as usize;
 
-    // store the reader into a Container struct
-    // so that seeking is relative to this current offset
     let offset = file.position();
     let mut buffer = buffer.into_inner().split_off(offset as usize);
     buffer.truncate(inner_size); // TODO: is this necessary?
