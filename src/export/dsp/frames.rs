@@ -1,8 +1,7 @@
-use crate::interface::sample::Depth;
-use super::{RawSample, SampleBuffer};
+use super::SampleBuffer;
 
 /// Samples used in tracker modules are either stereo or mono
-/// 
+///
 /// We can encode this nicely in an enum
 #[derive(Debug, Clone, Copy)]
 pub enum SampleFrame {
@@ -20,7 +19,7 @@ impl SampleFrame {
         match self {
             SampleFrame::Empty => *self = Self::Mono([sample]),
             SampleFrame::Mono([left]) => *self = Self::Stereo([*left, sample]),
-            SampleFrame::Stereo(_) => unimplemented!("attempt to add more than 2 channels"), // todo    
+            SampleFrame::Stereo(_) => unimplemented!("attempt to add more than 2 channels"), // todo
         }
     }
 
@@ -47,7 +46,6 @@ impl AsRef<[f32]> for SampleFrame {
         }
     }
 }
-
 
 /// Iterator over a sample buffer
 pub struct FramesIter<'a> {
@@ -76,17 +74,5 @@ impl Iterator for FramesIter<'_> {
         let result = self.sample_buffer.frame(self.frame);
         self.frame += 1;
         result
-    }
-}
-
-
-pub struct RawFramesIter {
-    interleaved: bool,
-    supported_depths: Vec<Depth>,
-}
-
-impl RawFramesIter {
-    pub fn new<'a>(raw_sample: impl Into<RawSample<'a>>) -> Self {
-        todo!()
     }
 }

@@ -98,7 +98,7 @@ pub fn trim_null(buf: &[u8]) -> &[u8] {
 
 /// Removes any os-incompatible chars from a cow string
 ///
-/// If the string doesn't contain any invalid chars, it will return the orginal string
+/// If the string doesn't contain any invalid chars, it will return the original string
 ///
 /// This also trims any whitespace.
 pub fn to_str_os(str: &str) -> Cow<str> {

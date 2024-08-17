@@ -83,35 +83,3 @@ impl AudioTrait for Its {
         Ok(writer.write_all(&pcm)?)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::{
-        interface::{
-            sample::{Channel, Depth},
-            Sample,
-        },
-        AudioTrait,
-    };
-
-    use super::Its;
-
-    // #[test]
-    // fn out_raw() {
-    //     let sample = Sample {
-    //         filename: Some("e".into()),
-    //         name: "e".into(),
-    //         length: 338,
-    //         rate: 44100,
-    //         pointer: 0,
-    //         depth: Depth::U16,
-    //         channel: Channel::Mono,
-    //         ..Default::default()
-    //     };
-
-    //     let mut file = std::fs::File::create("path.its").unwrap();
-    //     let raw: &[u8] = include_bytes!("../../modules/A110PLUS.raw");
-
-    //     Its.write(&sample, raw.into(), &mut file).unwrap()
-    // }
-}

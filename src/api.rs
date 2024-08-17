@@ -25,7 +25,7 @@ mod tests {
         sync::Arc,
     };
 
-    use crate::{error, load};
+    use crate::{error, load_from_path};
     use crate::{Ripper};
 
     use super::extract;
@@ -60,7 +60,7 @@ mod tests {
     #[test]
     fn load() {
         //TODO: AiR - 7Aliens Products kg.it, cvt flag is all 1s
-        match load::from_path("./modules/umx/UNATCO_Music.umx") {
+        match load_from_path("./modules/umx/UNATCO_Music.umx") {
             Ok(module) => {
                 for sample in module.samples() {
                     module.pcm(sample).unwrap();

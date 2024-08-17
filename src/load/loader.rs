@@ -8,9 +8,9 @@
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-use crate::Error;
 use crate::interface::module::GenericTracker;
 use crate::parser::io::{non_consume, ByteReader, ReadSeek};
+use crate::Error;
 use crate::Module;
 
 use super::container;
@@ -22,8 +22,9 @@ pub type Inner = fn(Vec<u8>) -> Result<Vec<u8>, Error>;
 
 pub fn from_path(source: impl AsRef<Path>) -> Result<Box<dyn Module>, Error> {
     let source = source.as_ref().to_owned();
-    let mut file = std::fs::File::open(&source)?;
-    load(&mut file, Some(source)).map(|tracker| Box::new(tracker) as Box<dyn Module>)
+    
+    load(&mut std::fs::File::open(&source)?, Some(source))
+        .map(|tracker| Box::new(tracker) as Box<dyn Module>)
 }
 
 pub fn from_bytes(bytes: &[u8], source: Option<PathBuf>) -> Result<GenericTracker, Error> {

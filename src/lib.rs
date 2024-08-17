@@ -6,13 +6,13 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #![forbid(unsafe_code)]
-pub mod interface;
-mod log;
-pub mod parser;
-pub mod export;
 pub mod api;
 pub mod error;
+pub mod export;
+pub mod interface;
 pub mod load;
+mod log;
+pub mod parser;
 
 pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
 pub use interface::{Error, Module, Sample};
@@ -24,3 +24,5 @@ pub mod sample_naming {
     pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
 }
 
+pub use api::{extract, info, SUPPORTED_EXTENSIONS};
+pub use load::{from_bytes as load_from_bytes, from_path as load_from_path, load};
