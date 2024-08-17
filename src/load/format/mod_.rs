@@ -15,13 +15,6 @@ use crate::parser::{
 use std::io::{Cursor, Read};
 use std::path::PathBuf;
 
-/*
-TODO: debranu.mod is an IFF containing a MOD
-looking at the binary shows that it was made with ProTracker 3.
-ProTracker 3.6x supports saving modules inside of IFF containers.
-https://bugs.openmpt.org/view.php?id=752
-*/
-
 const FORMAT: &str = "Amiga ProTracker";
 
 const CHANNEL_4: &[&[u8]] = &[b"M.K.", b"M!K!", b"M&K!", b"N.T."];
