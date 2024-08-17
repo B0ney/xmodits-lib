@@ -10,8 +10,7 @@ use std::path::{Path, PathBuf};
 use crate::interface::{Error, Module};
 use crate::parser::io::{non_consume, ReadSeek};
 
-use super::{fmt_it, fmt_mod, fmt_s3m, fmt_xm};
-use crate::container::umx;
+use super::format::{it, mod_, s3m, xm};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Format {
@@ -39,10 +38,10 @@ pub fn load_module(
     
     let source = source.into();
     let module = match format {
-        Format::IT => fmt_it::load(data, source)?,
-        Format::XM => fmt_xm::load(data, source)?,
-        Format::S3M => fmt_s3m::load(data, source)?,
-        Format::MOD => fmt_mod::load(data, source)?,
+        Format::IT => it::load(data, source)?,
+        Format::XM => xm::load(data, source)?,
+        Format::S3M => s3m::load(data, source)?,
+        Format::MOD => mod_::load(data, source)?,
         Format::UMX => umx::load(data, source)?,
     };
 
@@ -54,11 +53,11 @@ pub fn identify_module(data: &mut impl ReadSeek) -> Result<Format, Error> {
     non_consume(data, |data| data.read(&mut bytes))?;
 
     match &bytes {
-        buf if fmt_it::probe(buf) => Ok(Format::IT),
-        buf if fmt_xm::probe(buf) => Ok(Format::XM),
-        buf if fmt_s3m::probe(buf) => Ok(Format::S3M),
+        buf if it::probe(buf) => Ok(Format::IT),
+        buf if xm::probe(buf) => Ok(Format::XM),
+        buf if s3m::probe(buf) => Ok(Format::S3M),
         buf if umx::probe(buf) => Ok(Format::UMX),
-        buf if fmt_mod::probe(buf) => Ok(Format::MOD), // TODO: have decent mod validation to avoid needing to put this last
+        buf if mod_::probe(buf) => Ok(Format::MOD), // TODO: have decent mod validation to avoid needing to put this last
         _ => Err(Error::NoFormatFound),
     }
 }

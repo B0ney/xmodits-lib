@@ -1,10 +1,10 @@
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
-use crate::fmt::loader;
+use crate::load::loader;
 use crate::{Error, Ripper};
 
-use super::error::{does_not_exist, no_filename, not_empty, too_large};
+use crate::error::{does_not_exist, no_filename, not_empty, too_large};
 use super::info::{filesize, is_dir_empty};
 use super::MAX_SIZE_BYTES;
 

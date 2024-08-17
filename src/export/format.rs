@@ -9,15 +9,16 @@ use crate::interface::audio::AudioTrait;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-mod fmt_aiff;
-mod fmt_iff;
-mod fmt_its;
-mod fmt_raw;
-mod fmt_s3i;
-mod fmt_wav;
-mod fmt_xi;
+mod aiff;
+mod iff;
+mod its;
+mod raw;
+mod s3i;
+mod wav;
+mod xi;
 
-mod helper;
+
+use super::helper;
 
 /// Possible formats to store the pcm
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -58,13 +59,13 @@ impl AudioFormat {
     /// If the implementation is zero sized, it won't allocate.
     pub fn get_impl(&self) -> Box<dyn AudioTrait> {
         match self {
-            Self::WAV => Box::new(fmt_wav::Wav),
-            Self::AIFF => Box::new(fmt_aiff::Aiff),
-            Self::IFF => Box::new(fmt_iff::Iff),
-            Self::ITS => Box::new(fmt_its::Its),
-            Self::S3I => Box::new(fmt_s3i::S3i),
-            Self::XI => Box::new(fmt_xi::Xi),
-            Self::RAW => Box::new(fmt_raw::Raw),
+            Self::WAV => Box::new(wav::Wav),
+            Self::AIFF => Box::new(aiff::Aiff),
+            Self::IFF => Box::new(iff::Iff),
+            Self::ITS => Box::new(its::Its),
+            Self::S3I => Box::new(s3i::S3i),
+            Self::XI => Box::new(xi::Xi),
+            Self::RAW => Box::new(raw::Raw),
         }
     }
 }

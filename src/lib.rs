@@ -11,6 +11,8 @@ pub(crate) mod log;
 pub mod parser;
 pub mod export;
 pub mod api;
+pub mod error;
+pub mod load;
 
 pub use crate::fmt::loader::{from_path as load_from_path, identify_module, load_module, Format};
 pub use crate::interface::name::{SampleNamer, SampleNamerTrait};

@@ -14,7 +14,7 @@ use crate::interface::audio::{AudioTrait, DynAudioTrait};
 use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
 use crate::interface::{Error, Module, Sample};
 
-use super::errors::ExtractionError;
+use super::error::ExtractionError;
 
 /// Struct to rip samples from a module
 ///

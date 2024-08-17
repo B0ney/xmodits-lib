@@ -7,7 +7,7 @@
 
 use std::{borrow::Cow, io::Write};
 
-use super::helper::PCMFormatter;
+use crate::export::helper::PCMFormatter;
 use crate::interface::audio::AudioTrait;
 use crate::interface::sample::{Channel, Depth, Sample};
 use crate::interface::Error;

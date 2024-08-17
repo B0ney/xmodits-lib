@@ -1,2 +1,4 @@
 mod format;
-mod helper;
+pub mod helper;
+
+pub use format::AudioFormat;
