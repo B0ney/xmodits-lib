@@ -6,12 +6,11 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 pub mod audio;
-pub mod error;
 pub mod module;
 pub mod name;
 pub mod ripper;
 pub mod sample;
 
-pub use error::Error;
+pub use crate::error::Error;
 pub use module::Module;
 pub use sample::Sample;

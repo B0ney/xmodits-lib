@@ -52,7 +52,6 @@ pub fn load(
     let mut buffer = Cursor::new(buffer);
     let file = &mut buffer;
 
-    check_iff(file)?;
     check_xpk(file)?;
 
     let title = read_str::<20>(file)?;
@@ -187,16 +186,6 @@ pub fn get_channels_and_sample_num(magic: [u8; 4]) -> (u8, u8) {
     };
 
     (channels, samples)
-}
-
-fn check_iff(data: &mut impl ReadSeek) -> Result<&mut impl ReadSeek, Error> {
-    // let size = data.len();
-    if is_magic_non_consume(data, b"FORM")? {
-        return Err(Error::unsupported("IFF MOD files are not yet supported"));
-        // todo!("protracker 3.6")
-    };
-
-    Ok(data)
 }
 
 fn check_xpk(data: &mut impl ReadSeek) -> Result<(), Error> {

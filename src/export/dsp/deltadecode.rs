@@ -5,8 +5,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::{dsp::pcm::align_u16, info, Sample};
 use bytemuck::cast_slice_mut;
+
+use crate::{info, Sample};
+
+use super::pcm::align_u16;
 
 #[inline]
 pub fn delta_decode(smp: &Sample, buf: Vec<u8>) -> Vec<u8> {

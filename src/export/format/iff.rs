@@ -8,6 +8,7 @@
 use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
+use crate::export::dsp;
 use crate::interface::audio::AudioTrait;
 use crate::interface::sample::{Depth, Sample};
 use crate::interface::Error;
@@ -50,7 +51,7 @@ impl AudioTrait for Iff {
             _ => {
                 // TODO: Resampling can alter the length of the pcm,
                 // make sure we don't use the length provided by smp
-                pcm = crate::dsp::resample_raw((smp, pcm), CAPPED_SAMPLE_RATE as u32).into();
+                pcm = dsp::resample_raw((smp, pcm), CAPPED_SAMPLE_RATE as u32).into();
                 CAPPED_SAMPLE_RATE
             }
         };

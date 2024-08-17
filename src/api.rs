@@ -5,7 +5,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-pub mod error;
 pub mod extract;
 pub mod info;
 
@@ -26,14 +25,8 @@ mod tests {
         sync::Arc,
     };
 
-    use crate::{
-        error,
-        exporter::AudioFormat,
-        fmt::loader,
-        info,
-        interface::{name::SampleNamer, ripper::Ripper},
-        trace, warn,
-    };
+    use crate::{error, load};
+    use crate::{Ripper};
 
     use super::extract;
 
@@ -67,9 +60,10 @@ mod tests {
     #[test]
     fn load() {
         //TODO: AiR - 7Aliens Products kg.it, cvt flag is all 1s
-        match loader::from_path("./modules/melcom-headlock.it") {
+        match load::from_path("./modules/umx/UNATCO_Music.umx") {
             Ok(module) => {
                 for sample in module.samples() {
+                    module.pcm(sample).unwrap();
                     dbg!(sample);
                 }
             }

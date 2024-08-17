@@ -1,10 +1,10 @@
 use std::fs::read_dir;
 use std::path::Path;
 
-use crate::fmt::loader;
+use crate::load;
 use crate::Error;
 
-use super::error::too_large;
+use crate::error::too_large;
 use super::MAX_SIZE_BYTES;
 
 /// Basic information about a tracker module
@@ -27,7 +27,7 @@ impl Info {
             return Err(too_large(MAX_SIZE_BYTES));
         }
 
-        let module = loader::from_path(file)?;
+        let module = load::from_path(file)?;
         let total_sample_size: usize = module.samples().iter().map(|m| m.length as usize).sum();
 
         let info = Info {

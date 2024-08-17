@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
-use crate::load::loader;
+use crate::load;
 use crate::{Error, Ripper};
 
 use crate::error::{does_not_exist, no_filename, not_empty, too_large};
@@ -27,7 +27,7 @@ where
         return Err(too_large(MAX_SIZE_BYTES));
     }
 
-    let module = loader::from_path(file)?;
+    let module = load::from_path(file)?;
 
     if !destination.is_dir() {
         return Err(does_not_exist(destination));

@@ -7,14 +7,14 @@
 
 #![forbid(unsafe_code)]
 pub mod interface;
-pub(crate) mod log;
+mod log;
+pub(crate) use log::*;
 pub mod parser;
 pub mod export;
 pub mod api;
 pub mod error;
 pub mod load;
 
-pub use crate::fmt::loader::{from_path as load_from_path, identify_module, load_module, Format};
 pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
 pub use interface::{Error, Module, Sample};
 
@@ -25,4 +25,3 @@ pub mod sample_naming {
     pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
 }
 
-pub use common::{extract, SUPPORTED_EXTENSIONS};

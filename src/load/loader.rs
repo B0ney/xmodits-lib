@@ -5,75 +5,41 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-use crate::interface::{Error, Module};
-use crate::parser::io::{non_consume, ReadSeek};
+use crate::Error;
+use crate::interface::module::GenericTracker;
+use crate::parser::io::{non_consume, ByteReader, ReadSeek};
+use crate::Module;
 
-use super::format::{it, mod_, s3m, xm};
+use super::container;
+use super::format;
 
-#[derive(Debug, Copy, Clone)]
-pub enum Format {
-    IT,
-    XM,
-    S3M,
-    MOD,
-    UMX,
-}
+pub type Prober = fn(&[u8]) -> bool;
+pub type Loader = fn(Vec<u8>, Option<PathBuf>) -> Result<GenericTracker, Error>;
+pub type Inner = fn(Vec<u8>) -> Result<Vec<u8>, Error>;
 
 pub fn from_path(source: impl AsRef<Path>) -> Result<Box<dyn Module>, Error> {
     let source = source.as_ref().to_owned();
     let mut file = std::fs::File::open(&source)?;
-    load_module(&mut file, source)
+    load(&mut file, Some(source)).map(|tracker| Box::new(tracker) as Box<dyn Module>)
 }
 
-/// load a module
-pub fn load_module(
-    buffer: &mut impl ReadSeek,
-    source: impl Into<Option<PathBuf>>,
-) -> Result<Box<dyn Module>, Error> {
-    let format = identify_module(buffer)?;
-    let mut data = Vec::new();
-    let _ = buffer.read_to_end(&mut data)?;
-    
-    let source = source.into();
-    let module = match format {
-        Format::IT => it::load(data, source)?,
-        Format::XM => xm::load(data, source)?,
-        Format::S3M => s3m::load(data, source)?,
-        Format::MOD => mod_::load(data, source)?,
-        Format::UMX => umx::load(data, source)?,
-    };
-
-    Ok(Box::new(module))
+pub fn from_bytes(bytes: &[u8], source: Option<PathBuf>) -> Result<GenericTracker, Error> {
+    load(&mut Cursor::new(bytes), source)
 }
 
-pub fn identify_module(data: &mut impl ReadSeek) -> Result<Format, Error> {
-    let mut bytes = [0u8; 64];
-    non_consume(data, |data| data.read(&mut bytes))?;
+pub fn load(buffer: &mut impl ReadSeek, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
+    let mut test_bytes = [0u8; 512];
+    non_consume(buffer, |data| data.read(&mut test_bytes))?;
 
-    match &bytes {
-        buf if it::probe(buf) => Ok(Format::IT),
-        buf if xm::probe(buf) => Ok(Format::XM),
-        buf if s3m::probe(buf) => Ok(Format::S3M),
-        buf if umx::probe(buf) => Ok(Format::UMX),
-        buf if mod_::probe(buf) => Ok(Format::MOD), // TODO: have decent mod validation to avoid needing to put this last
-        _ => Err(Error::NoFormatFound),
-    }
-}
-
-impl std::fmt::Display for Format {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::IT => "Impulse Tracker",
-                Self::XM => "FastTracker 2 Extended Module",
-                Self::S3M => "Scream Tracker 3",
-                Self::MOD => "Amiga ProTracker",
-                Self::UMX => "Unreal Music Container",
-            }
-        )
+    if let Some(get_inner) = container::get_inner_func(&test_bytes) {
+        let inner_data = get_inner(buffer.load_to_memory()?)?;
+        let load_module = format::get_loader(&inner_data)?;
+        load_module(inner_data, source)
+    } else {
+        let load_module = format::get_loader(&test_bytes).unwrap();
+        load_module(buffer.load_to_memory()?, source)
     }
 }

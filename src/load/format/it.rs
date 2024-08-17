@@ -12,7 +12,7 @@ use crate::interface::Error;
 use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,
-    io::{is_magic, non_consume, read_into_array, ByteReader, ReadSeek},
+    io::{is_magic, non_consume, ByteReader, ReadSeek},
     string::read_str,
 };
 use std::io::Cursor;
@@ -39,21 +39,15 @@ const CVT_SIGNED: u8 = 1; // IT 2.01 and below use unsigned samples
 const CVT_DELTA: u8 = 1 << 2; // off = PCM values, ON = Delta values
 const CVT_ADPCM: u8 = 255;
 
-const UNSUPPORTED: &str = "Impulse Tracker Module uses 'ziRCON' sample compression";
 const INVALID: &str = "Not a valid Impulse Tracker module";
 
 pub fn probe(buf: &[u8]) -> bool {
     magic_header(&MAGIC_IMPM, buf) | magic_header(&MAGIC_ZIRCONIA, buf)
 }
 
-pub fn load(
-    buffer: Vec<u8>,
-    source: Option<PathBuf>,
-) -> Result<GenericTracker, Error> {
+pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
     let mut buffer = Cursor::new(buffer);
     let file = &mut buffer;
-
-    check_zirconia(file)?;
 
     if !is_magic(file, &MAGIC_IMPM)? {
         return Err(Error::invalid(INVALID));
@@ -165,7 +159,6 @@ pub fn load(
         samples
     };
 
-
     Ok(GenericTracker {
         info: Info {
             name: title.to_string(),
@@ -176,13 +169,4 @@ pub fn load(
         inner: buffer.into_inner().into_boxed_slice(),
         samples: samples.into_boxed_slice(),
     })
-}
-
-fn check_zirconia(file: &mut impl ReadSeek) -> Result<(), Error> {
-    let magic = non_consume(file, |file| read_into_array::<8>(file))?;
-
-    match magic == MAGIC_ZIRCONIA {
-        true => Err(Error::unsupported(UNSUPPORTED)),
-        false => Ok(()),
-    }
 }

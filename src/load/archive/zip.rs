@@ -3,7 +3,6 @@
 use std::io::{Cursor, Read};
 use std::path::PathBuf;
 
-use crate::fmt::detect::get_loader;
 use crate::interface::module::GenericTracker;
 use crate::parser::bytes::magic_header;
 use crate::Error;
@@ -14,8 +13,8 @@ pub fn probe(bytes: &[u8]) -> bool {
         | magic_header(&[0x50, 0x4B, 0x07, 0x08], bytes)
 }
 
-pub fn load(reader: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
-    let mut zip = zip::ZipArchive::new(Cursor::new(reader)).unwrap();
+pub fn inner(data: Vec<u8>) -> Result<Vec<u8>, Error> {
+    let mut zip = zip::ZipArchive::new(Cursor::new(data)).unwrap();
 
     let entries: Vec<String> = zip.file_names().map(String::from).collect();
 
@@ -28,8 +27,5 @@ pub fn load(reader: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
 
     let mut buffer = Vec::new();
     let _ = entry.read_to_end(&mut buffer).unwrap();
-
-    let load_module = get_loader(&mut Cursor::new(&buffer)).unwrap();
-
-    load_module(buffer, source)
+    Ok(buffer)
 }

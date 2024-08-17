@@ -5,7 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::dsp::{adpcm_decode, delta_decode, decompress_it21n};
+use crate::export::dsp::{adpcm_decode, delta_decode, decompress_it21n};
 use crate::interface::{sample::Sample, Error};
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};

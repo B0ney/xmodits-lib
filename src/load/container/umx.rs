@@ -6,10 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::io::Cursor;
-use std::path::PathBuf;
 
-use crate::fmt::detect::get_loader;
-use crate::interface::module::GenericTracker;
 use crate::interface::Error;
 use crate::parser::{
     bytes::magic_header,
@@ -23,8 +20,8 @@ pub fn probe(buf: &[u8]) -> bool {
     magic_header(&MAGIC_UPKG, buf)
 }
 
-pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
-    let mut buffer = Cursor::new(buffer);
+pub fn inner(reader: Vec<u8>) -> Result<Vec<u8>, Error> {
+    let mut buffer = Cursor::new(reader);
     let file = &mut buffer;
 
     if !is_magic(file, &MAGIC_UPKG)? {
@@ -91,18 +88,15 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
     }
 
     let _ = read_compact_index(file)?; // obj size field
-    let _inner_size = read_compact_index(file)? as u64;
+    let inner_size = read_compact_index(file)? as usize;
 
     // store the reader into a Container struct
     // so that seeking is relative to this current offset
     let offset = file.position();
-    let mut buffer = buffer.into_inner();
-    let inner = buffer.split_off(offset as usize);
+    let mut buffer = buffer.into_inner().split_off(offset as usize);
+    buffer.truncate(inner_size); // TODO: is this necessary?
 
-    let load_module = get_loader(&mut Cursor::new(&inner))?;
-    let module = load_module(inner, source)?;
-
-    Ok(module)
+    Ok(buffer)
 }
 
 fn name_table_above_64(file: &mut impl ReadSeek) -> Result<Box<str>, Error> {
@@ -162,7 +156,7 @@ fn read_compact_index(file: &mut impl ReadSeek) -> Result<i32, Error> {
 mod tests {
     use std::io::Cursor;
 
-    use crate::container::umx::read_compact_index;
+    use super::read_compact_index;
 
     // Test read compact index works
     #[test]
