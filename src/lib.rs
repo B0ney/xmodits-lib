@@ -6,14 +6,11 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #![forbid(unsafe_code)]
-pub mod common;
-pub mod dsp;
-pub mod exporter;
-pub mod fmt;
 pub mod interface;
 pub(crate) mod log;
 pub mod parser;
-pub mod container;
+pub mod export;
+pub mod api;
 
 pub use crate::fmt::loader::{from_path as load_from_path, identify_module, load_module, Format};
 pub use crate::interface::name::{SampleNamer, SampleNamerTrait};

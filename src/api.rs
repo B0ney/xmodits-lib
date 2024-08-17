@@ -5,9 +5,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+pub mod error;
 pub mod extract;
 pub mod info;
-pub mod error;
 
 const MAX_SIZE_BYTES: u64 = 48 * 1024 * 1024;
 // const BUFFER_SIZE: usize = 16 * 1024; // 16KiB Buffering
@@ -16,13 +16,12 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &["it", "xm", "s3m", "mod", "umx", "mp
 
 pub use extract::extract;
 
-
 #[cfg(test)]
 #[allow(unused)]
 mod tests {
 
     use std::{
-        fs::{File, self},
+        fs::{self, File},
         io::{BufReader, Cursor},
         sync::Arc,
     };
@@ -30,13 +29,13 @@ mod tests {
     use crate::{
         error,
         exporter::AudioFormat,
-        fmt::loader::load_module,
+        fmt::loader,
         info,
         interface::{name::SampleNamer, ripper::Ripper},
         trace, warn,
     };
 
-    use super::{extract};
+    use super::extract;
 
     // #[test]
     // fn test1() {
@@ -47,22 +46,17 @@ mod tests {
     pub fn test8() {
         env_logger::init();
         let mut ripper = Ripper::default();
-        ripper.change_format(AudioFormat::IFF.into());
-        ripper.change_namer(SampleNamer {
-            prefix_source: false,
-            // self_contained: false,
-            ..Default::default()
-        }.into());
+        // ripper.change_format(AudioFormat::IFF.into());
+        // ripper.change_namer(SampleNamer {
+        //     prefix_source: false,
+        //     // self_contained: false,
+        //     ..Default::default()
+        // }.into());
 
-        match extract(
-            "./modules/8svx_bug/vn-ddanc.it",
-            "./modules/vn-ddanc_it",
-            &ripper,
-            false,
-        ) {
+        match extract("./modules/empty.mod", "./modules/air", &ripper, true) {
             Ok(()) => (),
             Err(e) => {
-                println!("{:#?}",&e);
+                println!("{:#?}", &e);
                 error!("{:#?}", e)
             }
         };
@@ -72,11 +66,14 @@ mod tests {
 
     #[test]
     fn load() {
-        let mut file = fs::read("./modules/test/Deus Ex/Area51_music.umx").unwrap();
-        let module = load_module(file).unwrap();
-
-        for sample in module.samples() {
-            dbg!(sample);
+        //TODO: AiR - 7Aliens Products kg.it, cvt flag is all 1s
+        match loader::from_path("./modules/melcom-headlock.it") {
+            Ok(module) => {
+                for sample in module.samples() {
+                    dbg!(sample);
+                }
+            }
+            Err(e) => println!("{e}"),
         }
     }
 }

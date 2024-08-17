@@ -9,7 +9,7 @@ use std::io::{BufWriter, Write};
 use std::{fs, path::Path};
 
 use crate::error;
-use crate::exporter::AudioFormat;
+use crate::export::AudioFormat;
 use crate::interface::audio::{AudioTrait, DynAudioTrait};
 use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
 use crate::interface::{Error, Module, Sample};
