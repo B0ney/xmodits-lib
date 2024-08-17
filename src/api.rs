@@ -13,6 +13,7 @@ const MAX_SIZE_BYTES: u64 = 48 * 1024 * 1024;
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &["it", "xm", "s3m", "mod", "umx", "mptm"];
 
+pub use info::info;
 pub use extract::extract;
 
 #[cfg(test)]

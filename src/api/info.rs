@@ -48,3 +48,7 @@ pub fn filesize(path: &Path) -> Result<u64, Error> {
 pub fn is_dir_empty(path: impl AsRef<Path>) -> Result<bool, Error> {
     Ok(read_dir(path.as_ref())?.next().is_none())
 }
+
+pub fn info(file: impl AsRef<Path>) -> Result<Info, Error> {
+    Info::new(file)
+}
