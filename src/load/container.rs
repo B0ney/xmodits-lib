@@ -1,12 +1,10 @@
 //! parse modules from container formats
 
-
 use super::loader::{Inner, Prober};
 
 pub mod mmcmp;
 pub mod pt3;
 pub mod umx;
-
 
 pub fn get_inner_func(data: &[u8]) -> Option<Inner> {
     for (probe, inner) in [

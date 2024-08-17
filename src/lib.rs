@@ -8,7 +8,6 @@
 #![forbid(unsafe_code)]
 pub mod interface;
 mod log;
-pub(crate) use log::*;
 pub mod parser;
 pub mod export;
 pub mod api;

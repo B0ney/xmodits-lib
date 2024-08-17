@@ -2,6 +2,5 @@ mod archive;
 mod container;
 mod format;
 mod loader;
-mod detect;
 
-pub use loader::{from_path, load};
+pub use loader::{from_path, from_bytes, load};
