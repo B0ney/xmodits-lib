@@ -5,7 +5,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::sample::{PcmType, Sample};
+pub mod sample;
+
+pub use sample::{Sample, PcmType, Depth, Channel};
 use crate::export::dsp::{adpcm_decode, decompress_it21n, delta_decode};
 use crate::Error;
 

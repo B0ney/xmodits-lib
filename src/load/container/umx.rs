@@ -9,12 +9,12 @@
 
 use std::io::Cursor;
 
-use crate::interface::Error;
 use crate::parser::{
     bytes::magic_header,
     io::{is_magic, ByteReader, ReadSeek},
     string::read_string,
 };
+use crate::Error;
 
 const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
 

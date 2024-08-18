@@ -7,8 +7,8 @@
 
 use std::{borrow::Cow, io::Write};
 
-use crate::interface::sample::Sample;
-use crate::interface::Error;
+use crate::tracker::sample::Sample;
+use crate::Error;
 
 pub type DynAudioTrait = Box<dyn AudioTrait>;
 

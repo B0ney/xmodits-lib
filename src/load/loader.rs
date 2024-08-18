@@ -8,7 +8,7 @@
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-use crate::interface::module::GenericTracker;
+use crate::tracker::GenericTracker;
 use crate::parser::io::{non_consume, ByteReader, ReadSeek};
 use crate::Error;
 

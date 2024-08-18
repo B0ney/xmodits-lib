@@ -10,8 +10,8 @@ use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
 use crate::export::AudioTrait;
-use crate::interface::sample::{Channel, Depth, LoopType, Sample};
-use crate::interface::Error;
+use crate::tracker::sample::{Channel, Depth, LoopType, Sample};
+use crate::Error;
 
 #[derive(Clone, Copy)]
 pub struct Wav;

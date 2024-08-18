@@ -9,7 +9,7 @@
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, path::Path};
 
-use crate::interface::sample::Sample;
+use crate::tracker::sample::Sample;
 
 pub type DynSampleNamerTrait = Box<dyn SampleNamerTrait>;
 

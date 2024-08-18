@@ -2,8 +2,8 @@ use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
 use crate::export::AudioTrait;
-use crate::interface::sample::{Depth, Sample};
-use crate::interface::Error;
+use crate::tracker::sample::{Depth, Sample};
+use crate::Error;
 
 /// Fast Tracker 2 Instrument
 #[derive(Clone, Copy)]

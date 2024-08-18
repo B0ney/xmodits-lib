@@ -14,7 +14,7 @@
 //!     https://github.com/Konstanty/libmodplug/blob/master/src/load_it.cpp#L1183
 
 use crate::{error, info, Sample};
-use crate::interface::Error;
+use crate::Error;
 use crate::parser::bytes::le_u16 as _le_u16;
 use bytemuck::cast_slice;
 
@@ -326,7 +326,7 @@ fn get_byte(buf: &[u8], offset: usize) -> Result<u8, Error> {
 #[cfg(test)]
 mod tests {
     use super::BitReader;
-    use crate::interface::Error;
+    use crate::Error;
 
     #[test]
     fn readbit() -> Result<(), Error> {

@@ -6,9 +6,9 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::info;
-use crate::interface::module::{GenericTracker, Info};
-use crate::interface::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample};
-use crate::interface::Error;
+use crate::tracker::{GenericTracker, Info};
+use crate::tracker::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample};
+use crate::Error;
 use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,

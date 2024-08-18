@@ -1,4 +1,4 @@
-use crate::interface::sample::{Depth, Loop, LoopType, Sample};
+use crate::tracker::sample::{Depth, Loop, LoopType, Sample};
 
 use bytemuck::{cast_slice, Pod};
 use dasp::sample::{FromSample, Sample as SampleConverter};

@@ -5,11 +5,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::interface::module::{GenericTracker, Info};
-use crate::interface::sample::{
+use crate::tracker::{GenericTracker, Info};
+use crate::tracker::sample::{
     remove_invalid_samples, Channel, Depth, Loop, LoopType, PcmType, Sample,
 };
-use crate::interface::Error;
+use crate::Error;
 use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,

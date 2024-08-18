@@ -1,12 +1,12 @@
 //! Export samples
 
-mod format;
-pub mod dsp;
-pub mod ripper;
-pub mod name;
 pub mod audio;
+pub mod dsp;
+mod format;
+pub mod name;
+pub mod ripper;
 
-pub use format::AudioFormat;
 pub use audio::{AudioTrait, DynAudioTrait};
-pub use ripper::Ripper;
 use dsp::helper;
+pub use format::AudioFormat;
+pub use ripper::Ripper;

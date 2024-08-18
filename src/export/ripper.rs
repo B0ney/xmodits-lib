@@ -5,14 +5,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use std::borrow::Cow;
 use std::io::{BufWriter, Write};
+use std::path::PathBuf;
 use std::{fs, path::Path};
 
 use super::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
 use super::{AudioTrait, DynAudioTrait};
-use crate::error::{Error, ExtractionError};
+use crate::error::{does_not_exist, no_filename, not_empty, too_large, Error, ExtractionError};
 use crate::export::AudioFormat;
-use crate::{error, GenericTracker, Sample};
+use crate::info::{filesize, is_dir_empty};
+use crate::{error, load, GenericTracker, Sample, MAX_SIZE_BYTES};
 
 /// Struct to rip samples from a module
 ///
@@ -117,4 +120,74 @@ pub fn build_context<'a>(
             .unwrap(),
         source_path: module.source(),
     }
+}
+
+/// Extract a module from a path to a destination
+pub fn extract<A, B>(
+    path: A,
+    destination: B,
+    ripper: &Ripper,
+    self_contained: bool,
+) -> Result<(), Error>
+where
+    A: AsRef<Path>,
+    B: AsRef<Path>,
+{
+    let file = path.as_ref();
+    let destination = destination.as_ref();
+
+    // Check if file is too large
+    if filesize(file)? > MAX_SIZE_BYTES {
+        return Err(too_large(MAX_SIZE_BYTES));
+    }
+
+    let module = load::from_path(file)?;
+
+    if !destination.is_dir() {
+        return Err(does_not_exist(destination));
+    }
+
+    let destination = get_destination(file, destination, self_contained)?;
+
+    ripper.rip_to_dir(destination, &module)
+}
+
+/// Turns a path to a module e.g test_module.it
+///
+/// into a filename like: test_module_it
+pub fn create_folder_name(path: impl AsRef<Path>) -> Option<PathBuf> {
+    let dir_name = path
+        .as_ref()
+        .file_name()?
+        .to_str()
+        .map(|f| f.replace('.', "_"))?;
+
+    Some(PathBuf::new().join(dir_name))
+}
+
+pub fn get_destination<'a>(
+    file: &Path,
+    destination: &'a Path,
+    self_contained: bool,
+) -> Result<Cow<'a, Path>, Error> {
+    if !self_contained {
+        return Ok(destination.into());
+    }
+
+    let Some(module_name) = create_folder_name(file) else {
+        return Err(no_filename());
+    };
+
+    let destination: PathBuf = destination.join(module_name);
+
+    match destination.exists() {
+        true => {
+            if !is_dir_empty(&destination)? {
+                return Err(not_empty(&destination));
+            }
+        }
+        false => std::fs::create_dir(&destination)?,
+    }
+
+    Ok(destination.into())
 }

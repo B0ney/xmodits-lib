@@ -8,7 +8,7 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::export::AudioTrait;
-use crate::interface::{Error, Sample};
+use crate::{Error, Sample};
 
 #[derive(Clone, Copy)]
 pub struct Raw;
