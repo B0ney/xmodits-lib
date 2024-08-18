@@ -5,13 +5,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::log::{info, warn};
 use crate::parser::{is_magic, magic_header_bytes, read_str, BitFlag, ByteReader, ReadSeek};
 use crate::tracker::{
     sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample},
     GenericTracker, Info,
 };
 use crate::Error;
-use crate::log::{info, warn};
 
 use std::io::Cursor;
 use std::path::PathBuf;

@@ -1,4 +1,3 @@
-
 macro_rules! info {
     ($($l:tt)*) => ({
         #[cfg(feature = "log")]{
@@ -7,7 +6,6 @@ macro_rules! info {
 
     })
 }
-
 
 #[allow(unused)]
 macro_rules! __warn {
@@ -18,7 +16,6 @@ macro_rules! __warn {
     })
 }
 
-
 #[allow(unused)]
 macro_rules! error {
     ($($l:tt)*) => ({
@@ -28,7 +25,6 @@ macro_rules! error {
     })
 }
 
-pub(crate) use info;
 pub(crate) use __warn as warn;
 pub(crate) use error;
-
+pub(crate) use info;
