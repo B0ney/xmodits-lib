@@ -1,3 +1,5 @@
+//! Extract samples from modules stored in archive files
+
 use super::loader::{Inner, Prober};
 
 pub mod zip;

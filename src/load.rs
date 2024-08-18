@@ -1,6 +1,7 @@
+#[cfg(feature = "archive")]
 mod archive;
 mod container;
 mod format;
 mod loader;
 
-pub use loader::{from_path, from_bytes, load};
+pub use loader::{from_bytes, from_path, load};

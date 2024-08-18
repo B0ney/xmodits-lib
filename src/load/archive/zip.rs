@@ -1,9 +1,7 @@
 //! Parse from zip file
 
 use std::io::{Cursor, Read};
-use std::path::PathBuf;
 
-use crate::interface::module::GenericTracker;
 use crate::parser::bytes::magic_header;
 use crate::Error;
 
