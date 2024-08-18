@@ -101,7 +101,7 @@ impl<T: ReadSeek> ByteReader for T {
     }
 
     fn load_to_memory(&mut self) -> io::Result<Vec<u8>> {
-        non_consume(self, |f| {
+        peek(self, |f| {
             f.rewind()?;
             let size = f.len().unwrap_or_default();
             let mut buf = Vec::with_capacity(size as usize);
@@ -114,7 +114,7 @@ impl<T: ReadSeek> ByteReader for T {
 /// A function that lets you do a [ByteReader] operation without affecting the inner cursor.
 ///
 /// Just make sure you don't return references.
-pub fn non_consume<R, F, T>(reader: &mut R, operation: F) -> io::Result<T>
+pub fn peek<R, F, T>(reader: &mut R, operation: F) -> io::Result<T>
 where
     R: ByteReader,
     F: FnOnce(&mut R) -> io::Result<T>,
@@ -129,8 +129,8 @@ pub fn is_magic(reader: &mut impl ByteReader, magic: &[u8]) -> io::Result<bool> 
     Ok(reader.read_bytes(magic.len())? == magic)
 }
 
-pub fn is_magic_non_consume(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<bool> {
-    non_consume(reader, |reader| is_magic(reader, magc))
+pub fn is_magic_peek(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<bool> {
+    peek(reader, |reader| is_magic(reader, magc))
 }
 
 pub fn io_error(error: &str) -> std::io::Error {

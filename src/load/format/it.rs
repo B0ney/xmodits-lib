@@ -12,7 +12,7 @@ use crate::Error;
 use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,
-    io::{is_magic, non_consume, ByteReader, ReadSeek},
+    io::{is_magic, peek, ByteReader, ReadSeek},
     string::read_str,
 };
 use std::io::Cursor;
@@ -80,7 +80,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
             }
 
             // Check if the sample is empty so we don't waste resources.
-            let length = non_consume(file, |file| {
+            let length = peek(file, |file| {
                 file.skip_bytes(44)?;
                 file.read_u32_le()
             })?;

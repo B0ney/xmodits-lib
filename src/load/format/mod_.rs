@@ -9,7 +9,7 @@ use crate::tracker::{GenericTracker, Info};
 use crate::tracker::sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample};
 use crate::Error;
 use crate::parser::{
-    io::{is_magic_non_consume, non_consume, ByteReader, ReadSeek},
+    io::{is_magic_peek, peek, ByteReader, ReadSeek},
     string::read_str,
 };
 use std::io::{Cursor, Read};
@@ -139,7 +139,7 @@ pub fn load(
 }
 
 fn get_mod_info(data: &mut impl ReadSeek) -> std::io::Result<(u8, u8)> {
-    non_consume(data, |data| {
+    peek(data, |data| {
         data.set_seek_pos(1080)?;
         let magic: [u8; 4] = data.read_u32_be()?.to_be_bytes();
         Ok(get_channels_and_sample_num(magic))
@@ -182,7 +182,7 @@ pub fn get_channels_and_sample_num(magic: [u8; 4]) -> (u8, u8) {
 }
 
 fn check_xpk(data: &mut impl ReadSeek) -> Result<(), Error> {
-    match is_magic_non_consume(data, &MAGIC_PP20)? {
+    match is_magic_peek(data, &MAGIC_PP20)? {
         true => Err(Error::unsupported(
             "XPK compressed MOD files are not supported",
         )),

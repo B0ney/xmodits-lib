@@ -13,7 +13,7 @@ use crate::Error;
 use crate::parser::{
     bitflag::BitFlag,
     bytes::magic_header,
-    io::{is_magic, non_consume, read_into_array, ByteReader, ReadSeek},
+    io::{is_magic, peek, read_into_array, ByteReader, ReadSeek},
     string::read_str,
 };
 use std::io::Cursor;
@@ -200,7 +200,7 @@ pub fn load(
 }
 
 fn check_mod_plugin_packed(file: &mut impl ReadSeek) -> Result<(), Error> {
-    let magic: [u8; 20] = non_consume(file, |file| {
+    let magic: [u8; 20] = peek(file, |file| {
         file.skip_bytes(38)?;
         read_into_array(file)
     })?;

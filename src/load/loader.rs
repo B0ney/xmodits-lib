@@ -9,7 +9,7 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 use crate::tracker::GenericTracker;
-use crate::parser::io::{non_consume, ByteReader, ReadSeek};
+use crate::parser::io::{peek, ByteReader, ReadSeek};
 use crate::Error;
 
 use super::container;
@@ -31,7 +31,7 @@ pub fn from_bytes(bytes: &[u8], source: Option<PathBuf>) -> Result<GenericTracke
 
 pub fn load(buffer: &mut impl ReadSeek, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
     let mut test_bytes = [0u8; 512];
-    non_consume(buffer, |data| data.read(&mut test_bytes))?;
+    peek(buffer, |data| data.read(&mut test_bytes))?;
 
     if let Some(get_inner) = container::get_inner_func(&test_bytes) {
         let inner_data = get_inner(buffer.load_to_memory()?)?;
