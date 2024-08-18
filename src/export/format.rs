@@ -1,0 +1,127 @@
+// xmodits core library
+// Copyright (c) 2023 B0ney
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+mod aiff;
+mod iff;
+mod its;
+mod raw;
+mod s3i;
+mod wav;
+mod xi;
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+use std::{borrow::Cow, io::Write};
+
+use super::helper;
+use crate::{Error, Sample};
+
+pub type DynAudioFormat = Box<dyn AudioFormat>;
+
+/// A trait to output raw PCM data into an audio format
+pub trait AudioFormat: Send + Sync {
+    /// Audio format's file extension
+    fn extension(&self) -> &str;
+
+    /// Write pcm data to writer
+    fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error>;
+}
+
+/// Possible formats to store the pcm
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum Format {
+    /// Wav, only supports unsigned 8-bit and signed 16-bit samples.
+    /// Samples are processed to satisfy this.
+    #[default]
+    WAV,
+    /// Amiga 8svx, only supports signed 8 bit samples.
+    /// 16-bit samples will have their bit depth reduced.
+    IFF,
+    /// Aiff
+    AIFF,
+    /// Impulse Tracker Sample
+    ITS,
+    /// Scream Tracker 3 Instrument, only supports 64KiB samples
+    S3I,
+    /// Fast Tracker 2 Instrument
+    XI,
+    /// Raw PCM
+    /// This will lose information about the sample.
+    RAW,
+}
+
+impl Format {
+    pub const ALL: [Self; 7] = [
+        Self::WAV,
+        Self::IFF,
+        Self::AIFF,
+        Self::ITS,
+        Self::S3I,
+        Self::XI,
+        Self::RAW,
+    ];
+    /// Returns an AudioTrait object.
+    ///
+    /// If the implementation is zero sized, it won't allocate.
+    pub fn get_impl(&self) -> Box<dyn AudioFormat> {
+        match self {
+            Self::WAV => Box::new(wav::Wav),
+            Self::AIFF => Box::new(aiff::Aiff),
+            Self::IFF => Box::new(iff::Iff),
+            Self::ITS => Box::new(its::Its),
+            Self::S3I => Box::new(s3i::S3i),
+            Self::XI => Box::new(xi::Xi),
+            Self::RAW => Box::new(raw::Raw),
+        }
+    }
+}
+
+impl From<Format> for Box<dyn AudioFormat> {
+    fn from(val: Format) -> Self {
+        val.get_impl()
+    }
+}
+
+impl std::fmt::Display for Format {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::IFF => "8SVX",
+                Self::WAV => "WAV",
+                Self::RAW => "RAW",
+                Self::AIFF => "AIFF",
+                Self::ITS => "ITS",
+                Self::S3I => "S3I",
+                Self::XI => "XI",
+            }
+        )
+    }
+}
+
+impl std::str::FromStr for Format {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let result = match s {
+            "WAV" | "wav" => Self::WAV,
+            "AIFF" | "aiff" => Self::AIFF,
+            "8SVX" | "8svx" => Self::IFF,
+            "ITS" | "its" => Self::ITS,
+            "S3I" | "s3i" => Self::S3I,
+            "RAW" | "raw" => Self::RAW,
+            extension => {
+                return Err(format!(
+                    "unknown format \"{extension}\", make sure there aren't any typos"
+                ))
+            }
+        };
+        Ok(result)
+    }
+}

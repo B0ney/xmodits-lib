@@ -1,5 +1,3 @@
-#[macro_export]
-#[allow(unused)]
 macro_rules! info {
     ($($l:tt)*) => ({
         #[cfg(feature = "log")]{
@@ -9,9 +7,8 @@ macro_rules! info {
     })
 }
 
-#[macro_export]
 #[allow(unused)]
-macro_rules! warn {
+macro_rules! __warn {
     ($($l:tt)*) => ({
         #[cfg(feature = "log")]{
             log::warn!($($l)*)
@@ -19,7 +16,6 @@ macro_rules! warn {
     })
 }
 
-#[macro_export]
 #[allow(unused)]
 macro_rules! error {
     ($($l:tt)*) => ({
@@ -29,12 +25,6 @@ macro_rules! error {
     })
 }
 
-#[macro_export]
-#[allow(unused)]
-macro_rules! trace {
-    ($($l:tt)*) => ({
-        #[cfg(feature = "log")]{
-            log::trace!($($l)*)
-        }
-    })
-}
+pub(crate) use __warn as warn;
+pub(crate) use error;
+pub(crate) use info;

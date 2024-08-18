@@ -6,7 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 /// Returns true if bytes matches the slice
-pub fn magic_header(magic: &[u8], buf: &[u8]) -> bool {
+pub fn magic_header_bytes(magic: &[u8], buf: &[u8]) -> bool {
     if buf.len() < magic.len() {
         return false;
     }

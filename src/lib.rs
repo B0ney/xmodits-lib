@@ -6,24 +6,21 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #![forbid(unsafe_code)]
-pub mod common;
-pub mod dsp;
-pub mod exporter;
-pub mod fmt;
-pub mod interface;
-pub(crate) mod log;
-pub mod parser;
-pub mod container;
 
-pub use crate::fmt::loader::{from_path as load_from_path, identify_module, load_module, Format};
-pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
-pub use interface::{Error, Module, Sample};
+mod log;
+mod parser;
 
-pub use crate::interface::audio::AudioTrait;
-pub use interface::ripper::Ripper;
+pub mod error;
+pub mod export;
+pub mod info;
+pub mod load;
+pub mod tracker;
 
-pub mod sample_naming {
-    pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
-}
+pub use error::Error;
+pub use export::ripper::{extract, Ripper};
+pub use info::{info, Info};
+pub use load::{from_bytes as load_from_bytes, from_path as load_from_path, load};
+pub use tracker::{GenericTracker, Sample};
 
-pub use common::{extract, SUPPORTED_EXTENSIONS};
+pub const SUPPORTED_EXTENSIONS: &[&str] = &["it", "xm", "s3m", "mod", "umx", "mptm"];
+pub const MAX_SIZE_BYTES: u64 = 48 * 1024 * 1024;

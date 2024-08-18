@@ -15,9 +15,10 @@ Work in progress
 | Extension | Description |
 | --- | --- |
 | UMX | Unreal Music Package|
+| PT3 | ProTracker 3 project file |
 
 
-## Formats samples could be ripped as:
+## Formats samples can be exported to:
 | Extension | Format |
 | --- | --- |
 | WAV | Microsoft Wave |
@@ -25,7 +26,7 @@ Work in progress
 | IFF (8SVX) | 8-Bit Sampled Voice |
 | ITS | Impulse Tracker 2 Sample |
 | S3I | Scream Tracker 3 Instrument|
-|RAW| Headerless pcm|
+| RAW | Headerless PCM |
 
 ## License
 The xmodits core library is licensed under the Mozilla Public License 2 (MPLv2)
