@@ -12,5 +12,7 @@ pub mod ripper;
 pub mod sample;
 
 pub use crate::error::Error;
-pub use module::Module;
 pub use sample::Sample;
+pub use module::{GenericTracker, Info};
+pub use audio::{AudioTrait, DynAudioTrait};
+pub use ripper::Ripper;

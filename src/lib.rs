@@ -14,11 +14,7 @@ pub mod load;
 mod log;
 pub mod parser;
 
-pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
-pub use interface::{Error, Module, Sample};
-
-pub use crate::interface::audio::AudioTrait;
-pub use interface::ripper::Ripper;
+pub use interface::{AudioTrait, Error, GenericTracker, Ripper, Sample};
 
 pub mod sample_naming {
     pub use crate::interface::name::{SampleNamer, SampleNamerTrait};

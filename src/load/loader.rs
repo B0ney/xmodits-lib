@@ -11,7 +11,6 @@ use std::path::{Path, PathBuf};
 use crate::interface::module::GenericTracker;
 use crate::parser::io::{non_consume, ByteReader, ReadSeek};
 use crate::Error;
-use crate::Module;
 
 use super::container;
 use super::format;
@@ -20,11 +19,10 @@ pub type Prober = fn(&[u8]) -> bool;
 pub type Loader = fn(Vec<u8>, Option<PathBuf>) -> Result<GenericTracker, Error>;
 pub type Inner = fn(Vec<u8>) -> Result<Vec<u8>, Error>;
 
-pub fn from_path(source: impl AsRef<Path>) -> Result<Box<dyn Module>, Error> {
+pub fn from_path(source: impl AsRef<Path>) -> Result<GenericTracker, Error> {
     let source = source.as_ref().to_owned();
-    
+
     load(&mut std::fs::File::open(&source)?, Some(source))
-        .map(|tracker| Box::new(tracker) as Box<dyn Module>)
 }
 
 pub fn from_bytes(bytes: &[u8], source: Option<PathBuf>) -> Result<GenericTracker, Error> {

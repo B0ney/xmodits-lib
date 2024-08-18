@@ -31,9 +31,9 @@ impl Info {
         let total_sample_size: usize = module.samples().iter().map(|m| m.length as usize).sum();
 
         let info = Info {
-            name: module.name().into(),
-            format: module.format().into(),
-            total_samples: module.total_samples(),
+            name: module.info.name,
+            format: module.info.format.into(),
+            total_samples: module.samples.len(),
             total_sample_size: total_sample_size / 1000,
         };
 

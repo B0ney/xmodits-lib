@@ -8,13 +8,12 @@
 use std::io::{BufWriter, Write};
 use std::{fs, path::Path};
 
+use super::module::GenericTracker;
 use crate::error;
+use crate::error::{Error, ExtractionError};
 use crate::export::AudioFormat;
-use crate::interface::audio::{AudioTrait, DynAudioTrait};
 use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
-use crate::interface::{Error, Module, Sample};
-
-use crate::error::ExtractionError;
+use crate::interface::{AudioTrait, DynAudioTrait, Sample};
 
 /// Struct to rip samples from a module
 ///
@@ -59,9 +58,9 @@ impl Ripper {
     pub fn rip_to_dir(
         &self,
         directory: impl AsRef<Path>,
-        module: &dyn Module,
+        module: &GenericTracker,
     ) -> Result<(), Error> {
-        if module.total_samples() == 0 {
+        if module.is_empty() {
             return Err(Error::EmptyModule);
         }
 
@@ -114,7 +113,10 @@ impl Ripper {
     }
 }
 
-pub fn build_context<'a>(module: &'a dyn Module, audio_format: &'a DynAudioTrait) -> Context<'a> {
+pub fn build_context<'a>(
+    module: &'a GenericTracker,
+    audio_format: &'a DynAudioTrait,
+) -> Context<'a> {
     Context {
         total: module.samples().len(),
         extension: audio_format.extension(),

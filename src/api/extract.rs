@@ -35,7 +35,7 @@ where
 
     let destination = get_destination(file, destination, self_contained)?;
 
-    ripper.rip_to_dir(destination, module.as_ref())
+    ripper.rip_to_dir(destination, &module)
 }
 
 /// Turns a path to a module e.g test_module.it
