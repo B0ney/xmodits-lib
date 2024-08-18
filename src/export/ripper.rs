@@ -10,9 +10,9 @@ use std::io::{BufWriter, Write};
 use std::path::PathBuf;
 use std::{fs, path::Path};
 
-use super::audio::{AudioTrait, DynAudioTrait};
+use super::format::{AudioFormat, DynAudioFormat};
 use super::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
-use super::AudioFormat;
+use super::Format;
 
 use crate::error::{does_not_exist, no_filename, not_empty, too_large, Error, ExtractionError};
 use crate::info::{filesize, is_dir_empty};
@@ -31,20 +31,20 @@ pub struct Ripper {
 
     /// Process raw PCM to the implemented format  
     /// see [AudioTrait]
-    pub format: Box<dyn AudioTrait>,
+    pub format: Box<dyn AudioFormat>,
 }
 
 impl Default for Ripper {
     fn default() -> Self {
         Self {
             namer_func: SampleNamer::default().into(),
-            format: AudioFormat::WAV.into(),
+            format: Format::WAV.into(),
         }
     }
 }
 
 impl Ripper {
-    pub fn new(namer_func: DynSampleNamerTrait, format: DynAudioTrait) -> Self {
+    pub fn new(namer_func: DynSampleNamerTrait, format: DynAudioFormat) -> Self {
         Self { namer_func, format }
     }
 
@@ -109,7 +109,7 @@ impl Ripper {
 
 pub fn build_context<'a>(
     module: &'a GenericTracker,
-    audio_format: &'a DynAudioTrait,
+    audio_format: &'a DynAudioFormat,
 ) -> Context<'a> {
     Context {
         total: module.samples().len(),

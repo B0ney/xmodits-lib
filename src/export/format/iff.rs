@@ -9,7 +9,7 @@ use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
 use crate::export::dsp;
-use crate::export::AudioTrait;
+use crate::export::AudioFormat;
 use crate::tracker::sample::{Depth, Sample};
 use crate::Error;
 
@@ -18,7 +18,7 @@ const CAPPED_SAMPLE_RATE: u16 = 22050;
 #[derive(Clone, Copy)]
 pub struct Iff;
 
-impl AudioTrait for Iff {
+impl AudioFormat for Iff {
     fn extension(&self) -> &str {
         "8svx"
     }

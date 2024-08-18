@@ -7,7 +7,7 @@
 
 use std::{borrow::Cow, io::Write};
 
-use crate::export::AudioTrait;
+use crate::export::AudioFormat;
 use crate::parser::string::to_ascii_array;
 use crate::tracker::sample::LoopType;
 use crate::{Error, Sample};
@@ -21,7 +21,7 @@ const FLAG_PINGPONG_SUSTAIN: u8 = 1 << 7;
 #[derive(Clone, Copy)]
 pub struct Its;
 
-impl AudioTrait for Its {
+impl AudioFormat for Its {
     fn extension(&self) -> &str {
         "its"
     }

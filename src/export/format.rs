@@ -5,10 +5,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::audio::AudioTrait;
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
-
 mod aiff;
 mod iff;
 mod its;
@@ -17,12 +13,28 @@ mod s3i;
 mod wav;
 mod xi;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+use std::{borrow::Cow, io::Write};
+
 use super::helper;
+use crate::{Error, Sample};
+
+pub type DynAudioFormat = Box<dyn AudioFormat>;
+
+/// A trait to output raw PCM data into an audio format
+pub trait AudioFormat: Send + Sync {
+    /// Audio format's file extension
+    fn extension(&self) -> &str;
+
+    /// Write pcm data to writer
+    fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error>;
+}
 
 /// Possible formats to store the pcm
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum AudioFormat {
+pub enum Format {
     /// Wav, only supports unsigned 8-bit and signed 16-bit samples.
     /// Samples are processed to satisfy this.
     #[default]
@@ -43,7 +55,7 @@ pub enum AudioFormat {
     RAW,
 }
 
-impl AudioFormat {
+impl Format {
     pub const ALL: [Self; 7] = [
         Self::WAV,
         Self::IFF,
@@ -56,7 +68,7 @@ impl AudioFormat {
     /// Returns an AudioTrait object.
     ///
     /// If the implementation is zero sized, it won't allocate.
-    pub fn get_impl(&self) -> Box<dyn AudioTrait> {
+    pub fn get_impl(&self) -> Box<dyn AudioFormat> {
         match self {
             Self::WAV => Box::new(wav::Wav),
             Self::AIFF => Box::new(aiff::Aiff),
@@ -69,13 +81,13 @@ impl AudioFormat {
     }
 }
 
-impl From<AudioFormat> for Box<dyn AudioTrait> {
-    fn from(val: AudioFormat) -> Self {
+impl From<Format> for Box<dyn AudioFormat> {
+    fn from(val: Format) -> Self {
         val.get_impl()
     }
 }
 
-impl std::fmt::Display for AudioFormat {
+impl std::fmt::Display for Format {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -93,7 +105,7 @@ impl std::fmt::Display for AudioFormat {
     }
 }
 
-impl std::str::FromStr for AudioFormat {
+impl std::str::FromStr for Format {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {

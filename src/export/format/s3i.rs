@@ -7,7 +7,7 @@
 
 use std::{borrow::Cow, io::Write};
 
-use crate::export::AudioTrait;
+use crate::export::AudioFormat;
 use crate::parser::string::to_ascii_array;
 use crate::tracker::sample::Depth;
 use crate::{Error, Sample};
@@ -20,7 +20,7 @@ use super::helper::PCMFormatter;
 #[derive(Clone, Copy)]
 pub struct S3i;
 
-impl AudioTrait for S3i {
+impl AudioFormat for S3i {
     fn extension(&self) -> &str {
         "s3i"
     }

@@ -9,14 +9,14 @@ use bytemuck::cast_slice;
 use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
-use crate::export::AudioTrait;
+use crate::export::AudioFormat;
 use crate::tracker::sample::{Channel, Depth, LoopType, Sample};
 use crate::Error;
 
 #[derive(Clone, Copy)]
 pub struct Wav;
 
-impl AudioTrait for Wav {
+impl AudioFormat for Wav {
     fn extension(&self) -> &str {
         "wav"
     }
