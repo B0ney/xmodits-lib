@@ -28,17 +28,7 @@ macro_rules! error {
     })
 }
 
-
-#[allow(unused)]
-macro_rules! trace {
-    ($($l:tt)*) => ({
-        #[cfg(feature = "log")]{
-            log::trace!($($l)*)
-        }
-    })
-}
-
 pub(crate) use info;
 pub(crate) use __warn as warn;
 pub(crate) use error;
-pub(crate) use trace;
+

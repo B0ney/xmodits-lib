@@ -11,3 +11,4 @@ use dsp::helper;
 pub use audio::{AudioTrait, DynAudioTrait};
 pub use format::AudioFormat;
 pub use ripper::{create_folder_name, extract, get_destination, Ripper};
+pub use name::{SampleNamer, SampleNamerTrait};

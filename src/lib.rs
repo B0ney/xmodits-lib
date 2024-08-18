@@ -15,13 +15,10 @@ pub(crate) mod parser;
 pub mod tracker;
 
 pub use error::Error;
-pub use export::{AudioTrait, Ripper};
-pub use tracker::{GenericTracker, Sample};
 
-pub mod sample_naming {
-    pub use crate::export::name::{SampleNamer, SampleNamerTrait};
-}
-pub use export::ripper::extract;
+pub use tracker::{GenericTracker, Sample};
+pub use export::ripper::{extract, Ripper};
+pub use export::AudioTrait;
 pub use load::{from_bytes as load_from_bytes, from_path as load_from_path, load};
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &["it", "xm", "s3m", "mod", "umx", "mptm"];

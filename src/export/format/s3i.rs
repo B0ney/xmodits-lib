@@ -14,7 +14,7 @@ use crate::{Error, Sample};
 
 use super::helper::PCMFormatter;
 
-const MAX_SIZE: u32 = (64 * 1024) - 1;
+// const MAX_SIZE: u32 = (64 * 1024) - 1;
 
 /// Scream Tracker 3 Instrument
 #[derive(Clone, Copy)]
