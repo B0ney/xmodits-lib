@@ -23,7 +23,6 @@ const FORMAT: &str = "Impulse Tracker";
 /* Magic values */
 const MAGIC_IMPM: [u8; 4] = *b"IMPM";
 const MAGIC_IMPS: [u8; 4] = *b"IMPS";
-const MAGIC_ZIRCONIA: [u8; 8] = *b"ziRCONia";
 
 /* Sample flags */
 const FLAG_BITS_16: u8 = 1 << 1;
@@ -42,7 +41,7 @@ const CVT_ADPCM: u8 = 255;
 const INVALID: &str = "Not a valid Impulse Tracker module";
 
 pub fn probe(buf: &[u8]) -> bool {
-    magic_header(&MAGIC_IMPM, buf) | magic_header(&MAGIC_ZIRCONIA, buf)
+    magic_header(&MAGIC_IMPM, buf)
 }
 
 pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
@@ -59,9 +58,10 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
     let ord_num = file.read_u16_le()?;
     let ins_num = file.read_u16_le()?;
     let smp_num = file.read_u16_le()?;
-    file.skip_bytes(4)?;
-    file.skip_bytes(2)?; // version
-    file.set_seek_pos((0x00c0 + ord_num + (ins_num * 4)) as u64)?;
+
+    const SAMPLE_POINTERS_OFFSET: u16 = 0x00c0; // 192
+
+    file.set_seek_pos((SAMPLE_POINTERS_OFFSET + ord_num + (ins_num * 4)) as u64)?;
 
     let mut smp_ptrs: Vec<u32> = Vec::with_capacity(smp_num as usize);
     for _ in 0..smp_num {
@@ -70,8 +70,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
 
     let samples = {
         info!("Building samples");
-
-        let mut samples: Vec<Sample> = Vec::with_capacity(smp_ptrs.len());
+        let mut samples: Vec<Sample> = Vec::with_capacity(smp_num as usize);
 
         for (index_raw, sample_header) in smp_ptrs.into_iter().enumerate() {
             file.set_seek_pos(sample_header as u64)?;
