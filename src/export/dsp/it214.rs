@@ -218,8 +218,7 @@ pub fn decompress_16_bit(buf: &[u8], len_frames: u32, it215: bool, stereo: bool)
 
 
 #[rustfmt::skip]
-pub fn decompress_16_bit_inner(buf: &[u8], len: u32, it215: bool, dest_buf: &mut Vec<u8>) -> Result<usize, Error> {
-    let mut len = len;         // Length of uncompressed sample. We half this we're decompressing a &[u16] as a &[u8]
+pub fn decompress_16_bit_inner(buf: &[u8], mut len: u32, it215: bool, dest_buf: &mut Vec<u8>) -> Result<usize, Error> {
     let mut blklen: u16;                // uncompressed block length. Usually 0x4000 for 16-Bit samples
     let mut blkpos: u16;                // block position
     let mut sample_value: i16;          // decompressed sample value             (Note i16 for 16 bit samples)

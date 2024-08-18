@@ -25,4 +25,4 @@ pub use export::ripper::extract;
 pub use load::{from_bytes as load_from_bytes, from_path as load_from_path, load};
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &["it", "xm", "s3m", "mod", "umx", "mptm"];
-const MAX_SIZE_BYTES: u64 = 48 * 1024 * 1024;
+pub const MAX_SIZE_BYTES: u64 = 48 * 1024 * 1024;

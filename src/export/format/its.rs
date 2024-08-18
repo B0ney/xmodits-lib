@@ -12,8 +12,6 @@ use crate::tracker::sample::LoopType;
 use crate::{Error, Sample};
 use crate::parser::string::to_ascii_array;
 
-const FLAG_BITS_16: u8 = 1 << 1;
-const FLAG_STEREO: u8 = 1 << 2;
 const FLAG_LOOP: u8 = 1 << 4;
 const FLAG_SUSTAIN: u8 = 1 << 5;
 const FLAG_PINGPONG: u8 = 1 << 6;
