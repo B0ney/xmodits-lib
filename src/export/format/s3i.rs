@@ -7,7 +7,7 @@
 
 use std::{borrow::Cow, io::Write};
 
-use crate::interface::audio::AudioTrait;
+use crate::export::AudioTrait;
 use crate::interface::sample::Depth;
 use crate::interface::{Error, Sample};
 use crate::parser::string::to_ascii_array;

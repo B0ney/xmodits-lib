@@ -8,12 +8,11 @@
 use std::io::{BufWriter, Write};
 use std::{fs, path::Path};
 
-use super::module::GenericTracker;
-use crate::error;
+use super::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
+use super::{AudioTrait, DynAudioTrait};
 use crate::error::{Error, ExtractionError};
 use crate::export::AudioFormat;
-use crate::interface::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
-use crate::interface::{AudioTrait, DynAudioTrait, Sample};
+use crate::{error, GenericTracker, Sample};
 
 /// Struct to rip samples from a module
 ///

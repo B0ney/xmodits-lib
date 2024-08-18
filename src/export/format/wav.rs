@@ -9,7 +9,7 @@ use bytemuck::cast_slice;
 use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
-use crate::interface::audio::AudioTrait;
+use crate::export::AudioTrait;
 use crate::interface::sample::{Channel, Depth, LoopType, Sample};
 use crate::interface::Error;
 

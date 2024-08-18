@@ -9,7 +9,7 @@ use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
 use crate::export::dsp;
-use crate::interface::audio::AudioTrait;
+use crate::export::AudioTrait;
 use crate::interface::sample::{Depth, Sample};
 use crate::interface::Error;
 

@@ -29,7 +29,7 @@ mod tests {
     use crate::{error, load_from_path};
     use crate::{Ripper};
 
-    use super::extract;
+    use super::{extract, info};
 
     // #[test]
     // fn test1() {
@@ -47,7 +47,7 @@ mod tests {
         //     ..Default::default()
         // }.into());
 
-        match extract("./modules/empty.mod", "./modules/air", &ripper, true) {
+        match extract("./modules/debranu.mod", "./modules/debranu", &ripper, true) {
             Ok(()) => (),
             Err(e) => {
                 println!("{:#?}", &e);
@@ -61,7 +61,7 @@ mod tests {
     #[test]
     fn load() {
         //TODO: AiR - 7Aliens Products kg.it, cvt flag is all 1s
-        match load_from_path("./modules/umx/UNATCO_Music.umx") {
+        match load_from_path("./modules/plugin_packed/vagyakozas.xm") {
             Ok(module) => {
                 for sample in module.samples() {
                     module.pcm(sample).unwrap();
@@ -70,5 +70,7 @@ mod tests {
             }
             Err(e) => println!("{e}"),
         }
+        
+        dbg!(info("./modules/plugin_packed/vagyakozas.xm"));
     }
 }

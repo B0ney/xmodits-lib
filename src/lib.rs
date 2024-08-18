@@ -12,12 +12,13 @@ pub mod export;
 pub mod interface;
 pub mod load;
 mod log;
-pub mod parser;
+pub(crate) mod parser;
 
-pub use interface::{AudioTrait, Error, GenericTracker, Ripper, Sample};
+pub use export::{AudioTrait, Ripper};
+pub use interface::{Error, GenericTracker, Sample};
 
 pub mod sample_naming {
-    pub use crate::interface::name::{SampleNamer, SampleNamerTrait};
+    pub use crate::export::name::{SampleNamer, SampleNamerTrait};
 }
 
 pub use api::{extract, info, SUPPORTED_EXTENSIONS};

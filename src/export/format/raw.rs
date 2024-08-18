@@ -7,7 +7,7 @@
 
 use std::{borrow::Cow, io::Write};
 
-use crate::interface::audio::AudioTrait;
+use crate::export::AudioTrait;
 use crate::interface::{Error, Sample};
 
 #[derive(Clone, Copy)]
