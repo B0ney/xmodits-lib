@@ -1,3 +1,5 @@
+//! Obtain inner module from Unreal music packages.
+
 // xmodits core library
 // Copyright (c) 2023 B0ney
 //

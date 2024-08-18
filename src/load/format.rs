@@ -1,3 +1,5 @@
+//! Parse tracker formats
+
 use crate::error::Error;
 
 use super::loader::{Loader, Prober};

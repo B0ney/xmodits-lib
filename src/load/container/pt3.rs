@@ -1,4 +1,4 @@
-//! Obtain inner MOD file from a ProTracker 3 file
+//! Obtain inner MOD file from ProTracker 3 files.
 
 use std::io::Cursor;
 

@@ -1,3 +1,5 @@
+//! Load a tracker module
+
 #[cfg(feature = "archive")]
 mod archive;
 mod container;
