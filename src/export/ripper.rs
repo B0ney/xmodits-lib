@@ -22,11 +22,11 @@ use crate::{error, GenericTracker, Sample};
 pub struct Ripper {
     /// Function object to name samples
     /// See [SampleNamerTrait]
-    namer_func: Box<dyn SampleNamerTrait>,
+    pub namer_func: Box<dyn SampleNamerTrait>,
 
     /// Process raw PCM to the implemented format  
     /// see [AudioTrait]
-    format: Box<dyn AudioTrait>,
+    pub format: Box<dyn AudioTrait>,
 }
 
 impl Default for Ripper {
@@ -41,16 +41,6 @@ impl Default for Ripper {
 impl Ripper {
     pub fn new(namer_func: DynSampleNamerTrait, format: DynAudioTrait) -> Self {
         Self { namer_func, format }
-    }
-
-    /// Change the sample format
-    pub fn change_format(&mut self, format: DynAudioTrait) {
-        self.format = format;
-    }
-
-    /// Change how samples are named
-    pub fn change_namer(&mut self, namer: DynSampleNamerTrait) {
-        self.namer_func = namer;
     }
 
     /// Rip samples to a directory
