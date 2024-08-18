@@ -1,3 +1,5 @@
+//! Fetch information about a tracker module
+
 use std::fs::read_dir;
 use std::path::Path;
 
