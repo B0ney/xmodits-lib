@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use crate::parser::io::{read_into_array, ByteReader};
+use crate::parser::{read_into_array, ByteReader};
 use crate::{Error, Sample};
 
 /// See: Page 16 in "The Unofficial XM File Format Specification"

@@ -5,16 +5,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::tracker::{GenericTracker, Info};
-use crate::tracker::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample};
-use crate::Error;
-use crate::parser::{
-    bitflag::BitFlag,
-    bytes::magic_header,
-    io::{is_magic, ByteReader, ReadSeek},
-    string::read_str,
+use crate::parser::{is_magic, magic_header_bytes, read_str, BitFlag, ByteReader, ReadSeek};
+use crate::tracker::{
+    sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample},
+    GenericTracker, Info,
 };
-use crate::{info, warn};
+use crate::Error;
+use crate::log::{info, warn};
+
 use std::io::Cursor;
 use std::path::PathBuf;
 
@@ -31,13 +29,10 @@ const FLAG_BITS: u8 = 1 << 2;
 
 pub fn probe(buf: &[u8]) -> bool {
     buf.get(0x2c..)
-        .is_some_and(|slice| magic_header(&MAGIC_SCRM, slice))
+        .is_some_and(|slice| magic_header_bytes(&MAGIC_SCRM, slice))
 }
 
-pub fn load(
-    buffer: Vec<u8>,
-    source: Option<PathBuf>,
-) -> Result<GenericTracker, Error> {
+pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
     let mut buffer = Cursor::new(buffer);
     let file = &mut buffer;
 

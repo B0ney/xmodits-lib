@@ -3,14 +3,14 @@ use rubato::Resampler;
 // use crate::dsp::sample::{self};
 use crate::tracker::sample::Depth;
 
+use super::sample::{convert_to_interleaved, convert_to_planar};
 use super::{RawSample, SampleBuffer};
-use super::sample::{convert_to_planar, convert_to_interleaved};
 
 pub fn resample(sample: &mut SampleBuffer, target_rate: u32) {
     if sample.rate == target_rate {
         return;
     }
-    
+
     let mut resampler = rubato::SincFixedOut::<f32>::new(
         target_rate as f64 / sample.rate as f64,
         7.0,

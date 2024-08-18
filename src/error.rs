@@ -9,7 +9,7 @@ use std::path::Path;
 
 use thiserror::Error;
 
-use crate::{Sample, parser::io::io_error};
+use crate::{parser::io_error, Sample};
 
 #[derive(Error, Debug)]
 pub enum Error {

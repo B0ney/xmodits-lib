@@ -10,7 +10,7 @@
 use std::io::Cursor;
 
 use crate::parser::{
-    bytes::magic_header,
+    bytes::magic_header_bytes,
     io::{is_magic, ByteReader, ReadSeek},
     string::read_string,
 };
@@ -19,7 +19,7 @@ use crate::Error;
 const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
 
 pub fn probe(buf: &[u8]) -> bool {
-    magic_header(&MAGIC_UPKG, buf)
+    magic_header_bytes(&MAGIC_UPKG, buf)
 }
 
 pub fn inner(reader: Vec<u8>) -> Result<Vec<u8>, Error> {

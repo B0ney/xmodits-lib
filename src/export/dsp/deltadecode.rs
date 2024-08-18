@@ -7,7 +7,8 @@
 
 use bytemuck::cast_slice_mut;
 
-use crate::{info, Sample};
+use crate::log::info;
+use crate::Sample;
 
 use super::pcm::align_u16;
 

@@ -3,8 +3,7 @@ use crate::tracker::sample::{Depth, Loop, LoopType, Sample};
 use bytemuck::{cast_slice, Pod};
 use dasp::sample::{FromSample, Sample as SampleConverter};
 
-use super::{pcm::align_u16, frames::SampleFrame};
-
+use super::{frames::SampleFrame, pcm::align_u16};
 
 pub struct RawSample<'a> {
     pub smp: &'a Sample,
@@ -153,7 +152,7 @@ where
 }
 
 /// Convert [SampleBuffer] back into raw bytes where its channels are placed one after the other:
-/// 
+///
 /// **LLLLRRRR** (planar form)
 #[inline]
 pub fn convert_to_planar<S>(sample_buffer: &SampleBuffer) -> Vec<u8>
@@ -176,11 +175,11 @@ where
 }
 
 /// Convert [SampleBuffer] back into raw bytes, where its channels are intertwined:
-/// 
+///
 /// **LRLRLRLR** (interleaved)
-/// 
+///
 /// Panics
-/// 
+///
 /// Panics if the [SampleBuffer] has uneven channel lengths
 pub fn convert_to_interleaved<S>(sample_buffer: &SampleBuffer) -> Vec<u8>
 where

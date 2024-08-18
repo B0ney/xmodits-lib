@@ -5,17 +5,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::tracker::{GenericTracker, Info};
-use crate::tracker::sample::{
-    remove_invalid_samples, Channel, Depth, Loop, LoopType, PcmType, Sample,
+use crate::parser::{
+    is_magic, magic_header_bytes, peek, read_into_array, read_str, BitFlag, ByteReader, ReadSeek,
+};
+use crate::tracker::{
+    sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, PcmType, Sample},
+    GenericTracker, Info,
 };
 use crate::Error;
-use crate::parser::{
-    bitflag::BitFlag,
-    bytes::magic_header,
-    io::{is_magic, peek, read_into_array, ByteReader, ReadSeek},
-    string::read_str,
-};
+
 use std::io::Cursor;
 use std::path::PathBuf;
 
@@ -33,16 +31,14 @@ const XM_INS_SIZE: u32 = 263;
 const XM_SMP_SIZE: u64 = 40;
 
 pub fn probe(buf: &[u8]) -> bool {
-    magic_header(&MAGIC_EXTENDED_MODULE, buf) | magic_header(&MAGIC_MOD_PLUGIN_PACKED, buf)
+    magic_header_bytes(&MAGIC_EXTENDED_MODULE, buf)
+        | magic_header_bytes(&MAGIC_MOD_PLUGIN_PACKED, buf)
 }
 
-pub fn load(
-    buffer: Vec<u8>,
-    source: Option<PathBuf>,
-) -> Result<GenericTracker, Error> {
+pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
     let mut buffer = Cursor::new(buffer);
     let file = &mut buffer;
-    
+
     check_mod_plugin_packed(file)?;
 
     if !is_magic(file, &MAGIC_EXTENDED_MODULE)? {

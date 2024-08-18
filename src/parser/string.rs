@@ -5,7 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::parser::io::{io_error, read_into_array, ReadSeek};
+use crate::parser::{io_error, read_into_array, ReadSeek};
 use std::{borrow::Cow, io};
 
 const FORBIDDEN_CHARS: &[char] = &[

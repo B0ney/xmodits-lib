@@ -135,7 +135,7 @@ impl SampleNamer {
             };
 
             let prefix: Cow<str> = match self.prefix_source {
-                true => match source_name(ctx.source_path, true) { // todo
+                true => match source_name(ctx.source_path, true /*todo*/) {
                     Some(prefix) => format!("{prefix} - ").into(),
                     None => "".into(),
                 },

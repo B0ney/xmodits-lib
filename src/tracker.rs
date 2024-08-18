@@ -7,9 +7,9 @@
 
 pub mod sample;
 
-pub use sample::{Sample, PcmType, Depth, Channel};
 use crate::export::dsp::{adpcm_decode, decompress_it21n, delta_decode};
 use crate::Error;
+pub use sample::{Channel, Depth, PcmType, Sample};
 
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};

@@ -10,4 +10,4 @@ use dsp::helper;
 
 pub use audio::{AudioTrait, DynAudioTrait};
 pub use format::AudioFormat;
-pub use ripper::{Ripper, extract, create_folder_name, get_destination};
+pub use ripper::{create_folder_name, extract, get_destination, Ripper};

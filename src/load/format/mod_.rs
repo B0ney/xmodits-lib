@@ -5,13 +5,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::tracker::{GenericTracker, Info};
-use crate::tracker::sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample};
-use crate::Error;
-use crate::parser::{
-    io::{is_magic_peek, peek, ByteReader, ReadSeek},
-    string::read_str,
+use crate::parser::{is_magic_peek, peek, read_str, ByteReader, ReadSeek};
+use crate::tracker::{
+    sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample},
+    GenericTracker, Info,
 };
+use crate::Error;
+
 use std::io::{Cursor, Read};
 use std::path::PathBuf;
 
@@ -38,10 +38,7 @@ pub fn probe(_buf: &[u8]) -> bool {
     true // TODO
 }
 
-pub fn load(
-    buffer: Vec<u8>,
-    source: Option<PathBuf>,
-) -> Result<GenericTracker, Error> {
+pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
     let mut buffer = Cursor::new(buffer);
     let file = &mut buffer;
 

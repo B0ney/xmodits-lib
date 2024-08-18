@@ -8,8 +8,8 @@
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
+use crate::parser::{peek, ByteReader, ReadSeek};
 use crate::tracker::GenericTracker;
-use crate::parser::io::{peek, ByteReader, ReadSeek};
 use crate::Error;
 
 use super::container;

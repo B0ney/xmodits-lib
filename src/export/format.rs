@@ -17,7 +17,6 @@ mod s3i;
 mod wav;
 mod xi;
 
-
 use super::helper;
 
 /// Possible formats to store the pcm

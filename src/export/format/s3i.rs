@@ -8,9 +8,9 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::export::AudioTrait;
+use crate::parser::string::to_ascii_array;
 use crate::tracker::sample::Depth;
 use crate::{Error, Sample};
-use crate::parser::string::to_ascii_array;
 
 use super::helper::PCMFormatter;
 

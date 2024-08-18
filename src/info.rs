@@ -4,8 +4,8 @@ use std::path::Path;
 use crate::load;
 use crate::Error;
 
-use crate::error::too_large;
 use super::MAX_SIZE_BYTES;
+use crate::error::too_large;
 
 /// Basic information about a tracker module
 ///

@@ -10,12 +10,14 @@ use std::io::{BufWriter, Write};
 use std::path::PathBuf;
 use std::{fs, path::Path};
 
+use super::audio::{AudioTrait, DynAudioTrait};
 use super::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
-use super::{AudioTrait, DynAudioTrait};
+use super::AudioFormat;
+
 use crate::error::{does_not_exist, no_filename, not_empty, too_large, Error, ExtractionError};
-use crate::export::AudioFormat;
 use crate::info::{filesize, is_dir_empty};
-use crate::{error, load, GenericTracker, Sample, MAX_SIZE_BYTES};
+use crate::log::error;
+use crate::{load, GenericTracker, Sample, MAX_SIZE_BYTES};
 
 /// Struct to rip samples from a module
 ///

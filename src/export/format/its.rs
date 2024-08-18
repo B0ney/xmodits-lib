@@ -8,9 +8,9 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::export::AudioTrait;
+use crate::parser::string::to_ascii_array;
 use crate::tracker::sample::LoopType;
 use crate::{Error, Sample};
-use crate::parser::string::to_ascii_array;
 
 const FLAG_LOOP: u8 = 1 << 4;
 const FLAG_SUSTAIN: u8 = 1 << 5;

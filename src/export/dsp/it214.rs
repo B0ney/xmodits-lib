@@ -13,11 +13,11 @@
 //! Bitreading:
 //!     https://github.com/Konstanty/libmodplug/blob/master/src/load_it.cpp#L1183
 
-use crate::{error, info, Sample};
-use crate::Error;
+use crate::log::{error, info};
 use crate::parser::bytes::le_u16 as _le_u16;
-use bytemuck::cast_slice;
+use crate::{Error, Sample};
 
+use bytemuck::cast_slice;
 
 #[inline]
 pub fn decompress_it21n(smp: &Sample) -> impl Fn(&[u8], u32, bool, bool) -> Result<Vec<u8>, Error> {
@@ -31,7 +31,6 @@ pub fn decompress_it21n(smp: &Sample) -> impl Fn(&[u8], u32, bool, bool) -> Resu
         false => decompress_16_bit,
     }
 }
-
 
 #[rustfmt::skip] 
 struct BitReader<'a> {
@@ -99,13 +98,18 @@ impl<'a> BitReader<'a> {
 }
 // len_frames = len_bytes / bytes_per_sample / channels
 #[inline(always)]
-pub fn decompress_8_bit(buf: &[u8], len_frames: u32, it215: bool, stereo: bool) -> Result<Vec<u8>, Error> {
+pub fn decompress_8_bit(
+    buf: &[u8],
+    len_frames: u32,
+    it215: bool,
+    stereo: bool,
+) -> Result<Vec<u8>, Error> {
     let mut out = Vec::with_capacity(len_frames as usize);
     let offset = decompress_8_bit_inner(buf, len_frames, it215, &mut out)?;
     if stereo {
         decompress_8_bit_inner(&buf[offset..], len_frames, it215, &mut out)?;
     }
-    
+
     Ok(out)
 }
 
@@ -206,7 +210,12 @@ pub fn decompress_8_bit_inner(buf: &[u8], mut len: u32, it215: bool, dest_buf: &
 }
 
 #[inline(always)]
-pub fn decompress_16_bit(buf: &[u8], len_frames: u32, it215: bool, stereo: bool) -> Result<Vec<u8>, Error> {
+pub fn decompress_16_bit(
+    buf: &[u8],
+    len_frames: u32,
+    it215: bool,
+    stereo: bool,
+) -> Result<Vec<u8>, Error> {
     let mut out = Vec::with_capacity(len_frames as usize);
     let offset = decompress_16_bit_inner(buf, len_frames, it215, &mut out)?;
     if stereo {
@@ -215,7 +224,6 @@ pub fn decompress_16_bit(buf: &[u8], len_frames: u32, it215: bool, stereo: bool)
 
     Ok(out)
 }
-
 
 #[rustfmt::skip]
 pub fn decompress_16_bit_inner(buf: &[u8], mut len: u32, it215: bool, dest_buf: &mut Vec<u8>) -> Result<usize, Error> {

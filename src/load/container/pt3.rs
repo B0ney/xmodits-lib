@@ -2,7 +2,7 @@
 
 use std::io::Cursor;
 
-use crate::parser::bytes::magic_header;
+use crate::parser::bytes::magic_header_bytes;
 use crate::parser::io::{is_magic, ByteReader, ReadSeek};
 use crate::Error;
 
@@ -13,7 +13,7 @@ const PTDT: [u8; 4] = *b"PTDT";
 const VERSION: [u8; 4] = *b"VERS";
 
 pub fn probe(data: &[u8]) -> bool {
-    magic_header(&MAGIC_PT36, data)
+    magic_header_bytes(&MAGIC_PT36, data)
 }
 
 #[derive(Debug, Clone, Copy)]

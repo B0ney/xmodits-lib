@@ -5,16 +5,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::info;
-use crate::tracker::{GenericTracker, Info};
-use crate::tracker::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample};
-use crate::Error;
-use crate::parser::{
-    bitflag::BitFlag,
-    bytes::magic_header,
-    io::{is_magic, peek, ByteReader, ReadSeek},
-    string::read_str,
+use crate::log::info;
+use crate::parser::{is_magic, magic_header_bytes, peek, read_str, BitFlag, ByteReader, ReadSeek};
+use crate::tracker::{
+    sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample},
+    GenericTracker, Info,
 };
+use crate::Error;
+
 use std::io::Cursor;
 use std::path::PathBuf;
 
@@ -41,7 +39,7 @@ const CVT_ADPCM: u8 = 255;
 const INVALID: &str = "Not a valid Impulse Tracker module";
 
 pub fn probe(buf: &[u8]) -> bool {
-    magic_header(&MAGIC_IMPM, buf)
+    magic_header_bytes(&MAGIC_IMPM, buf)
 }
 
 pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {

@@ -9,7 +9,9 @@ use std::borrow::Cow;
 
 /// ! Helper functions
 /// ! TODO: replace with dasp
-use crate::{tracker::sample::Depth, warn};
+use crate::log::warn;
+use crate::tracker::sample::Depth;
+
 use bytemuck::{cast_slice, cast_slice_mut};
 
 #[inline]
