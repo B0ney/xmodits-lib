@@ -7,12 +7,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::loader::{Inner, Prober};
-use crate::parser::ReadSeek;
-
 mod mmcmp;
 mod pt3;
 mod umx;
+
+use super::loader::{Inner, Prober};
+use crate::parser::ReadSeek;
 
 pub fn get_inner_func<R: ReadSeek>(data: &[u8]) -> Option<Inner<R>> {
     let containers: [(Prober, Inner<R>); 3] = [

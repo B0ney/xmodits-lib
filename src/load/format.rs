@@ -7,14 +7,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::error::Error;
-
-use super::loader::{Loader, Prober};
-
 mod it;
 mod mod_;
 mod s3m;
 mod xm;
+
+use super::loader::{Loader, Prober};
+use crate::error::Error;
 
 const LOADERS: [(Prober, Loader); 4] = [
     (it::probe, it::load),
