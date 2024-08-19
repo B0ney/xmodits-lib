@@ -7,9 +7,9 @@
 
 use crate::log::{info, warn};
 use crate::parser::{is_magic, magic_header_bytes, read_str, BitFlag, ByteReader};
-use crate::tracker::{
+use crate::module::{
     sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample},
-    GenericTracker, Info,
+    Module, Info,
 };
 use crate::Error;
 
@@ -32,7 +32,7 @@ pub fn probe(buf: &[u8]) -> bool {
         .is_some_and(|slice| magic_header_bytes(&MAGIC_SCRM, slice))
 }
 
-pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
+pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
     let file = &mut Cursor::new(&buffer);
 
     let title = read_str::<28>(file)?;
@@ -133,7 +133,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
         samples
     };
 
-    Ok(GenericTracker {
+    Ok(Module {
         info: Info {
             name: title.to_string(),
             format: FORMAT,

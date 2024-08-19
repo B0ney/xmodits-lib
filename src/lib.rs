@@ -14,13 +14,13 @@ pub mod error;
 pub mod export;
 pub mod info;
 pub mod load;
-pub mod tracker;
+pub mod module;
 
 pub use error::Error;
 pub use export::ripper::{extract, Ripper};
 pub use info::{info, Info};
 pub use load::{from_bytes as load_from_bytes, from_path as load_from_path, load};
-pub use tracker::{GenericTracker, Sample};
+pub use module::{Module, Sample};
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &["it", "xm", "s3m", "mod", "umx", "mptm"];
 pub const MAX_SIZE_BYTES: u64 = 48 * 1024 * 1024;

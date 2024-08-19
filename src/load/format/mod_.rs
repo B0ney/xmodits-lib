@@ -6,9 +6,9 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::parser::{is_magic_peek, peek, read_str, ByteReader, ReadSeek};
-use crate::tracker::{
+use crate::module::{
     sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample},
-    GenericTracker, Info,
+    Module, Info,
 };
 use crate::Error;
 
@@ -38,7 +38,7 @@ pub fn probe(_buf: &[u8]) -> bool {
     true // TODO
 }
 
-pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
+pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
     let file = &mut Cursor::new(&buffer);
 
     check_xpk(file)?;
@@ -122,7 +122,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
 
     remove_invalid_samples(&mut samples, buffer.len())?;
 
-    Ok(GenericTracker {
+    Ok(Module {
         info: Info {
             name: title.to_string(),
             format: FORMAT,

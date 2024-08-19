@@ -9,29 +9,29 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 use crate::parser::{peek, ByteReader, ReadSeek};
-use crate::tracker::GenericTracker;
+use crate::module::Module;
 use crate::Error;
 
 use super::container;
 use super::format;
 
 pub(crate) type Prober = fn(&[u8]) -> bool;
-pub(crate) type Loader = fn(Vec<u8>, Option<PathBuf>) -> Result<GenericTracker, Error>;
+pub(crate) type Loader = fn(Vec<u8>, Option<PathBuf>) -> Result<Module, Error>;
 pub(crate) type Inner<Reader> = fn(&mut Reader) -> Result<Vec<u8>, Error>;
 
 /// Load a tracker module from a path.
-pub fn from_path(source: impl AsRef<Path>) -> Result<GenericTracker, Error> {
+pub fn from_path(source: impl AsRef<Path>) -> Result<Module, Error> {
     let source = source.as_ref();
     load(&mut std::fs::File::open(source)?, Some(source.to_owned()))
 }
 
 /// Load a tracker module from its bytes.
-pub fn from_bytes(bytes: &[u8], source: Option<PathBuf>) -> Result<GenericTracker, Error> {
+pub fn from_bytes(bytes: &[u8], source: Option<PathBuf>) -> Result<Module, Error> {
     load(&mut Cursor::new(bytes), source)
 }
 
 /// Load a tracker module from a file-like stream.
-pub fn load(reader: &mut impl ReadSeek, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
+pub fn load(reader: &mut impl ReadSeek, source: Option<PathBuf>) -> Result<Module, Error> {
     let mut test_bytes = [0u8; 512];
     peek(reader, |data| data.read(&mut test_bytes))?;
 

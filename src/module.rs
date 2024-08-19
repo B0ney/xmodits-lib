@@ -22,14 +22,14 @@ pub struct Info {
     pub source: Option<PathBuf>,
 }
 
-/// Panic free wrapper to obtain raw samples from a module
-pub struct GenericTracker {
+/// A generic tracker module
+pub struct Module {
     pub(crate) info: Info,
     pub(crate) inner: Box<[u8]>,
     pub(crate) samples: Box<[Sample]>,
 }
 
-impl GenericTracker {
+impl Module {
     pub fn pcm(&self, smp: &Sample) -> Result<Cow<[u8]>, Error> {
         match smp.pcm_type {
             PcmType::PCM => self.get_slice(smp).map(Into::into),

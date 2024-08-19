@@ -9,7 +9,7 @@ use std::{borrow::Cow, io::Write};
 
 use crate::export::AudioFormat;
 use crate::parser::string::to_ascii_array;
-use crate::tracker::sample::LoopType;
+use crate::module::sample::LoopType;
 use crate::{Error, Sample};
 
 const FLAG_LOOP: u8 = 1 << 4;

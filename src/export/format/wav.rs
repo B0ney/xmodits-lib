@@ -10,7 +10,7 @@ use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
 use crate::export::AudioFormat;
-use crate::tracker::sample::{Channel, Depth, LoopType, Sample};
+use crate::module::sample::{Channel, Depth, LoopType, Sample};
 use crate::Error;
 
 #[derive(Clone, Copy)]

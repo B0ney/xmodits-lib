@@ -17,7 +17,7 @@ use super::Format;
 use crate::error::{does_not_exist, no_filename, not_empty, too_large, Error, ExtractionError};
 use crate::info::{filesize, is_dir_empty};
 use crate::log::error;
-use crate::{load, GenericTracker, Sample, MAX_SIZE_BYTES};
+use crate::{load, Module, Sample, MAX_SIZE_BYTES};
 
 /// Struct to rip samples from a module
 ///
@@ -52,7 +52,7 @@ impl Ripper {
     pub fn rip_to_dir(
         &self,
         directory: impl AsRef<Path>,
-        module: &GenericTracker,
+        module: &Module,
     ) -> Result<(), Error> {
         if module.is_empty() {
             return Err(Error::EmptyModule);
@@ -108,7 +108,7 @@ impl Ripper {
 }
 
 pub fn build_context<'a>(
-    module: &'a GenericTracker,
+    module: &'a Module,
     audio_format: &'a DynAudioFormat,
 ) -> Context<'a> {
     Context {

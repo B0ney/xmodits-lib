@@ -2,7 +2,7 @@ use std::{borrow::Cow, io::Write};
 
 use super::helper::PCMFormatter;
 use crate::export::AudioFormat;
-use crate::tracker::sample::{Depth, Sample};
+use crate::module::sample::{Depth, Sample};
 use crate::Error;
 
 /// Fast Tracker 2 Instrument

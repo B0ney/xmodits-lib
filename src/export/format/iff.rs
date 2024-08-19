@@ -10,7 +10,7 @@ use std::{borrow::Cow, io::Write};
 use super::helper::PCMFormatter;
 use crate::export::dsp;
 use crate::export::AudioFormat;
-use crate::tracker::sample::{Depth, Sample};
+use crate::module::sample::{Depth, Sample};
 use crate::Error;
 
 const CAPPED_SAMPLE_RATE: u16 = 22050;

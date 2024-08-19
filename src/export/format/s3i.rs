@@ -9,7 +9,7 @@ use std::{borrow::Cow, io::Write};
 
 use crate::export::AudioFormat;
 use crate::parser::string::to_ascii_array;
-use crate::tracker::sample::Depth;
+use crate::module::sample::Depth;
 use crate::{Error, Sample};
 
 use super::helper::PCMFormatter;

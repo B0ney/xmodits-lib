@@ -8,7 +8,7 @@
 use rubato::Resampler;
 
 // use crate::dsp::sample::{self};
-use crate::tracker::sample::Depth;
+use crate::module::sample::Depth;
 
 use super::sample::{convert_to_interleaved, convert_to_planar};
 use super::{RawSample, SampleBuffer};

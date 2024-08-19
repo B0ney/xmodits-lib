@@ -8,9 +8,9 @@
 use crate::parser::{
     is_magic, magic_header_bytes, peek, read_into_array, read_str, BitFlag, ByteReader, ReadSeek,
 };
-use crate::tracker::{
+use crate::module::{
     sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, PcmType, Sample},
-    GenericTracker, Info,
+    Module, Info,
 };
 use crate::Error;
 
@@ -35,7 +35,7 @@ pub fn probe(buf: &[u8]) -> bool {
         | magic_header_bytes(&MAGIC_MOD_PLUGIN_PACKED, buf)
 }
 
-pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
+pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
     let file = &mut Cursor::new(&buffer);
 
     check_mod_plugin_packed(file)?;
@@ -182,7 +182,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
         samples
     };
 
-    Ok(GenericTracker {
+    Ok(Module {
         info: Info {
             name: title.to_string(),
             format: FORMAT,
