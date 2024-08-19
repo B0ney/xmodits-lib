@@ -1,4 +1,4 @@
-use std::fs::{self, File};
+use std::fs::File;
 use std::hash::{DefaultHasher, Hasher};
 use std::{io, path::Path};
 
@@ -16,7 +16,7 @@ pub fn verify_sample_number(expected: usize, given: usize, modname: &str) {
 pub fn hash(reader: impl io::Read) -> u64 {
     let mut hasher = DefaultHasher::new();
     let mut bytes = reader.bytes();
-    while let Some(Ok(b)) = bytes.next () {
+    while let Some(Ok(b)) = bytes.next() {
         hasher.write_u8(b);
     }
     hasher.finish()
@@ -52,4 +52,29 @@ where
             )
         );
     });
+}
+
+/// macro to verify sample number
+/// ```
+/// check_sample_number!(
+///     test_name
+///     path: "path/to/a/tracker.mod",
+///     with: EXPECTED_SAMPLE_NUMBER   
+/// )
+/// ```
+#[macro_export]
+macro_rules! check_sample_number {
+    // ($test_name:ident kind: $tracker:ty, path: $path:expr, with: $smp_no:tt) => {
+    ($test_name:ident, path: $bytes:expr, with: $expected:tt) => {
+        #[test]
+        fn $test_name() {
+            let module = xmodits_lib::load_from_bytes($bytes, None).unwrap();
+            assert!(
+                $expected == module.len(),
+                "\nMISMATCH IN TOTAL SAMPLES\nEXPECTED: {}\nGOT: {}\n",
+                $expected,
+                module.len()
+            );
+        }
+    };
 }

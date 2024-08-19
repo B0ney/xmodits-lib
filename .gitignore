@@ -17,10 +17,10 @@
 *.mod
 *.pt3*
 
-!/tests/modules/*.it
-!/tests/modules/*.xm
-!/tests/modules/*.s3m
-!/tests/modules/*.mod
+!/tests/modules/*/*.it
+!/tests/modules/*/*.xm
+!/tests/modules/*/*.s3m
+!/tests/modules/*/*.mod
 
 
 # Added by cargo

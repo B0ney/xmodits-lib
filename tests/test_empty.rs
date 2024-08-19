@@ -1,4 +1,5 @@
-//! Test empty modules
+//! Test empty modules.
+//! While the Ripper will error if it encounters a module with no samples, they are still and should be treated as valid.
 
 use xmodits_lib::load_from_bytes;
 mod util;
