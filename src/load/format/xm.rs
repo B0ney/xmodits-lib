@@ -36,8 +36,7 @@ pub fn probe(buf: &[u8]) -> bool {
 }
 
 pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
-    let mut buffer = Cursor::new(buffer);
-    let file = &mut buffer;
+    let file = &mut Cursor::new(&buffer);
 
     check_mod_plugin_packed(file)?;
 
@@ -91,7 +90,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
         let mut samples: Vec<Sample> = Vec::new();
         let mut staging_samples: Vec<Sample> = Vec::new();
         let mut total_samples: u16 = 0;
-        let file_size = file.len().expect("size of reader");
+        let file_size = buffer.len() as u64;
 
         'ins: for _ in 0..insnum {
             let offset = file.seek_position()?;
@@ -178,7 +177,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
             samples.append(&mut staging_samples);
         }
 
-        remove_invalid_samples(&mut samples, file.len())?;
+        remove_invalid_samples(&mut samples, buffer.len())?;
 
         samples
     };
@@ -190,7 +189,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
             source,
             ..Default::default()
         },
-        inner: file.load_to_memory()?.into_boxed_slice(),
+        inner: buffer.into_boxed_slice(),
         samples: samples.into(),
     })
 }

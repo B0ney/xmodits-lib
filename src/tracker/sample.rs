@@ -309,24 +309,20 @@ use super::Error;
 // }
 
 // TODO: perhaps add an additional check to see if the loop data points to invalid offsets?
-pub fn is_sample_valid(pointer: u32, length: u32, size: Option<u64>, compressed: bool) -> bool {
-    let Some(size) = size else {
-        return true;
-    };
-
-    if pointer as u64 >= size {
+pub fn is_sample_valid(pointer: u32, length: u32, size: usize, compressed: bool) -> bool {
+    if pointer as usize >= size {
         return false;
     }
 
-    if (pointer + length) as u64 > size && !compressed {
+    if (pointer + length) as usize > size && !compressed {
         return false;
     }
 
     true
 }
 
-pub fn remove_invalid_samples(samples: &mut Vec<Sample>, size: Option<u64>) -> Result<(), Error> {
-    if size.is_none() || samples.is_empty() {
+pub fn remove_invalid_samples(samples: &mut Vec<Sample>, size: usize) -> Result<(), Error> {
+    if samples.is_empty() {
         return Ok(());
     };
 

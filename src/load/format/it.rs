@@ -6,7 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::log::info;
-use crate::parser::{is_magic, magic_header_bytes, peek, read_str, BitFlag, ByteReader, ReadSeek};
+use crate::parser::{is_magic, magic_header_bytes, peek, read_str, BitFlag, ByteReader};
 use crate::tracker::{
     sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample},
     GenericTracker, Info,
@@ -43,8 +43,7 @@ pub fn probe(buf: &[u8]) -> bool {
 }
 
 pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
-    let mut buffer = Cursor::new(buffer);
-    let file = &mut buffer;
+    let file = &mut Cursor::new(&buffer);
 
     if !is_magic(file, &MAGIC_IMPM)? {
         return Err(Error::invalid(INVALID));
@@ -125,7 +124,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
             let channel = Channel::new(flags.contains(FLAG_STEREO), false);
             let length = length * depth.bytes() as u32 * channel.channels() as u32; // convert to length in bytes
 
-            if !is_sample_valid(pointer, length, file.len(), pcm_type.is_compressed()) {
+            if !is_sample_valid(pointer, length, buffer.len(), pcm_type.is_compressed()) {
                 info!("Skipping invalid sample at index: {}...", index_raw + 1);
                 continue;
             }
@@ -163,7 +162,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
             source,
             ..Default::default()
         },
-        inner: buffer.into_inner().into_boxed_slice(),
+        inner: buffer.into_boxed_slice(),
         samples: samples.into_boxed_slice(),
     })
 }

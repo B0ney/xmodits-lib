@@ -5,21 +5,16 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use std::io::{self, BufReader, Cursor, Read, Seek, SeekFrom};
+use std::io::{self, Read, Seek, SeekFrom};
 
 /// Having a supertrait over ``Read + Seek`` makes things cleaner
-///
-/// TODO: make size ``u64`` instead of ``Option<u64>``?
-pub trait ReadSeek: Read + Seek {
-    fn len(&self) -> Option<u64>;
-}
+pub trait ReadSeek: Read + Seek {}
+impl<T: Read + Seek> ReadSeek for T {}
 
 /// An abstract trait used for parsing.
 ///
 /// I found parsing with Byteorder a little annoying so... Here's 200+ loc :D
 pub trait ByteReader {
-    /// Return size of underlying reader
-    fn size(&self) -> Option<u64>;
     fn read_byte(&mut self) -> io::Result<u8>;
     fn read_word(&mut self) -> io::Result<[u8; 2]>;
     fn read_dword(&mut self) -> io::Result<[u8; 4]>;
@@ -96,15 +91,10 @@ impl<T: ReadSeek> ByteReader for T {
         self.stream_position()
     }
 
-    fn size(&self) -> Option<u64> {
-        T::len(self)
-    }
-
     fn load_to_memory(&mut self) -> io::Result<Vec<u8>> {
         peek(self, |f| {
             f.rewind()?;
-            let size = f.len().unwrap_or_default();
-            let mut buf = Vec::with_capacity(size as usize);
+            let mut buf = Vec::new();
             f.read_to_end(&mut buf)?;
             Ok(buf)
         })
@@ -152,28 +142,4 @@ pub fn read_into_array<const N: usize>(data: &mut impl ReadSeek) -> io::Result<[
     data.read_exact(&mut buf).map_err(prettify_eof)?;
 
     Ok(buf)
-}
-
-impl<T> ReadSeek for Cursor<T>
-where
-    T: AsRef<[u8]>,
-{
-    fn len(&self) -> Option<u64> {
-        Some(self.get_ref().as_ref().len() as u64)
-    }
-}
-
-impl ReadSeek for std::fs::File {
-    fn len(&self) -> Option<u64> {
-        match self.metadata() {
-            Ok(x) => Some(x.len()),
-            _ => None,
-        }
-    }
-}
-
-impl<T: ReadSeek> ReadSeek for BufReader<T> {
-    fn len(&self) -> Option<u64> {
-        self.get_ref().len()
-    }
 }

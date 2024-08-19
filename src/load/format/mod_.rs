@@ -39,8 +39,7 @@ pub fn probe(_buf: &[u8]) -> bool {
 }
 
 pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, Error> {
-    let mut buffer = Cursor::new(buffer);
-    let file = &mut buffer;
+    let file = &mut Cursor::new(&buffer);
 
     check_xpk(file)?;
 
@@ -121,7 +120,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
         file.skip_bytes(smp.length as i64)?;
     }
 
-    remove_invalid_samples(&mut samples, file.len())?;
+    remove_invalid_samples(&mut samples, buffer.len())?;
 
     Ok(GenericTracker {
         info: Info {
@@ -130,7 +129,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<GenericTracker, 
             source,
             ..Default::default()
         },
-        inner: buffer.into_inner().into_boxed_slice(),
+        inner: buffer.into_boxed_slice(),
         samples: samples.into(),
     })
 }
