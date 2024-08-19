@@ -17,7 +17,11 @@
 *.mod
 *.pt3*
 
-!/app/gui/res/**/*.wav
+!/tests/modules/*.it
+!/tests/modules/*.xm
+!/tests/modules/*.s3m
+!/tests/modules/*.mod
+
 
 # Added by cargo
 /target
