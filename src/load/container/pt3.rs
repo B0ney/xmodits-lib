@@ -29,10 +29,7 @@ fn read_iff_header(reader: &mut impl ReadSeek) -> Result<IFFChunk, Error> {
     })
 }
 
-pub fn inner(reader: Vec<u8>) -> Result<Vec<u8>, Error> {
-    let mut buffer = Cursor::new(reader);
-    let file = &mut buffer;
-
+pub fn inner(file: &mut impl ReadSeek) -> Result<Vec<u8>, Error> {
     if !is_magic(file, &MAGIC_PT36)? {
         return Err(Error::invalid("Not a valid Protracker 3 file"));
     }
@@ -56,13 +53,7 @@ pub fn inner(reader: Vec<u8>) -> Result<Vec<u8>, Error> {
                 // dbg!(iff_chunk.chunk_size);
                 let _version = file.read_bytes(iff_chunk.size as usize)?;
             }
-            PTDT => {
-                let offset = file.position();
-                let mut inner = buffer.into_inner().split_off(offset as usize);
-                inner.truncate(iff_chunk.size as usize);
-
-                return Ok(inner);
-            }
+            PTDT => return Ok(file.read_bytes(iff_chunk.size as usize)?),
             _ => file.skip_bytes(iff_chunk.size as i64)?,
         }
 

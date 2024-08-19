@@ -12,8 +12,6 @@ pub trait ReadSeek: Read + Seek {}
 impl<T: Read + Seek> ReadSeek for T {}
 
 /// An abstract trait used for parsing.
-///
-/// I found parsing with Byteorder a little annoying so... Here's 200+ loc :D
 pub trait ByteReader {
     fn read_byte(&mut self) -> io::Result<u8>;
     fn read_word(&mut self) -> io::Result<[u8; 2]>;

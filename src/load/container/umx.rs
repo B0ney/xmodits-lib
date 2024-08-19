@@ -7,13 +7,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use std::io::Cursor;
-
-use crate::parser::{
-    bytes::magic_header_bytes,
-    io::{is_magic, ByteReader, ReadSeek},
-    string::read_string,
-};
+use crate::parser::{is_magic, magic_header_bytes, string::read_string, ByteReader, ReadSeek};
 use crate::Error;
 
 const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
@@ -22,10 +16,7 @@ pub fn probe(buf: &[u8]) -> bool {
     magic_header_bytes(&MAGIC_UPKG, buf)
 }
 
-pub fn inner(reader: Vec<u8>) -> Result<Vec<u8>, Error> {
-    let mut buffer = Cursor::new(reader);
-    let file = &mut buffer;
-
+pub fn inner(file: &mut impl ReadSeek) -> Result<Vec<u8>, Error> {
     if !is_magic(file, &MAGIC_UPKG)? {
         return Err(Error::invalid("Not a valid Unreal package"));
     }
@@ -92,11 +83,7 @@ pub fn inner(reader: Vec<u8>) -> Result<Vec<u8>, Error> {
     let _ = read_compact_index(file)?; // obj size field
     let inner_size = read_compact_index(file)? as usize;
 
-    let offset = file.position();
-    let mut buffer = buffer.into_inner().split_off(offset as usize);
-    buffer.truncate(inner_size); // TODO: is this necessary?
-
-    Ok(buffer)
+    Ok(file.read_bytes(inner_size)?)
 }
 
 fn name_table_above_64(file: &mut impl ReadSeek) -> Result<Box<str>, Error> {
