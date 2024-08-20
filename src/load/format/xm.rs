@@ -94,6 +94,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
         /// We are essentially trying to obtain as many samples as we can before it craps itself.
         ///
         /// TODO: would using a "try" block be a suitable alternative when it goes stable?
+        #[rustfmt::skip]
         fn parse_instruments(
             file: &mut Cursor<&Vec<u8>>,
             samples: &mut Vec<Sample>,
@@ -135,8 +136,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
 
                     let name = read_str::<22>(file)?;
 
-                    let period =
-                        7680.0 - ((48.0 + notenum as f32) * 64.0) - (finetune as f32 / 2.0);
+                    let period = 7680.0 - ((48.0 + notenum as f32) * 64.0) - (finetune as f32 / 2.0);
                     let rate = (8363.0 * 2.0_f32.powf((4608.0 - period) / 768.0)) as u32;
 
                     let depth = Depth::new(!flag.contains(FLAG_BITS), true, true);
