@@ -5,12 +5,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::module::sample::{Channel, Depth, Loop, LoopType, PcmType, Sample};
+use crate::module::{Info, Module};
 use crate::parser::{
     is_magic, magic_header_bytes, peek, read_into_array, read_str, BitFlag, ByteReader, ReadSeek,
-};
-use crate::module::{
-    sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, PcmType, Sample},
-    Module, Info,
 };
 use crate::Error;
 
@@ -28,7 +26,6 @@ const FLAG_BITS: u8 = 1 << 4;
 const FLAG_STEREO: u8 = 1 << 5;
 
 const XM_INS_SIZE: u32 = 263;
-const XM_SMP_SIZE: u64 = 40;
 
 pub fn probe(buf: &[u8]) -> bool {
     magic_header_bytes(&MAGIC_EXTENDED_MODULE, buf)
@@ -76,108 +73,126 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
     file.set_seek_pos(60 + header_size as u64)?;
 
     for _ in 0..patnum {
-        let _ = file.read_u32_le()?;
-        file.skip_bytes(3)?; // pattern length, packing type, number of rows in pattern
+        let header_size = file.read_u32_le()?;
+        file.skip_bytes(3)?; // packing type, number of rows in pattern
 
         let data_size = file.read_u16_le()? as i64;
         file.skip_bytes(data_size)?;
-        // if data_size > 9 {
-        //     file.skip_bytes(header_size as i64 -9)?;
-        // }
+
+        // Typical pattern header size is 9 but skip over any residual data if there's any.
+        if header_size > 9 {
+            file.skip_bytes((header_size - 9) as i64)?;
+        }
     }
 
     let samples = {
         let mut samples: Vec<Sample> = Vec::new();
-        let mut staging_samples: Vec<Sample> = Vec::new();
-        let mut total_samples: u16 = 0;
-        let file_size = buffer.len() as u64;
 
-        'ins: for _ in 0..insnum {
-            let offset = file.seek_position()?;
+        /// HACK: We wrap the instrument parsing code in a function so that end-of-file errors won't cause the outer load function to error.
+        ///
+        /// We are essentially trying to obtain as many samples as we can before it craps itself.
+        ///
+        /// TODO: would using a "try" block be a suitable alternative when it goes stable?
+        fn parse_instruments(
+            file: &mut Cursor<&Vec<u8>>,
+            samples: &mut Vec<Sample>,
+            file_len: usize,
+            insnum: u16,
+        ) -> Result<(), Error> {
+            let mut staging_samples: Vec<Sample> = Vec::new();
+            let mut total_samples: u16 = 0;
 
-            let mut header_size = file.read_u32_le()?;
-            file.skip_bytes(22)?; // instrument name
-            file.skip_bytes(1)?; // instrument type
+            for _ in 0..insnum {
+                let mut header_size = file.read_u32_le()?;
 
-            let sample_number = file.read_u16_le()?;
+                file.skip_bytes(22)?; // instrument name
+                file.skip_bytes(1)?; // instrument type
 
-            if header_size == 0 || header_size > XM_INS_SIZE {
-                header_size = XM_INS_SIZE;
-            }
+                let sample_number = file.read_u16_le()?;
 
-            let total_smp_hdr_size = XM_SMP_SIZE * sample_number as u64;
-            let start_smp_hdr = header_size as u64 + offset;
-
-            file.set_seek_pos(start_smp_hdr)?; // skip to sample headers
-
-            for _ in 0..sample_number {
-                let length = file.read_u32_le()?;
-
-                // Break out of loop if it will lead to an eof error
-                if (start_smp_hdr + total_smp_hdr_size + length as u64) > file_size {
-                    break 'ins;
+                if header_size == 0 || header_size > XM_INS_SIZE {
+                    header_size = XM_INS_SIZE;
                 }
 
-                let loop_start = file.read_u32_le()?;
-                let loop_length = file.read_u32_le()?;
-                file.skip_bytes(1)?; // volume
+                const MINIMUM_INSTRUMENT_SIZE: i64 = 29; // 4 + 22 + 1 + 2
 
-                let finetune = file.read_u8()? as i8;
-                let flag = file.read_u8()?;
-                file.skip_bytes(1)?; // panning,
+                file.skip_bytes(header_size as i64 - MINIMUM_INSTRUMENT_SIZE)?; // skip to sample headers
 
-                let notenum = file.read_u8()? as i8;
-                let pcm_type = match file.read_byte()? {
-                    0xAD => PcmType::ADPCM,
-                    _ => PcmType::DELTA,
-                };
+                for _ in 0..sample_number {
+                    let length = file.read_u32_le()?;
+                    let loop_start = file.read_u32_le()?;
+                    let loop_length = file.read_u32_le()?;
+                    file.skip_bytes(1)?; // volume
 
-                let name = read_str::<22>(file)?;
+                    let finetune = file.read_u8()? as i8;
+                    let flag = file.read_u8()?;
+                    file.skip_bytes(1)?; // panning,
 
-                let period = 7680.0 - ((48.0 + notenum as f32) * 64.0) - (finetune as f32 / 2.0);
-                let rate = (8363.0 * 2.0_f32.powf((4608.0 - period) / 768.0)) as u32;
+                    let notenum = file.read_u8()? as i8;
+                    let pcm_type = match file.read_byte()? {
+                        0xAD => PcmType::ADPCM,
+                        _ => PcmType::DELTA,
+                    };
 
-                let depth = Depth::new(!flag.contains(FLAG_BITS), true, true);
-                let channel = Channel::new(flag.contains(FLAG_STEREO), false);
+                    let name = read_str::<22>(file)?;
 
-                let loop_start = loop_start / (depth.bytes() as u32 * channel.channels() as u32);
-                let loop_length = loop_length / (depth.bytes() as u32 * channel.channels() as u32);
-                let loop_end = loop_start.checked_add(loop_length).unwrap_or(0);
+                    let period =
+                        7680.0 - ((48.0 + notenum as f32) * 64.0) - (finetune as f32 / 2.0);
+                    let rate = (8363.0 * 2.0_f32.powf((4608.0 - period) / 768.0)) as u32;
 
-                let loop_kind = match flag & 0x3 {
-                    0 => LoopType::Off,
-                    1 => LoopType::Forward,
-                    2 => LoopType::PingPong,
-                    3 => LoopType::PingPong,
-                    _ => LoopType::Off,
-                };
+                    let depth = Depth::new(!flag.contains(FLAG_BITS), true, true);
+                    let channel = Channel::new(flag.contains(FLAG_STEREO), false);
 
-                if length != 0 {
-                    staging_samples.push(Sample {
-                        filename: None,
-                        name,
-                        length,
-                        rate,
-                        pointer: 0,
-                        depth,
-                        channel,
-                        index_raw: total_samples,
-                        pcm_type,
-                        looping: Loop::new(loop_start, loop_end, loop_kind),
-                    });
+                    let loop_start =
+                        loop_start / (depth.bytes() as u32 * channel.channels() as u32);
+                    let loop_length =
+                        loop_length / (depth.bytes() as u32 * channel.channels() as u32);
+                    let loop_end = loop_start.checked_add(loop_length).unwrap_or(0);
+
+                    let loop_kind = match flag & 0x3 {
+                        0 => LoopType::Off,
+                        1 => LoopType::Forward,
+                        2 => LoopType::PingPong,
+                        3 => LoopType::PingPong,
+                        _ => LoopType::Off,
+                    };
+
+                    if length != 0 {
+                        staging_samples.push(Sample {
+                            filename: None,
+                            name,
+                            length,
+                            rate,
+                            pointer: 0,
+                            depth,
+                            channel,
+                            index_raw: total_samples,
+                            pcm_type,
+                            looping: Loop::new(loop_start, loop_end, loop_kind),
+                        });
+                    }
+
+                    total_samples += 1;
                 }
-                total_samples += 1;
-            }
 
-            for smp in staging_samples.iter_mut() {
-                smp.pointer = file.seek_position()? as u32;
-                file.skip_bytes(smp.length as i64)?;
-            }
+                for smp in staging_samples.iter_mut() {
+                    smp.pointer = file.seek_position()? as u32;
 
-            samples.append(&mut staging_samples);
+                    // Apparently, it is "normal" for samples to report their sizes beyond what the file can store.
+                    // Most xm implementations just pad the sample with zeros, but truncating the length is semantically the same.
+                    if smp.pointer + smp.length > file_len as u32 {
+                        smp.length = file_len as u32 - smp.pointer;
+                    }
+
+                    file.skip_bytes(smp.length as i64)?;
+                }
+
+                samples.append(&mut staging_samples);
+            }
+            Ok(())
         }
 
-        remove_invalid_samples(&mut samples, buffer.len())?;
+        let _ = parse_instruments(file, &mut samples, buffer.len(), insnum);
 
         samples
     };
