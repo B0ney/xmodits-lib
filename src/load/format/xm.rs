@@ -25,7 +25,8 @@ const MINIMUM_VERSION: u16 = 0x0104;
 const FLAG_BITS: u8 = 1 << 4;
 const FLAG_STEREO: u8 = 1 << 5;
 
-const XM_INS_SIZE: u32 = 263;
+const INSTRUMENT_SIZE: u32 = 263;
+const MINIMUM_INSTRUMENT_SIZE: i64 = 29;
 
 pub fn probe(buf: &[u8]) -> bool {
     magic_header_bytes(&MAGIC_EXTENDED_MODULE, buf)
@@ -97,24 +98,22 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
             file: &mut Cursor<&Vec<u8>>,
             samples: &mut Vec<Sample>,
             file_len: usize,
-            insnum: u16,
+            total_instruments: u16,
         ) -> Result<(), Error> {
             let mut staging_samples: Vec<Sample> = Vec::new();
             let mut total_samples: u16 = 0;
 
-            for _ in 0..insnum {
+            for _ in 0..total_instruments {
                 let mut header_size = file.read_u32_le()?;
+
+                if header_size == 0 || header_size > INSTRUMENT_SIZE {
+                    header_size = INSTRUMENT_SIZE;
+                }
 
                 file.skip_bytes(22)?; // instrument name
                 file.skip_bytes(1)?; // instrument type
 
                 let sample_number = file.read_u16_le()?;
-
-                if header_size == 0 || header_size > XM_INS_SIZE {
-                    header_size = XM_INS_SIZE;
-                }
-
-                const MINIMUM_INSTRUMENT_SIZE: i64 = 29; // 4 + 22 + 1 + 2
 
                 file.skip_bytes(header_size as i64 - MINIMUM_INSTRUMENT_SIZE)?; // skip to sample headers
 
@@ -143,10 +142,8 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
                     let depth = Depth::new(!flag.contains(FLAG_BITS), true, true);
                     let channel = Channel::new(flag.contains(FLAG_STEREO), false);
 
-                    let loop_start =
-                        loop_start / (depth.bytes() as u32 * channel.channels() as u32);
-                    let loop_length =
-                        loop_length / (depth.bytes() as u32 * channel.channels() as u32);
+                    let loop_start = loop_start / (depth.bytes() as u32 * channel.channels() as u32);
+                    let loop_length = loop_length / (depth.bytes() as u32 * channel.channels() as u32);
                     let loop_end = loop_start.checked_add(loop_length).unwrap_or(0);
 
                     let loop_kind = match flag & 0x3 {
@@ -180,6 +177,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
 
                     // Apparently, it is "normal" for samples to report their sizes beyond what the file can store.
                     // Most xm implementations just pad the sample with zeros, but truncating the length is semantically the same.
+                    // Tough this may be an issue when comparing against samples exported by other programs.
                     if smp.pointer + smp.length > file_len as u32 {
                         smp.length = file_len as u32 - smp.pointer;
                     }
@@ -192,7 +190,12 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
             Ok(())
         }
 
-        let _ = parse_instruments(file, &mut samples, buffer.len(), insnum);
+        // Error if the instrument parsing function errors and we don't have any samples.
+        if let Err(error) = parse_instruments(file, &mut samples, buffer.len(), insnum) {
+            if samples.is_empty() {
+                return Err(error);
+            }
+        };
 
         samples
     };
