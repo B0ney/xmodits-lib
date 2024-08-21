@@ -49,11 +49,7 @@ impl Ripper {
     }
 
     /// Rip samples to a directory
-    pub fn rip_to_dir(
-        &self,
-        directory: impl AsRef<Path>,
-        module: &Module,
-    ) -> Result<(), Error> {
+    pub fn rip_to_dir(&self, directory: impl AsRef<Path>, module: &Module) -> Result<(), Error> {
         if module.is_empty() {
             return Err(Error::EmptyModule);
         }
@@ -105,12 +101,39 @@ impl Ripper {
             _ => Error::partial_extraction(errors),
         }
     }
+
+    /// Extract a module from a path to a destination
+    pub fn extract_from_path<A, B>(
+        &self,
+        path: A,
+        destination: B,
+        self_contained: bool,
+    ) -> Result<(), Error>
+    where
+        A: AsRef<Path>,
+        B: AsRef<Path>,
+    {
+        let file = path.as_ref();
+        let destination = destination.as_ref();
+
+        // Check if file is too large
+        if filesize(file)? > MAX_SIZE_BYTES {
+            return Err(too_large(MAX_SIZE_BYTES));
+        }
+
+        let module = load::from_path(file)?;
+
+        if !destination.is_dir() {
+            return Err(does_not_exist(destination));
+        }
+
+        let destination = get_destination(file, destination, self_contained)?;
+
+        self.rip_to_dir(destination, &module)
+    }
 }
 
-pub fn build_context<'a>(
-    module: &'a Module,
-    audio_format: &'a DynAudioFormat,
-) -> Context<'a> {
+pub fn build_context<'a>(module: &'a Module, audio_format: &'a DynAudioFormat) -> Context<'a> {
     Context {
         total: module.samples().len(),
         extension: audio_format.extension(),
@@ -135,23 +158,7 @@ where
     A: AsRef<Path>,
     B: AsRef<Path>,
 {
-    let file = path.as_ref();
-    let destination = destination.as_ref();
-
-    // Check if file is too large
-    if filesize(file)? > MAX_SIZE_BYTES {
-        return Err(too_large(MAX_SIZE_BYTES));
-    }
-
-    let module = load::from_path(file)?;
-
-    if !destination.is_dir() {
-        return Err(does_not_exist(destination));
-    }
-
-    let destination = get_destination(file, destination, self_contained)?;
-
-    ripper.rip_to_dir(destination, &module)
+    ripper.extract_from_path(path, destination, self_contained)
 }
 
 /// Turns a path to a module e.g test_module.it
