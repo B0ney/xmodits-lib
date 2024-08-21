@@ -3,11 +3,11 @@
 
 mod util;
 
-// check_sample_number!{
-//     xm_mod_plugin_packed,
-//     path: include_bytes!("modules/xm/vagyakozas.xm"),
-//     with: 33
-// }
+check_sample_number!{
+    xm_mod_plugin_packed_adpcm,
+    path: include_bytes!("modules/xm/vagyakozas.xm"),
+    with: 33
+}
 
 check_sample_number! {
     test_xm_1,
