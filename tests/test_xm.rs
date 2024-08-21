@@ -33,7 +33,7 @@ check_sample_number! {
     with: 7
 }
 
-// Another ordinary xm file. Mainly for sanity checks. 
+// Another ordinary xm file. Mainly for sanity checks.
 //
 // source: https://modarchive.org/module.php?42155
 check_sample_number! {

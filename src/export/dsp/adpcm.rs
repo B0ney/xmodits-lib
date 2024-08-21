@@ -1,4 +1,3 @@
-
 use std::io::Cursor;
 
 use crate::parser::{read_into_array, ByteReader};

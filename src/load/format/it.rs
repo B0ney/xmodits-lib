@@ -6,11 +6,9 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::log::info;
+use crate::module::sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample};
+use crate::module::{Info, Module};
 use crate::parser::{magic_header_bytes, peek, read_str, BitFlag, ByteReader};
-use crate::module::{
-    sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample},
-    Module, Info,
-};
 use crate::Error;
 
 use std::io::Cursor;

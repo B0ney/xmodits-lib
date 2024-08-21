@@ -8,8 +8,8 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::export::AudioFormat;
-use crate::parser::string::to_ascii_array;
 use crate::module::sample::Depth;
+use crate::parser::string::to_ascii_array;
 use crate::{Error, Sample};
 
 use super::helper::PCMFormatter;

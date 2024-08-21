@@ -37,7 +37,7 @@ pub fn probe(buf: &[u8]) -> bool {
 }
 
 /// Parse and load Fasttracker 2 `.xm` "Extended Modules".
-/// 
+///
 /// This format was very difficult to parse properly.
 ///
 /// Things to keep an extra eye out for:
@@ -97,7 +97,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
         file.skip_bytes(header_size.saturating_sub(9) as i64)?;
     }
 
-    // Any extra zeros we need to add to the end of the file 
+    // Any extra zeros we need to add to the end of the file
     // if a sample reports a length larger than the file.
     let mut extra_padding: u32 = 0;
 

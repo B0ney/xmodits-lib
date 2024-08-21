@@ -5,11 +5,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::module::sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample};
+use crate::module::{Info, Module};
 use crate::parser::{peek, read_str, ByteReader, ReadSeek};
-use crate::module::{
-    sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample},
-    Module, Info,
-};
 use crate::Error;
 
 use std::io::{Cursor, Read};
