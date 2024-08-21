@@ -7,7 +7,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::parser::{is_magic, magic_header_bytes, string::read_string, ByteReader, ReadSeek};
+use crate::parser::{magic_header_bytes, string::read_string, ByteReader, ReadSeek};
 use crate::Error;
 
 const MAGIC_UPKG: [u8; 4] = [0xC1, 0x83, 0x2A, 0x9E];
@@ -17,7 +17,7 @@ pub fn probe(buf: &[u8]) -> bool {
 }
 
 pub fn inner(file: &mut impl ReadSeek) -> Result<Vec<u8>, Error> {
-    if !is_magic(file, &MAGIC_UPKG)? {
+    if !file.matches_bytes(&MAGIC_UPKG)? {
         return Err(Error::invalid("Not a valid Unreal package"));
     }
 

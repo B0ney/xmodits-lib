@@ -5,7 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::parser::{is_magic_peek, peek, read_str, ByteReader, ReadSeek};
+use crate::parser::{peek, read_str, ByteReader, ReadSeek};
 use crate::module::{
     sample::{remove_invalid_samples, Channel, Depth, Loop, LoopType, Sample},
     Module, Info,
@@ -178,7 +178,7 @@ pub fn get_channels_and_sample_num(magic: [u8; 4]) -> (u8, u8) {
 }
 
 fn check_xpk(data: &mut impl ReadSeek) -> Result<(), Error> {
-    match is_magic_peek(data, &MAGIC_PP20)? {
+    match data.matches_bytes_peek(&MAGIC_PP20)? {
         true => Err(Error::unsupported(
             "XPK compressed MOD files are not supported",
         )),

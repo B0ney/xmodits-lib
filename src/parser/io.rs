@@ -50,6 +50,8 @@ pub trait ByteReader {
     fn seek_position(&mut self) -> io::Result<u64>;
     fn read_bytes(&mut self, bytes: usize) -> io::Result<Vec<u8>>;
     fn load_to_memory(&mut self) -> io::Result<Vec<u8>>;
+    fn matches_bytes(&mut self, bytes: &[u8]) -> io::Result<bool>;
+    fn matches_bytes_peek(&mut self, bytes: &[u8]) -> io::Result<bool>;
 }
 
 impl<T: ReadSeek> ByteReader for T {
@@ -97,6 +99,14 @@ impl<T: ReadSeek> ByteReader for T {
             Ok(buf)
         })
     }
+
+    fn matches_bytes(&mut self, bytes: &[u8]) -> io::Result<bool> {
+        Ok(self.read_bytes(bytes.len())? == bytes)
+    }
+
+    fn matches_bytes_peek(&mut self, bytes: &[u8]) -> io::Result<bool> {
+        peek(self, |reader| reader.matches_bytes(bytes))
+    }
 }
 
 /// A function that lets you do a [ByteReader] operation without affecting the inner cursor.
@@ -111,14 +121,6 @@ where
     let result = operation(reader);
     reader.set_seek_pos(rewind_pos)?;
     result
-}
-
-pub fn is_magic(reader: &mut impl ByteReader, magic: &[u8]) -> io::Result<bool> {
-    Ok(reader.read_bytes(magic.len())? == magic)
-}
-
-pub fn is_magic_peek(reader: &mut impl ByteReader, magc: &[u8]) -> io::Result<bool> {
-    peek(reader, |reader| is_magic(reader, magc))
 }
 
 pub fn io_error(error: &str) -> std::io::Error {

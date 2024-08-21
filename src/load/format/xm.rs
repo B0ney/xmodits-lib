@@ -8,7 +8,7 @@
 use crate::log::info;
 use crate::module::sample::{Channel, Depth, Loop, LoopType, PcmType, Sample};
 use crate::module::{Info, Module};
-use crate::parser::{is_magic, magic_header_bytes, read_str, BitFlag, ByteReader};
+use crate::parser::{magic_header_bytes, read_str, BitFlag, ByteReader};
 use crate::Error;
 
 use std::io::Cursor;
@@ -18,7 +18,7 @@ const FORMAT: &str = "Extended Module";
 
 const MAGIC_EXTENDED_MODULE: [u8; 17] = *b"Extended Module: ";
 const MAGIC_MOD_PLUGIN_PACKED: [u8; 20] = *b"MOD Plugin packed   ";
-const MAGIC_NUMBER: u8 = 0x1A;
+const MAGIC_NUMBER: [u8; 1] = [0x1A];
 const MINIMUM_VERSION: u16 = 0x0104;
 
 const FLAG_BITS: u8 = 1 << 4;
@@ -51,13 +51,13 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
     let file = &mut Cursor::new(&buffer);
 
     // TODO: Apparently, this isn't always present for some modules.
-    if !is_magic(file, &MAGIC_EXTENDED_MODULE)? {
+    if !file.matches_bytes(&MAGIC_EXTENDED_MODULE)? {
         return Err(Error::invalid("Not a valid Extended Module"));
     }
 
     let title = read_str::<20>(file)?;
 
-    if !is_magic(file, &[MAGIC_NUMBER])? {
+    if !file.matches_bytes(&MAGIC_NUMBER)? {
         return Err(Error::invalid("Not a valid Extended Module"));
     }
 
@@ -201,7 +201,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
                 // See: Page 16 in "The Unofficial XM File Format Specification"
                 // https://www.celersms.com/doc/XM_file_format.pdf#page=16
                 let skip_sample_bytes = match smp.pcm_type == PcmType::ADPCM {
-                    true => ADPCM_COMPRESSION_TABLE_SIZE + ((smp.length as u32 + 1) / 2),
+                    true => ADPCM_COMPRESSION_TABLE_SIZE + ((smp.length + 1) / 2),
                     false => smp.length,
                 };
                 file.skip_bytes(skip_sample_bytes as i64)?;

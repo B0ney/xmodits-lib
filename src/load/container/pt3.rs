@@ -8,7 +8,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::parser::bytes::magic_header_bytes;
-use crate::parser::io::{is_magic, ByteReader, ReadSeek};
+use crate::parser::io::{ByteReader, ReadSeek};
 use crate::Error;
 
 const MAGIC_PT36: [u8; 4] = *b"FORM";
@@ -35,12 +35,12 @@ fn read_iff_header(reader: &mut impl ReadSeek) -> Result<IFFChunk, Error> {
 }
 
 pub fn inner(file: &mut impl ReadSeek) -> Result<Vec<u8>, Error> {
-    if !is_magic(file, &MAGIC_PT36)? {
+    if !file.matches_bytes(&MAGIC_PT36)? {
         return Err(Error::invalid("Not a valid Protracker 3 file"));
     }
     let _ = file.read_u32_be()?;
 
-    if !is_magic(file, &MAGIC_MODL)? {
+    if !file.matches_bytes(&MAGIC_MODL)? {
         return Err(Error::invalid("Not a valid Protracker 3 file"));
     }
 

@@ -6,7 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::log::{info, warn};
-use crate::parser::{is_magic, magic_header_bytes, read_str, BitFlag, ByteReader};
+use crate::parser::{magic_header_bytes, read_str, BitFlag, ByteReader};
 use crate::module::{
     sample::{is_sample_valid, Channel, Depth, Loop, LoopType, Sample},
     Module, Info,
@@ -38,7 +38,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
     let title = read_str::<28>(file)?;
     file.skip_bytes(1)?; // skip other magic
 
-    if !is_magic(file, &MAGIC_NUMBER)? {
+    if !file.matches_bytes(&MAGIC_NUMBER)? {
         return Err(Error::invalid(INVALID));
     }
 
@@ -50,7 +50,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
 
     let signed = file.read_u16_le()? == 1;
 
-    if !is_magic(file, &MAGIC_SCRM)? {
+    if !file.matches_bytes(&MAGIC_SCRM)? {
         return Err(Error::invalid(INVALID));
     }
 
@@ -103,7 +103,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
             file.skip_bytes(12)?; // internal buffer used during playback
 
             let name = read_str::<28>(file)?;
-            if !is_magic(file, &MAGIC_SAMPLE)? {
+            if !file.matches_bytes(&MAGIC_SAMPLE)? {
                 return Err(Error::invalid(INVALID));
             }
 

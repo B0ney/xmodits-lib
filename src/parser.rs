@@ -12,5 +12,5 @@ pub mod string;
 
 pub use bitflag::BitFlag;
 pub use bytes::magic_header_bytes;
-pub use io::{io_error, is_magic, is_magic_peek, peek, read_into_array, ByteReader, ReadSeek};
+pub use io::{io_error, peek, read_into_array, ByteReader, ReadSeek};
 pub use string::{read_str, to_str_os};

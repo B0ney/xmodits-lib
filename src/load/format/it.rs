@@ -6,7 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::log::info;
-use crate::parser::{is_magic, magic_header_bytes, peek, read_str, BitFlag, ByteReader};
+use crate::parser::{magic_header_bytes, peek, read_str, BitFlag, ByteReader};
 use crate::module::{
     sample::{is_sample_valid, Channel, Depth, Loop, LoopType, PcmType, Sample},
     Module, Info,
@@ -45,7 +45,7 @@ pub fn probe(buf: &[u8]) -> bool {
 pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
     let file = &mut Cursor::new(&buffer);
 
-    if !is_magic(file, &MAGIC_IMPM)? {
+    if !file.matches_bytes(&MAGIC_IMPM)? {
         return Err(Error::invalid(INVALID));
     }
 
@@ -72,7 +72,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
         for (index_raw, sample_header) in smp_ptrs.into_iter().enumerate() {
             file.set_seek_pos(sample_header as u64)?;
 
-            if !is_magic(file, &MAGIC_IMPS)? {
+            if !file.matches_bytes(&MAGIC_IMPS)? {
                 return Err(Error::invalid("Not a valid Impulse Tracker sample"));
             }
 
