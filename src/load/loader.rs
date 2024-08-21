@@ -5,11 +5,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use std::io::Cursor;
+use std::fs::File;
+use std::io::{BufReader, Cursor};
 use std::path::{Path, PathBuf};
 
-use crate::parser::{peek, ByteReader, ReadSeek};
 use crate::module::Module;
+use crate::parser::{peek, ByteReader, ReadSeek};
 use crate::Error;
 
 use super::container;
@@ -22,7 +23,8 @@ pub(crate) type Inner<Reader> = fn(&mut Reader) -> Result<Vec<u8>, Error>;
 /// Load a tracker module from a path.
 pub fn from_path(source: impl AsRef<Path>) -> Result<Module, Error> {
     let source = source.as_ref();
-    load(&mut std::fs::File::open(source)?, Some(source.to_owned()))
+    let mut reader = BufReader::new(File::open(source)?);
+    load(&mut reader, Some(source.to_owned()))
 }
 
 /// Load a tracker module from its bytes.
