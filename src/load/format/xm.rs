@@ -26,17 +26,31 @@ const FLAG_STEREO: u8 = 1 << 5;
 
 const INSTRUMENT_SIZE: u32 = 263;
 const MINIMUM_INSTRUMENT_SIZE: u32 = 29;
+
 const PADDING_LIMIT: u32 = 2 * 1024 * 1024;
 const ADPCM_COMPRESSION_TABLE_SIZE: u32 = 16;
 
+/// Determine if given bytes could be an Extended Module.
 pub fn probe(buf: &[u8]) -> bool {
     magic_header_bytes(&MAGIC_EXTENDED_MODULE, buf)
         | magic_header_bytes(&MAGIC_MOD_PLUGIN_PACKED, buf)
 }
 
+/// Parse and load Fasttracker 2 `.xm` "Extended Modules".
+/// 
+/// This format was very difficult to parse properly.
+///
+/// Things to keep an extra eye out for:
+///  * Samples with lengths that are out of bounds - Pad them with zeros, **DO NOT MODIFY THE LENGTH**.
+///  * ADPCM samples - Compressed data occupies `(16 + ((sample_length + 1) / 2))` bytes in the file.
+///
+/// Resources:
+///  * https://www.celersms.com/doc/XM_file_format.pdf
+///
 pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
     let file = &mut Cursor::new(&buffer);
 
+    // TODO: Apparently, this isn't always present for some modules.
     if !is_magic(file, &MAGIC_EXTENDED_MODULE)? {
         return Err(Error::invalid("Not a valid Extended Module"));
     }
@@ -69,7 +83,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
         ));
     }
 
-    // skip patterns
+    // Skip patterns
     file.set_seek_pos(60 + header_size as u64)?;
 
     for _ in 0..pattern_count {
@@ -83,12 +97,12 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
         file.skip_bytes(header_size.saturating_sub(9) as i64)?;
     }
 
-    let file_len = buffer.len();
+    // Any extra zeros we need to add to the end of the file 
+    // if a sample reports a length larger than the file.
     let mut extra_padding: u32 = 0;
 
     let samples = {
         let mut samples: Vec<Sample> = Vec::new();
-
         let mut staging_samples: Vec<Sample> = Vec::new();
         let mut total_samples: u16 = 0;
 
@@ -170,9 +184,10 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
                 //
                 // We will pad the sample with zeros (just add extra zeros at the end of the file buffer),
                 // and terminate the instrument parsing subroutine.
-                if smp.pointer + smp.length > file_len as u32 {
-                    extra_padding = file_len as u32 - smp.pointer + smp.length;
-
+                //
+                // We need to add extra padding as loop points may point to them.
+                if smp.pointer + smp.length > buffer.len() as u32 {
+                    extra_padding = buffer.len() as u32 - smp.pointer + smp.length;
                     samples.push(smp);
 
                     break 'parse_instrument;
@@ -201,10 +216,8 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
     let mut buffer = buffer;
 
     if extra_padding > 0 {
-        buffer.resize(
-            buffer.len() + extra_padding.clamp(0, PADDING_LIMIT) as usize,
-            0,
-        );
+        let new_len = buffer.len() + extra_padding.clamp(0, PADDING_LIMIT) as usize;
+        buffer.resize(new_len, 0);
         info!("Padded last sample with {} extra bytes", extra_padding);
     }
 
