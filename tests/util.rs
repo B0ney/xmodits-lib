@@ -64,7 +64,6 @@ where
 /// ```
 #[macro_export]
 macro_rules! check_sample_number {
-    // ($test_name:ident kind: $tracker:ty, path: $path:expr, with: $smp_no:tt) => {
     ($test_name:ident, path: $bytes:expr, with: $expected:tt) => {
         #[test]
         fn $test_name() {
