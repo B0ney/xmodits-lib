@@ -1,0 +1,16 @@
+name: typo-check
+
+on:
+  push:
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-typos:
+    runs-on: ubuntu-latest
+    steps:
+    - name: typos-action
+      uses: crate-ci/typos@v1.0.4
