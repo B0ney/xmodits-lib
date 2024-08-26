@@ -27,7 +27,8 @@ const FLAG_STEREO: u8 = 1 << 5;
 const INSTRUMENT_SIZE: u32 = 263;
 const MINIMUM_INSTRUMENT_SIZE: u32 = 29;
 
-const PADDING_LIMIT: u32 = 2 * 1024 * 1024;
+const PADDING_LIMIT: u32 = 44100 * 10; // TODO
+
 const ADPCM_COMPRESSION_TABLE_SIZE: u32 = 16;
 
 /// Determine if given bytes could be an Extended Module.
@@ -187,7 +188,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
                 // See: Page 16 in "The Unofficial XM File Format Specification"
                 let length_bytes = match smp.pcm_type == PcmType::ADPCM {
                     true => ADPCM_COMPRESSION_TABLE_SIZE + ((smp.length + 1) / 2),
-                    _ => smp.length,
+                    false => smp.length,
                 };
 
                 // Apparently, it is common for samples to report their sizes beyond what the file can store.
@@ -198,17 +199,21 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
                 //
                 // We need to add extra padding as loop points may point to them.
                 if smp.pointer + length_bytes > buffer.len() as u32 {
-                    extra_padding = buffer.len() as u32 - smp.pointer + length_bytes;
-                    samples.push(smp);
+                    extra_padding = (smp.pointer + length_bytes) - buffer.len() as u32;
+
+                    if extra_padding < PADDING_LIMIT {
+                        samples.push(smp);
+                    }
 
                     break 'parse_instrument;
                 }
 
                 file.skip_bytes(length_bytes as i64)?;
-
                 samples.push(smp);
             }
         }
+
+        sanity_check_samples(&mut samples);
 
         samples
     };
@@ -216,7 +221,7 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
     let mut buffer = buffer;
 
     if extra_padding > 0 {
-        let new_len = buffer.len() + extra_padding.clamp(0, PADDING_LIMIT) as usize;
+        let new_len = buffer.len() + extra_padding as usize;
         buffer.resize(new_len, 0);
         info!("Padded last sample with {} extra bytes", extra_padding);
     }
@@ -230,5 +235,21 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
         },
         inner: buffer.into_boxed_slice(),
         samples: samples.into(),
+    })
+}
+
+/// HACK: Removes some really cursed samples. I really need a better heuristic.
+/// For "xenia3.xm", xmodits reports last sample to be 5Hz and has a duration of ~34.5 hours.
+fn sanity_check_samples(samples: &mut Vec<Sample>) {
+    use std::time::Duration;
+
+    samples.retain(|smp| {
+        let less_than_15_mins =
+            Duration::from_secs_f32(smp.length_frames() as f32 / smp.rate as f32)
+                < Duration::from_secs(60 * 15);
+
+        let sensible_sample_rate = (256..=384_000).contains(&smp.rate);
+
+        sensible_sample_rate && less_than_15_mins
     })
 }

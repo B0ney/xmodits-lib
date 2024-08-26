@@ -24,6 +24,18 @@ check_sample_number! {
     with: 26
 }
 
+// This module is cursed.
+//
+// Openmpt reports 7 samples, but the last sample is complete and utter garbage.
+// Attempting to save samples with it will fail on the last one.
+//
+// source: https://modarchive.org/module.php?193712
+check_sample_number! {
+    test_xm_cursed_sample,
+    path: include_bytes!("modules/xm/xenia3.xm"),
+    with: 6
+}
+
 // An ordinary xm file. Mainly for sanity checks.
 //
 // source: https://modarchive.org/module.php?191384
