@@ -15,7 +15,7 @@ Work in progress
 | Extension | Description |
 | --- | --- |
 | UMX | Unreal Music Package|
-| PT3 | ProTracker 3 project file |
+| PT36 | ProTracker 3.6 project file |
 
 
 ## Formats samples can be exported to:
@@ -27,6 +27,31 @@ Work in progress
 | ITS | Impulse Tracker 2 Sample |
 | S3I | Scream Tracker 3 Instrument|
 | RAW | Headerless PCM |
+
+
+## API
+Subject to change
+
+Extract a module from a path:
+
+```rust
+use xmodits_lib::{Ripper, AudioFormat};
+
+let self_contained_samples = true;
+
+Ripper::default()
+    .audio_format(AudioFormat::ITS) // Export samples to the impulse tracker instrument instead of .wav
+    .extract_from_path(
+        "./module1.xm", 
+        "~/Downloads/", 
+        self_contained_samples
+    );
+```
+
+Load a module from a path:
+```rust
+let module = xmodits_lib::load_from_path("./module1.xm").expect("valid module");
+```
 
 ## License
 The xmodits core library is licensed under the Mozilla Public License 2 (MPLv2)
