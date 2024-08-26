@@ -50,7 +50,9 @@ pub trait ByteReader {
     fn seek_position(&mut self) -> io::Result<u64>;
     fn read_bytes(&mut self, bytes: usize) -> io::Result<Vec<u8>>;
     fn load_to_memory(&mut self) -> io::Result<Vec<u8>>;
-    fn matches_bytes(&mut self, bytes: &[u8]) -> io::Result<bool>;
+    fn matches_bytes(&mut self, bytes: &[u8]) -> io::Result<bool> {
+        Ok(self.read_bytes(bytes.len())? == bytes)
+    }
     fn matches_bytes_peek(&mut self, bytes: &[u8]) -> io::Result<bool>;
 }
 
@@ -98,10 +100,6 @@ impl<T: ReadSeek> ByteReader for T {
             f.read_to_end(&mut buf)?;
             Ok(buf)
         })
-    }
-
-    fn matches_bytes(&mut self, bytes: &[u8]) -> io::Result<bool> {
-        Ok(self.read_bytes(bytes.len())? == bytes)
     }
 
     fn matches_bytes_peek(&mut self, bytes: &[u8]) -> io::Result<bool> {

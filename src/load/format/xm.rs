@@ -179,6 +179,17 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
             for mut smp in staging_samples.drain(..) {
                 smp.pointer = file.seek_position()? as u32;
 
+                // Check if the sample we're adding is ADPCM.
+                //
+                // ADPCM samples are compressed so we **MUST NOT USE** the length of the sample when skipping over to the next one.
+                // We'll need to use COMPRESSION_TABLE_SIZE + ((smp.length + 1) / 2) bytes instead.
+                //
+                // See: Page 16 in "The Unofficial XM File Format Specification"
+                let length_bytes = match smp.pcm_type == PcmType::ADPCM {
+                    true => ADPCM_COMPRESSION_TABLE_SIZE + ((smp.length + 1) / 2),
+                    _ => smp.length,
+                };
+
                 // Apparently, it is common for samples to report their sizes beyond what the file can store.
                 // If we reach a sample that will overflow, we know that this is the last sample.
                 //
@@ -186,25 +197,14 @@ pub fn load(buffer: Vec<u8>, source: Option<PathBuf>) -> Result<Module, Error> {
                 // and terminate the instrument parsing subroutine.
                 //
                 // We need to add extra padding as loop points may point to them.
-                if smp.pointer + smp.length > buffer.len() as u32 {
-                    extra_padding = buffer.len() as u32 - smp.pointer + smp.length;
+                if smp.pointer + length_bytes > buffer.len() as u32 {
+                    extra_padding = buffer.len() as u32 - smp.pointer + length_bytes;
                     samples.push(smp);
 
                     break 'parse_instrument;
                 }
 
-                // Check if the sample we're adding is ADPCM.
-                //
-                // ADPCM samples are compressed so we **MUST NOT USE** the length of the sample when skipping over to the next one.
-                // We'll need to use COMPRESSION_TABLE_SIZE + ((smp.length + 1) / 2) bytes instead.
-                //
-                // See: Page 16 in "The Unofficial XM File Format Specification"
-                // https://www.celersms.com/doc/XM_file_format.pdf#page=16
-                let skip_sample_bytes = match smp.pcm_type == PcmType::ADPCM {
-                    true => ADPCM_COMPRESSION_TABLE_SIZE + ((smp.length + 1) / 2),
-                    false => smp.length,
-                };
-                file.skip_bytes(skip_sample_bytes as i64)?;
+                file.skip_bytes(length_bytes as i64)?;
 
                 samples.push(smp);
             }
