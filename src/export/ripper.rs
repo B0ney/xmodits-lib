@@ -10,9 +10,9 @@ use std::io::{BufWriter, Write};
 use std::path::PathBuf;
 use std::{fs, path::Path};
 
-use super::format::{AudioFormat, DynAudioFormat};
+use super::format::{AudioFormatter, DynAudioFormatter};
 use super::name::{Context, DynSampleNamerTrait, SampleNamer, SampleNamerTrait};
-use super::Format;
+use super::AudioFormat;
 
 use crate::error::{does_not_exist, no_filename, not_empty, too_large, Error, ExtractionError};
 use crate::info::{filesize, is_dir_empty};
@@ -25,27 +25,42 @@ use crate::{load, Module, Sample, MAX_SIZE_BYTES};
 ///
 /// They can be changed at runtime
 pub struct Ripper {
-    /// Function object to name samples
+    /// Function object to name samples.
     /// See [SampleNamerTrait]
-    pub namer_func: Box<dyn SampleNamerTrait>,
+    pub sample_namer: Box<dyn SampleNamerTrait>,
 
-    /// Process raw PCM to the implemented format  
-    /// see [AudioTrait]
-    pub format: Box<dyn AudioFormat>,
+    /// Process raw PCM to the implemented format.
+    /// See [AudioFormat]
+    pub audio_format: Box<dyn AudioFormatter>,
 }
 
 impl Default for Ripper {
     fn default() -> Self {
-        Self {
-            namer_func: SampleNamer::default().into(),
-            format: Format::WAV.into(),
-        }
+        Self::new(SampleNamer::default(), AudioFormat::WAV)
     }
 }
 
 impl Ripper {
-    pub fn new(namer_func: DynSampleNamerTrait, format: DynAudioFormat) -> Self {
-        Self { namer_func, format }
+    pub fn new(
+        sample_namer: impl Into<DynSampleNamerTrait>,
+        format: impl Into<DynAudioFormatter>,
+    ) -> Self {
+        Self {
+            sample_namer: sample_namer.into(),
+            audio_format: format.into(),
+        }
+    }
+
+    /// Set the sample namer of ripper.
+    pub fn sample_namer(mut self, sample_namer: impl Into<DynSampleNamerTrait>) -> Self {
+        self.sample_namer = sample_namer.into();
+        self
+    }
+
+    /// Set the audio formatter of the ripper.
+    pub fn audio_format(mut self, audio_format: impl Into<DynAudioFormatter>) -> Self {
+        self.audio_format = audio_format.into();
+        self
     }
 
     /// Rip samples to a directory
@@ -61,10 +76,10 @@ impl Ripper {
             return Error::io_error("Path is not a directory");
         }
 
-        let context = build_context(module, &self.format);
+        let context = build_context(module, &self.audio_format);
 
         let extract_samples = |index: usize, smp: &Sample| -> Result<(), Error> {
-            let sample_path = directory.join((self.namer_func)(smp, &context, index));
+            let sample_path = directory.join((self.sample_namer)(smp, &context, index));
 
             // Only create the file AFTER we have obtained the pcm to prevent artifacts.
             let pcm = module.pcm(smp)?;
@@ -75,7 +90,7 @@ impl Ripper {
                 .open(&sample_path)
                 .map(BufWriter::new)?;
 
-            let result = self.format.write(smp, pcm, &mut file);
+            let result = self.audio_format.write(smp, pcm, &mut file);
             file.flush()?;
 
             // If we can't write the pcm in its specific format,
@@ -133,7 +148,7 @@ impl Ripper {
     }
 }
 
-pub fn build_context<'a>(module: &'a Module, audio_format: &'a DynAudioFormat) -> Context<'a> {
+pub fn build_context<'a>(module: &'a Module, audio_format: &'a DynAudioFormatter) -> Context<'a> {
     Context {
         total: module.samples().len(),
         extension: audio_format.extension(),

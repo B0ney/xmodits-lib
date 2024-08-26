@@ -11,7 +11,7 @@ mod its;
 mod raw;
 mod s3i;
 mod wav;
-mod xi;
+// mod xi;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -20,10 +20,10 @@ use std::{borrow::Cow, io::Write};
 use super::helper;
 use crate::{Error, Sample};
 
-pub type DynAudioFormat = Box<dyn AudioFormat>;
+pub type DynAudioFormatter = Box<dyn AudioFormatter>;
 
 /// A trait to output raw PCM data into an audio format
-pub trait AudioFormat: Send + Sync {
+pub trait AudioFormatter: Send + Sync {
     /// Audio format's file extension
     fn extension(&self) -> &str;
 
@@ -31,10 +31,20 @@ pub trait AudioFormat: Send + Sync {
     fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error>;
 }
 
+impl AudioFormatter for Box<dyn AudioFormatter> {
+    fn extension(&self) -> &str {
+        (**self).extension()
+    }
+
+    fn write(&self, smp: &Sample, pcm: Cow<[u8]>, writer: &mut dyn Write) -> Result<(), Error> {
+        (**self).write(smp, pcm, writer)
+    }
+}
+
 /// Possible formats to store the pcm
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum Format {
+pub enum AudioFormat {
     /// Wav, only supports unsigned 8-bit and signed 16-bit samples.
     /// Samples are processed to satisfy this.
     #[default]
@@ -48,46 +58,46 @@ pub enum Format {
     ITS,
     /// Scream Tracker 3 Instrument, only supports 64KiB samples
     S3I,
-    /// Fast Tracker 2 Instrument
-    XI,
+    // /// Fast Tracker 2 Instrument
+    // XI,
     /// Raw PCM
     /// This will lose information about the sample.
     RAW,
 }
 
-impl Format {
-    pub const ALL: [Self; 7] = [
+impl AudioFormat {
+    pub const ALL: [Self; 6] = [
         Self::WAV,
         Self::IFF,
         Self::AIFF,
         Self::ITS,
         Self::S3I,
-        Self::XI,
+        // Self::XI,
         Self::RAW,
     ];
     /// Returns an AudioTrait object.
     ///
     /// If the implementation is zero sized, it won't allocate.
-    pub fn get_impl(&self) -> Box<dyn AudioFormat> {
+    pub fn get_impl(&self) -> Box<dyn AudioFormatter> {
         match self {
             Self::WAV => Box::new(wav::Wav),
             Self::AIFF => Box::new(aiff::Aiff),
             Self::IFF => Box::new(iff::Iff),
             Self::ITS => Box::new(its::Its),
             Self::S3I => Box::new(s3i::S3i),
-            Self::XI => Box::new(xi::Xi),
+            // Self::XI => Box::new(xi::Xi),
             Self::RAW => Box::new(raw::Raw),
         }
     }
 }
 
-impl From<Format> for Box<dyn AudioFormat> {
-    fn from(val: Format) -> Self {
+impl From<AudioFormat> for Box<dyn AudioFormatter> {
+    fn from(val: AudioFormat) -> Self {
         val.get_impl()
     }
 }
 
-impl std::fmt::Display for Format {
+impl std::fmt::Display for AudioFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -99,13 +109,13 @@ impl std::fmt::Display for Format {
                 Self::AIFF => "AIFF",
                 Self::ITS => "ITS",
                 Self::S3I => "S3I",
-                Self::XI => "XI",
+                // Self::XI => "XI",
             }
         )
     }
 }
 
-impl std::str::FromStr for Format {
+impl std::str::FromStr for AudioFormat {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {

@@ -8,7 +8,7 @@
 use std::{borrow::Cow, io::Write};
 
 use crate::export::helper::PCMFormatter;
-use crate::export::AudioFormat;
+use crate::export::AudioFormatter;
 use crate::module::sample::{Channel, Depth, Sample};
 use crate::Error;
 use bytemuck::cast_slice;
@@ -20,7 +20,7 @@ use extended::Extended;
 #[derive(Clone, Copy)]
 pub struct Aiff;
 
-impl AudioFormat for Aiff {
+impl AudioFormatter for Aiff {
     fn extension(&self) -> &str {
         "aiff"
     }

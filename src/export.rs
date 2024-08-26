@@ -14,6 +14,6 @@ pub mod ripper;
 
 use dsp::helper;
 
-pub use format::{AudioFormat, DynAudioFormat, Format};
+pub use format::{AudioFormatter, DynAudioFormatter, AudioFormat};
 pub use name::{SampleNamer, SampleNamerTrait};
 pub use ripper::{create_folder_name, extract, get_destination, Ripper};

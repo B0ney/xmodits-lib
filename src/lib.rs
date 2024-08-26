@@ -18,6 +18,7 @@ pub mod module;
 
 pub use error::Error;
 pub use export::ripper::{extract, Ripper};
+pub use export::AudioFormat;
 pub use info::{info, Info};
 pub use load::{from_bytes as load_from_bytes, from_path as load_from_path, load};
 pub use module::{Module, Sample};

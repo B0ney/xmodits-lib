@@ -7,13 +7,13 @@
 
 use std::{borrow::Cow, io::Write};
 
-use crate::export::AudioFormat;
+use crate::export::AudioFormatter;
 use crate::{Error, Sample};
 
 #[derive(Clone, Copy)]
 pub struct Raw;
 
-impl AudioFormat for Raw {
+impl AudioFormatter for Raw {
     fn extension(&self) -> &str {
         "raw"
     }
